@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cascaqit-finance-demo"
+version = "0.1.1"
+description = "Offline financial experiments built on CASCAQit"
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "cascaqit>=1.0.2a1,<1.0.3",
+    "fastapi>=0.104,<1",
+    "numpy>=1.26,<3",
+    "uvicorn>=0.24,<1",
+]
+
+[project.optional-dependencies]
+legacy = [
+    "bokeh>=3.4,<4",
+]
+dev = [
+    "bokeh>=3.4,<4",
+    "httpx>=0.25,<1",
+    "pytest>=8",
+    "ruff>=0.9",
+]
+
+[project.scripts]
+cascaqit-finance-api = "cascaqit_finance_demo.api.app:run"
+cascaqit-finance-demo = "cascaqit_finance_demo.api.app:launch"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cascaqit_finance_demo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "src",
+    "../cascaqit-new/CASCAQit/src",
+]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

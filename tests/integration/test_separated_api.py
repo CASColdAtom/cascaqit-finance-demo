@@ -1,0 +1,185 @@
+"""独立金融 Demo 前端依赖的 FastAPI 契约测试。"""
+
+from __future__ import annotations
+
+from importlib import import_module
+
+import pytest
+from cascaqit.exceptions import CapabilityError
+from fastapi.testclient import TestClient
+
+from cascaqit_finance_demo.api.app import app
+
+app_module = import_module("cascaqit_finance_demo.api.app")
+client = TestClient(app)
+
+
+def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
+    """验证健康接口明确披露离线模拟边界，目录完整返回七个场景。"""
+    health = client.get("/api/health")
+    catalog = client.get("/api/scenarios")
+
+    assert health.status_code == 200
+    assert health.json()["execution"] == "local_simulation"
+    assert health.json()["hardware"] is False
+    assert catalog.status_code == 200
+    scenarios = catalog.json()["scenarios"]
+    assert len(scenarios) == 7
+    assert {item["recommendedMode"] for item in scenarios} == {
+        "digital",
+        "hybrid",
+        "analog",
+    }
+
+
+def test_analysis_recommends_digital_after_fraud_conflicts_disappear() -> None:
+    """验证共享实体冲突消失后不再为了展示效果强行推荐 Hybrid。"""
+    response = client.post(
+        "/api/scenarios/fraud_routing/analyze",
+        json={"preset": "base", "values": {"entity_cap": 2}},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["analysis"]["decision"]["recommendedMode"] == "digital"
+    assert payload["scenario"]["values"]["entity_cap"] == 2
+
+
+def test_analysis_exposes_business_native_visual_contract_for_every_scenario() -> None:
+    """验证七个场景在执行前都提供符合各自业务语义的可视化模型。"""
+    expected = {
+        "portfolio": "portfolio-correlation",
+        "settlement": "settlement-network",
+        "fraud_routing": "fraud-entity-network",
+        "collateral": "collateral-flow",
+        "liquidity": "liquidity-timeline",
+        "credit_limits": "credit-capital-map",
+        "derivatives": "derivatives-pnl-surface",
+    }
+    for case_id, kind in expected.items():
+        response = client.post(
+            f"/api/scenarios/{case_id}/analyze",
+            json={"values": {}},
+        )
+
+        assert response.status_code == 200
+        visual = response.json()["analysis"]["scenarioVisual"]
+        assert visual["kind"] == kind
+        assert visual["title"]
+        assert visual["subtitle"]
+        assert any(
+            (
+                visual["nodes"],
+                visual["points"],
+                visual["matrix"]["cells"],
+            )
+        )
+
+    derivative_visual = client.post(
+        "/api/scenarios/derivatives/analyze",
+        json={"preset": "european_call", "values": {}},
+    ).json()["analysis"]["scenarioVisual"]
+    assert len(derivative_visual["matrix"]["cells"]) == 9
+    assert any(cell["value"] != 0.0 for cell in derivative_visual["matrix"]["cells"])
+
+
+def test_digital_execution_returns_business_circuit_counts_and_audit() -> None:
+    """验证 Digital 执行返回业务解、真实线路、采样计数和审计链。"""
+    response = client.post(
+        "/api/scenarios/portfolio/run",
+        json={
+            "preset": "base",
+            "mode": "recommended",
+            "shots": 16,
+            "seed": 17,
+            "parameter_points": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["quantum"]["mode"] == "digital"
+    assert run["quantum"]["circuit"]["gates"]
+    assert sum(item["count"] for item in run["quantum"]["counts"]) == 16
+    assert run["business"]["metrics"]
+    assert run["business"]["chart"]["title"] == "可行组合与当前候选"
+    assert run["business"]["chart"]["xLabel"] == "波动率"
+    assert run["audit"]["hardwareExecution"] is False
+
+
+def test_hybrid_and_analog_expose_atoms_waveforms_and_real_term_mapping() -> None:
+    """验证 Hybrid/Analog 返回原子、真实控制波形及可追溯项映射。"""
+    cases = (("settlement", "hybrid"), ("derivatives", "analog"))
+    for case_id, mode in cases:
+        response = client.post(
+            f"/api/scenarios/{case_id}/run",
+            json={
+                "preset": "base" if case_id == "settlement" else "european_call",
+                "mode": "recommended",
+                "shots": 8,
+                "seed": 19,
+                "parameter_points": 1,
+            },
+        )
+
+        assert response.status_code == 200
+        quantum = response.json()["run"]["quantum"]
+        assert quantum["mode"] == mode
+        assert quantum["atoms"]
+        assert quantum["waveforms"]["rabi"]
+        assert quantum["waveforms"]["detuning"]
+        assert quantum["waveforms"]["phase"]
+        assert all(
+            len(quantum["waveforms"][name]) >= 2
+            for name in ("rabi", "detuning", "phase")
+        )
+        assert quantum["termMapping"]
+        assert sum(item["count"] for item in quantum["counts"]) == 8
+
+
+def test_run_maps_capability_error_to_stable_422(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """验证规划器的已知能力错误不会退化为缺少上下文的裸 500。"""
+
+    def reject_run(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise CapabilityError(
+            "资源预算不足。",
+            code="SIMULATION_RESOURCE_BUDGET_EXCEEDED",
+            stage="simulation",
+        )
+
+    monkeypatch.setattr(app_module.ScenarioExecutor, "run", reject_run)
+    response = client.post(
+        "/api/scenarios/settlement/run",
+        json={"shots": 1, "parameter_points": 1},
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "SIMULATION_RESOURCE_BUDGET_EXCEEDED"
+    assert detail["stage"] == "simulation"
+    assert detail["error_id"]
+
+
+def test_run_maps_unknown_error_to_traceable_500(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """验证未知执行错误隐藏内部堆栈，同时向现场提供可检索错误编号。"""
+
+    def fail_run(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise RuntimeError("sensitive implementation detail")
+
+    monkeypatch.setattr(app_module.ScenarioExecutor, "run", fail_run)
+    response = client.post(
+        "/api/scenarios/settlement/run",
+        json={"shots": 1, "parameter_points": 1},
+    )
+
+    assert response.status_code == 500
+    detail = response.json()["detail"]
+    assert detail["code"] == "internal_execution_error"
+    assert len(detail["error_id"]) == 32
+    assert "sensitive" not in detail["message"]

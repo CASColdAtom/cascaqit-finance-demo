@@ -1,0 +1,16 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+
+REM Keep this wrapper ASCII-only. User-facing messages belong in verify.ps1.
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0verify.ps1"
+set "EXIT_CODE=%ERRORLEVEL%"
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo Integrity verification failed. Review the PowerShell error above.
+  pause
+  exit /b %EXIT_CODE%
+)
+
+pause
+exit /b 0
