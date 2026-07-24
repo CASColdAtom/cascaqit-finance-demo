@@ -1,4 +1,16 @@
-"""把金融侧 QUBO 模型适配为统一 Problem API 场景定义。"""
+"""把金融领域模型适配为统一 Problem API 场景定义。
+
+``PortfolioCase``、``SettlementCase`` 和 ``FraudRoutingCase`` 负责业务建模与
+QUBO 系数；本模块不重复构造系数，只补充编译模式选择所需的金融语义：
+
+- ``business_variables`` 标记可解码回业务对象的变量；
+- ``auxiliary_variables`` 标记 slack 和其他罚项辅助位；
+- ``term_groups`` 说明目标、全局约束、依赖和两两业务冲突分别来自哪里；
+- ``preferred_mode`` 表示场景设计上的首选链路，但不能越过编译器可行性检查。
+
+只有显式列入 ``pairwise_conflict`` 的变量对才允许被模式顾问认定为 Analog
+业务相互作用。这个限制避免把普通 QUBO 二次项误解为中性原子原生业务结构。
+"""
 
 from __future__ import annotations
 
@@ -20,7 +32,11 @@ from cascaqit_finance_demo.domain.problem_api import (
 
 
 class PortfolioScenario:
-    """投资组合适配器：保留稠密市场目标和全局约束的 Digital 语义。"""
+    """投资组合适配器：保留稠密市场目标和全局约束的 Digital 语义。
+
+    协方差矩阵通常产生稠密的两两风险项，持仓数、行业上限和防御资产下限又是
+    全局约束；这些结构不是少量可追溯的排斥边，因此默认使用 Digital QAOA。
+    """
     case_id = "portfolio"
     title = "多资产投资组合优化"
 
@@ -68,7 +84,13 @@ class PortfolioScenario:
 
 
 class SettlementScenario:
-    """交易结算适配器：冲突项走 Analog，其余约束保留为 Digital。"""
+    """交易结算适配器：冲突项走 Analog，其余约束保留为 Digital。
+
+    Hybrid D-A-D（Digital-Analog-Digital）中，前段 Digital 准备优化状态，中段
+    Analog 用原子相互作用表达交易互斥边，后段 Digital 继续承担流动性、批次
+    上限和有向依赖等 residual（剩余项）。如果布局不能支持真实冲突边，模式
+    顾问会降回 Digital，而不是制造一段没有业务含义的 Analog 演化。
+    """
     case_id = "settlement"
     title = "交易结算批次优化"
 
@@ -136,7 +158,12 @@ class SettlementScenario:
 
 
 class FraudRoutingScenario:
-    """反欺诈适配器：共享实体冲突可由中性原子相互作用表达。"""
+    """反欺诈适配器：共享实体冲突可由中性原子相互作用表达。
+
+    同一实体的告警在并行上限为一时形成明确的排斥边，适合交给 Analog
+    interaction；调查席位数和告警价值仍是 Digital 项。因此推荐 Hybrid，且
+    Analog 部分的每条边都能追溯到具体实体冲突。
+    """
     case_id = "fraud_routing"
     title = "反欺诈调查任务编排"
 

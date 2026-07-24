@@ -1,4 +1,9 @@
-"""金融场景与展示层共享的强类型输入、约束检查和业务结果模型。"""
+"""金融场景与展示层共享的强类型输入、约束检查和业务结果模型。
+
+这些 dataclass 是业务建模的源数据，不包含 QUBO 系数。场景先读取输入模型构造
+Problem IR，采样后再生成结果模型。输入与结果分离，使结果中的收益、流动性、
+覆盖率和可行性都可以从原始业务字段重新计算，而不是直接照抄量子后端输出。
+"""
 
 from __future__ import annotations
 
@@ -30,7 +35,12 @@ class AssetInput:
 
 @dataclass(frozen=True)
 class PortfolioInput:
-    """投资组合选择的规范化输入，包含市场数据、组合规模和业务约束。"""
+    """投资组合选择的规范化输入，包含市场数据、组合规模和业务约束。
+
+    ``selected_count`` 决定等权重组合的资产数；``risk_weight`` 在归一化风险和
+    收益之间插值；``sector_cap`` 和 ``minimum_defensive`` 分别限制行业集中度
+    和最低防御资产数。``penalty_multiplier`` 只调节约束能量，不是投资偏好。
+    """
 
     assets: tuple[AssetInput, ...]
     covariance: tuple[tuple[float, ...], ...]
@@ -113,7 +123,12 @@ class LiquidityLimit:
 
 @dataclass(frozen=True)
 class SettlementInput:
-    """一次批量结算优化的业务输入和目标权重。"""
+    """一次批量结算优化的业务输入和目标权重。
+
+    ``notional_weight`` 与 ``priority_weight`` 组合每笔交易的收益评分；
+    ``liquidity_limits`` 和 ``batch_cap`` 是硬约束。``cash_units`` 使用离散整数桶，
+    与 ``notional_m`` 的百万名义金额口径不同。
+    """
 
     instructions: tuple[TradeInstruction, ...]
     liquidity_limits: tuple[LiquidityLimit, ...]
@@ -151,7 +166,11 @@ class FraudAlert:
 
 @dataclass(frozen=True)
 class FraudRoutingInput:
-    """在有限调查席位下进行告警编排所需的输入、权重和并行约束。"""
+    """在有限调查席位下进行告警编排所需的输入、权重和并行约束。
+
+    三个权重分别控制风险分、敞口和等待时长的相对重要性；各指标先独立归一化。
+    ``entity_parallel_cap`` 限制同一实体可同时进入调查队列的告警数。
+    """
 
     alerts: tuple[FraudAlert, ...]
     investigator_slots: int = 4

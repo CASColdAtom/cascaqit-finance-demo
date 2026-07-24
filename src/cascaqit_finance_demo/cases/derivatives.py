@@ -1,7 +1,19 @@
 """经典衍生品定价与独立 Analog 风险情景网格实验。
 
-定价由经典模型完成；量子图问题只选择相互差异足够大的代表性风险情景，
-两条链路在结果中并列展示但不互相冒充。
+这个场景包含两条边界明确的计算链路：
+
+1. 经典链路根据产品类型运行 Black-Scholes、二叉树或固定随机种子的 Monte
+   Carlo，得到价格与 Greeks；
+2. Analog 链路把“标的价格冲击 × 波动率冲击”的 3×3 网格建成图，选择彼此
+   不相邻的代表性风险情景。
+
+图中每个节点是一组冲击，横向或纵向相邻表示两个情景只相差一个冲击档位。
+最大独立集要求相邻节点不能同时入选，用较少且差异更大的情景覆盖网格。该图
+可映射到中性原子阵列：节点对应原子 site，边对应需要阻塞的近邻关系，QAA
+通过 Analog Hamiltonian（模拟哈密顿量）演化采样独立集候选。
+
+量子计数只回答“选择哪些风险情景”，不参与期权价格或 Greeks 的计算。这样
+可以展示 Analog 图优化，同时避免把风险情景选择误称为量子衍生品定价。
 """
 
 from __future__ import annotations
@@ -36,7 +48,11 @@ class RiskScenarioSelection:
 
 
 class DerivativesScenario:
-    """将经典参考定价与 Analog 风险情景选择保持为边界清晰的两条链路。"""
+    """将经典参考定价与 Analog 风险情景选择保持为边界清晰的两条链路。
+
+    3×3 网格使用固定的 ±12% 标的价格冲击和 ±8% 波动率冲击。冲击只是演示
+    情景，不是由历史数据校准的监管压力参数。
+    """
 
     case_id = "derivatives"
     title = "衍生品定价与风险情景"
@@ -60,7 +76,12 @@ class DerivativesScenario:
         return price_derivative(case_input)
 
     def build_definition(self, case_input: DerivativeInput) -> FinanceProblemDefinition:
-        """构建 3×3 风险冲击网格的最大独立集 Analog Problem。"""
+        """构建 3×3 风险冲击网格的最大独立集 Analog Problem。
+
+        九个节点按 6 个抽象距离单位排成方格，只连接上下左右近邻，不连接对角
+        节点。``GraphProblemIR`` 保留节点、边和位置，编译器据此生成原子排列、
+        相互作用项以及 QAA 控制波形。
+        """
         issues = self.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -72,6 +93,7 @@ class DerivativesScenario:
             for row in range(3)
             for column in range(3)
         }
+        # 每条无向边表示两个过于相似的风险情景不能同时成为代表情景。
         edges = []
         for row in range(3):
             for column in range(3):
@@ -115,7 +137,11 @@ class DerivativesScenario:
         definition: FinanceProblemDefinition,
         candidate: Any,
     ) -> RiskScenarioSelection:
-        """把节点位串还原为风险冲击，并检查相邻情景不能同时入选。"""
+        """把节点位串还原为风险冲击，并检查相邻情景不能同时入选。
+
+        ``coverage_count`` 统计“已选节点及其一跳邻居”的数量，用于说明代表
+        情景覆盖了多少网格节点。它不是概率、价格误差或风险覆盖百分比。
+        """
         del case_input
         bitstring = str(candidate.bitstring)
         if len(bitstring) != len(definition.problem.nodes):

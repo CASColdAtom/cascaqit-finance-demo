@@ -1,7 +1,18 @@
 """合成衍生品场景使用的小型确定性经典定价实现。
 
-这些价格和 Greeks 只作为业务基准；量子实验负责选择代表性风险情景，
-不会把采样计数伪装成衍生品价格。
+欧式看涨/看跌期权使用 Black-Scholes 闭式价格，并用 256 步重组二叉树做独立
+交叉检查。亚式看涨和向上敲出看涨期权使用风险中性几何布朗运动路径：
+
+``S(t+dt) = S(t) * exp((r - sigma^2/2)dt + sigma*sqrt(dt)*Z)``
+
+路径使用输入中的固定 seed，保证同一参数可以离线复现；Monte Carlo 标准误
+由贴现后 payoff 的样本标准差除以 ``sqrt(paths)`` 得到。Delta、Gamma 和 Vega
+都由中心有限差分计算。Monte Carlo 扰动复用同一随机种子，相当于使用 common
+random numbers（共同随机数），可以降低差分两侧的随机噪声。
+
+这些价格和 Greeks 只作为业务基准；量子实验负责选择代表性风险情景，不会把
+采样计数伪装成衍生品价格。实现用于演示，不包含分红、波动率曲面、利率曲线、
+交易日历或模型校准，不能替代生产定价库。
 """
 
 from __future__ import annotations
@@ -48,7 +59,11 @@ class DerivativePricingResult:
 
 
 def price_derivative(case_input: DerivativeInput) -> DerivativePricingResult:
-    """按产品选择解析或模拟定价方法，并以有限差分计算 Greeks。"""
+    """按产品选择解析或模拟定价方法，并以有限差分计算 Greeks。
+
+    欧式产品优先使用解析解，二叉树价格只作为交叉检查；路径依赖产品没有闭式
+    主路径，因此只返回 Monte Carlo 价格、标准误和适用时的敲出概率。
+    """
     _validate(case_input)
     if case_input.product in {"european_call", "european_put"}:
         is_call = case_input.product == "european_call"
@@ -93,7 +108,11 @@ def price_derivative(case_input: DerivativeInput) -> DerivativePricingResult:
 
 
 def _black_scholes(case_input: DerivativeInput, *, is_call: bool) -> float:
-    """使用 Black-Scholes 闭式公式计算欧式看涨或看跌期权价格。"""
+    """使用 Black-Scholes 闭式公式计算欧式看涨或看跌期权价格。
+
+    模型假设标的服从常波动率几何布朗运动、无分红且可连续交易；贴现因子为
+    ``exp(-r*T)``。这些是演示假设，不代表对真实产品市场数据的校准。
+    """
     root_t = math.sqrt(case_input.maturity)
     sigma_t = case_input.volatility * root_t
     d1 = (
@@ -112,7 +131,11 @@ def _black_scholes(case_input: DerivativeInput, *, is_call: bool) -> float:
 
 
 def _binomial(case_input: DerivativeInput, *, is_call: bool, steps: int) -> float:
-    """使用重组二叉树为欧式期权提供独立的数值交叉检查。"""
+    """使用 Cox-Ross-Rubinstein 重组二叉树做欧式期权交叉检查。
+
+    风险中性上涨概率由无风险增长率、上涨因子和下跌因子计算；从到期 payoff
+    逐层贴现回根节点。欧式产品不做提前行权判断。
+    """
     dt = case_input.maturity / steps
     up = math.exp(case_input.volatility * math.sqrt(dt))
     down = 1.0 / up
@@ -133,7 +156,12 @@ def _binomial(case_input: DerivativeInput, *, is_call: bool, steps: int) -> floa
 
 
 def _monte_carlo(case_input: DerivativeInput) -> tuple[float, float, float | None]:
-    """用固定种子路径模拟计算亚式或向上敲出看涨期权价格。"""
+    """用固定种子风险中性路径计算亚式或向上敲出看涨期权价格。
+
+    亚式期权 payoff 使用离散观察点的算术平均价；向上敲出期权只要任一观察点
+    达到 barrier，整条路径 payoff 就置零。这里按离散观察处理，不监控观察点
+    之间是否穿越障碍。
+    """
     rng = np.random.default_rng(case_input.seed)
     dt = case_input.maturity / case_input.observations
     shocks = rng.standard_normal((case_input.paths, case_input.observations))
@@ -164,7 +192,12 @@ def _finite_difference_greeks(
     case_input: DerivativeInput,
     pricing_function,
 ) -> tuple[float, float, float]:
-    """通过中心有限差分计算 Delta、Gamma 和 Vega，保持方法通用。"""
+    """通过中心有限差分计算 Delta、Gamma 和 Vega。
+
+    Delta 是价格对 spot 的一阶导数，Gamma 是 spot 的二阶导数，Vega 是价格
+    对波动率的导数。spot 步长取现价的 0.5% 且不低于 0.1，波动率步长固定为
+    0.001；结果是演示尺度下的数值近似，不包含步长收敛分析。
+    """
     spot_step = max(0.1, case_input.spot * 0.005)
     vol_step = 0.001
     up = _replace(case_input, spot=case_input.spot + spot_step)

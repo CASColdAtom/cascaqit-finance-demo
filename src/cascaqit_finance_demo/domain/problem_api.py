@@ -1,7 +1,17 @@
 """金融领域对 CASCAQit 统一 Problem API 的语义封装。
 
-CASCAQit 的 Problem IR 负责机器可编译的问题表达，本模块额外保留金融业务变量、
-项分组和模式决策证据，使编译后的物理项仍可追溯到原始业务含义。
+业务场景先生成 CASCAQit 能编译的 QUBO、Graph 或 Ising Problem IR，再用
+``FinanceProblemDefinition`` 补充业务变量、辅助变量、项分组和首选模式。这样
+编译器处理数学结构，金融层保留“这个变量代表哪项资产/交易、这对相互作用来自
+哪个业务冲突”的解释。
+
+数据沿以下方向流动：
+
+``业务输入 -> FinanceScenario -> Problem IR + 金融语义 -> 编译分析``
+``-> 模式选择 -> Digital/Hybrid/Analog 程序 -> 采样候选 -> 业务解码复核``
+
+其中 ``pairwise_conflict`` 是 Analog 映射唯一认可的业务冲突来源。普通目标项、
+全局约束、依赖和 slack 罚项不会因为存在二次系数就自动宣称为 Analog 业务项。
 """
 
 from __future__ import annotations
@@ -26,7 +36,11 @@ TermKind = Literal[
 
 @dataclass(frozen=True)
 class FinanceTermGroup:
-    """与规范化 Problem IR 并存的业务项分组，用于保持语义可追溯。"""
+    """与规范化 Problem IR 并存的业务项分组，用于保持语义可追溯。
+
+    ``variables`` 用于目标或全局约束等变量集合，``pairs`` 用于两两业务冲突。
+    分组不改变 Problem IR 系数，只为模式判断、审计和界面解释提供来源证据。
+    """
 
     group_id: str
     label: str
@@ -46,7 +60,12 @@ class FinanceTermGroup:
 
 @dataclass(frozen=True)
 class FinanceProblemDefinition:
-    """一个可编译 Problem 及其金融变量、项分组和首选执行模式。"""
+    """一个可编译 Problem 及其金融变量、项分组和首选执行模式。
+
+    ``business_variables`` 可被解码回金融对象；``auxiliary_variables`` 只负责
+    罚项或 slack，不应作为资产、交易或告警展示。``preferred_mode`` 是场景的
+    业务建议，最终是否可用仍以目标机编译分析为准。
+    """
 
     case_id: str
     title: str
@@ -129,7 +148,11 @@ class FinanceExperimentResult:
 
 
 class FinanceScenario(Protocol):
-    """所有可运行金融场景必须实现的最小协议。"""
+    """所有可运行金融场景必须实现的最小协议。
+
+    协议刻意把建模和解码放在同一个场景对象中：构建阶段定义变量语义，解码
+    阶段必须使用同一语义还原候选并独立复核约束。
+    """
 
     case_id: str
     title: str

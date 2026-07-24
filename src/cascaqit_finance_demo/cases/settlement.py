@@ -1,4 +1,15 @@
-"""交易结算批次选择、流动性约束及其 QUBO 映射。"""
+"""交易结算批次选择、流动性约束及其 QUBO 映射。
+
+场景从一组待结算指令中选择本批次执行的交易。每条指令对应二元变量 ``x_i``：
+选择交易时为 1，否则为 0。目标函数最大化归一化后的名义金额和业务优先级；
+由于 QUBO 求解器最小化能量，代码把每笔交易的业务价值写成负线性系数。
+
+约束包括：各币种离散流动性上限、批次容量、前置交易依赖和交易互斥。容量类
+不等式通过有界松弛变量改写成平方等式；依赖关系使用
+``P * x_child * (1 - x_parent)``；互斥关系使用 ``P * x_i * x_j``。
+交易名义金额与 ``cash_units`` 是两个不同口径：前者进入收益目标，后者只是
+演示使用的整数流动性桶，不能解释成真实现金金额。
+"""
 
 from __future__ import annotations
 
@@ -24,7 +35,12 @@ from cascaqit_finance_demo.domain.qubo_builder import (
 
 
 class SettlementCase:
-    """构建合成结算批次的 QUBO，并将候选解恢复为可审计的交易选择。"""
+    """构建合成结算批次的 QUBO，并将候选解恢复为可审计的交易选择。
+
+    该模型优化“本批次选择哪些指令”，不模拟清算机构账务、支付消息或资金
+    交割过程。解码阶段会按原始指令重新核算所有约束，避免仅凭低能量认定结果
+    可以结算。
+    """
 
     case_id = "settlement"
 
@@ -187,7 +203,12 @@ class SettlementCase:
         return tuple(issues)
 
     def build_problem(self, case_input: SettlementInput) -> QUBOProblemIR:
-        """编码结算价值、流动性、批量上限、前置依赖和互斥交易。"""
+        """编码结算价值、流动性、批量上限、前置依赖和互斥交易。
+
+        返回的变量先包含业务交易位，随后由流动性和批次上限约束按需登记
+        松弛位。``metadata['business_variables']`` 保留二者边界，解码时只读取
+        交易位。
+        """
         issues = self.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -225,6 +246,8 @@ class SettlementCase:
             for limit in case_input.liquidity_limits
         }
         for currency, capacity in sorted(limits.items()):
+            # 对每个币种建立 ``used + slack = capacity``。未用额度由 slack
+            # 表示；若交易消耗超过 capacity，则任何非负 slack 都无法消除罚项。
             coefficients = {
                 variable: float(item.cash_units)
                 for item, variable in zip(case_input.instructions, variables)
@@ -240,6 +263,8 @@ class SettlementCase:
 
         batch_slack = self._batch_slack_weights(case_input)
         if batch_slack:
+            # ``selected + slack = batch_cap`` 编码批次上限。若所有币种容量之和
+            # 已经更严格地限制了交易数，_batch_slack_weights 会省略这组冗余位。
             batch_coefficients = dict.fromkeys(variables, 1.0)
             for index, weight in enumerate(batch_slack):
                 batch_coefficients[f"slack_batch_{index:02d}"] = float(weight)
@@ -267,7 +292,11 @@ class SettlementCase:
     def exact_business_points(
         self, case_input: SettlementInput
     ) -> tuple[SettlementSolution, ...]:
-        """枚举全部业务交易位，仅保留通过独立约束复核的结算批次。"""
+        """枚举全部业务交易位，仅保留通过独立约束复核的结算批次。
+
+        当前默认十笔交易对应 ``2^10`` 个业务选择，适合用作演示基线。松弛位
+        不参与枚举，因为它们只负责让合法不等式满足 QUBO 等式，不代表交易。
+        """
         if not case_input.instructions:
             return ()
         solutions: list[SettlementSolution] = []
@@ -311,7 +340,12 @@ class SettlementCase:
         *,
         trade_ids: tuple[str, ...] | None = None,
     ) -> SettlementSolution:
-        """按交易选择位重新计算结算金额、流动性使用和排除原因。"""
+        """按交易选择位重新计算结算金额、流动性使用和排除原因。
+
+        这里是业务可行性的最终判定点。它不复用编译后的罚项，而是从原始指令
+        重新计算容量、依赖和冲突，因此即使采样得到低能量但不可行的位串，也
+        不会被界面误标为可执行批次。
+        """
         mapped_ids = (
             tuple(item.trade_id for item in case_input.instructions)
             if trade_ids is None

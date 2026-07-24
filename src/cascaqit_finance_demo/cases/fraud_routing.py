@@ -1,4 +1,15 @@
-"""对已生成的反欺诈告警分配有限调查资源，并映射为 QUBO。"""
+"""对已生成的反欺诈告警分配有限调查资源，并映射为 QUBO。
+
+本场景不做欺诈识别，也不训练风险模型；输入是已经生成的告警。优化问题是在
+有限调查席位下选择优先处理的告警。每条告警对应二元变量 ``x_i``，其业务价值
+由风险分、敞口和等待时长分别做 min-max 归一化后加权得到。
+
+QUBO 目标使用 ``-value_i * x_i``，因此能量越低表示覆盖的综合价值越高。
+``(sum(x_i) - investigator_slots)^2`` 固定入选数量；当同一实体只允许一个并行
+调查时，同实体告警之间加入 ``P * x_i * x_j`` 冲突项。Hybrid 模式只允许这些
+可追溯的实体冲突交给 Analog 相互作用，其余席位约束和目标仍由 Digital 部分
+承担。
+"""
 
 from __future__ import annotations
 
@@ -20,7 +31,11 @@ from cascaqit_finance_demo.domain.qubo_builder import QuboBuilder
 
 
 class FraudRoutingCase:
-    """构建兼顾风险、敞口、时效和实体并行上限的调查任务选择 QUBO。"""
+    """构建兼顾风险、敞口、时效和实体并行上限的调查任务选择 QUBO。
+
+    结果表示调查队列的资源编排，不表示告警已被确认成欺诈。覆盖率仅用于说明
+    本批次覆盖了输入告警总风险、总敞口和总等待时长的比例。
+    """
 
     case_id = "fraud_routing"
 
@@ -141,7 +156,12 @@ class FraudRoutingCase:
         return tuple(issues)
 
     def build_problem(self, case_input: FraudRoutingInput) -> QUBOProblemIR:
-        """编码加权告警价值、固定席位数和同实体告警冲突。"""
+        """编码加权告警价值、固定席位数和同实体告警冲突。
+
+        目标系数、席位平方罚项和实体冲突项共同形成一个 QUBO。罚项先以目标
+        系数上界定标，再乘用户配置的 ``penalty_multiplier``，确保违反一个
+        硬约束不会因为多选高价值告警而变得更优。
+        """
         issues = self.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -151,11 +171,13 @@ class FraudRoutingCase:
         )
         builder = QuboBuilder(variables)
         values = self.business_values(case_input)
+        # 最小化负价值等价于最大化所选告警的综合调查价值。
         for variable, value in zip(variables, values):
             builder.add_linear(variable, -value)
 
         objective_bound = builder.absolute_coefficient_sum
         penalty = (objective_bound + 1.0) * case_input.penalty_multiplier
+        # 固定席位数不是“至多”约束：演示假设每个可用席位都要分配一条告警。
         builder.add_squared_equality(
             dict.fromkeys(variables, 1.0),
             rhs=float(case_input.investigator_slots),
@@ -163,6 +185,7 @@ class FraudRoutingCase:
         )
         by_id = dict(zip((alert.alert_id for alert in case_input.alerts), variables))
         for left, right in self._conflict_pairs(case_input):
+            # 两个同实体变量同时为 1 时才产生罚能，对单独选择任一告警无影响。
             builder.add_quadratic(by_id[left], by_id[right], penalty * 1.1)
         return builder.build(
             problem_id="finance.fraud_routing",
@@ -179,7 +202,11 @@ class FraudRoutingCase:
     def exact_business_points(
         self, case_input: FraudRoutingInput
     ) -> tuple[FraudRoutingSolution, ...]:
-        """按调查席位数组合枚举告警，形成可验证的经典基线集合。"""
+        """按调查席位数组合枚举告警，形成可验证的经典基线集合。
+
+        只枚举恰好填满席位的组合 ``C(N, slots)``，再通过实体并行上限筛选。
+        这条路径用于小规模校验和基线比较，不承担大规模告警流调度。
+        """
         if not case_input.alerts:
             return ()
         solutions: list[FraudRoutingSolution] = []
@@ -292,7 +319,11 @@ class FraudRoutingCase:
         )
 
     def business_values(self, case_input: FraudRoutingInput) -> tuple[float, ...]:
-        """返回界面和 QUBO 共用的透明评分，避免展示口径与优化口径分离。"""
+        """返回界面和 QUBO 共用的透明评分，避免展示口径与优化口径分离。
+
+        三类指标量纲不同，先各自映射到 0..1，再除以权重总和形成加权平均。
+        因此调整权重改变的是相对排序，不会因敞口的绝对数值尺度压过风险分。
+        """
         risk = self._min_max(tuple(alert.risk_score for alert in case_input.alerts))
         exposure = self._min_max(tuple(alert.exposure_m for alert in case_input.alerts))
         urgency = self._min_max(tuple(alert.age_hours for alert in case_input.alerts))

@@ -1,4 +1,15 @@
-"""抵押品、流动性和授信三个 Digital 场景共用的受约束选择模型。"""
+"""抵押品、流动性和授信三个 Digital 场景共用的受约束选择模型。
+
+三个场景都可以归结为“从若干候选动作中选择一个可行子集”：每个候选项对应
+二元变量 ``x_i``，并携带业务价值、成本、资源单位和分组。通用目标为
+``cost_weight * normalized_cost - value_weight * normalized_value``；QUBO 最小化
+该能量，因此高价值降低能量，高成本抬高能量。
+
+模型支持固定选择数、分组精确数量、分组上限、资源上下限、两两冲突和有向
+依赖。等式直接使用平方罚项；上下限用有界二进制 slack（松弛变量）改写为
+等式；冲突写成 ``P*x_i*x_j``；依赖写成 ``P*x_child*(1-x_parent)``。三个业务
+场景只提供不同的候选数据和约束，QUBO 构造、解码及经典基线逻辑保持一致。
+"""
 
 from __future__ import annotations
 
@@ -68,7 +79,11 @@ class SelectionSolution:
 
 
 class ConstrainedSelectionCase:
-    """抵押品、流动性和授信场景复用的 QUBO 构建与解码基类。"""
+    """抵押品、流动性和授信场景复用的 QUBO 构建与解码基类。
+
+    子类只定义业务含义和默认输入。基类负责把规范输入变成 QUBO，并在采样后
+    根据原始业务字段重新核算可行性，防止三个场景各自实现一套略有差异的罚项。
+    """
 
     case_id = "selection"
     title = "受约束选择"
@@ -150,7 +165,12 @@ class ConstrainedSelectionCase:
         return tuple(issues)
 
     def build_problem(self, case_input: SelectionInput) -> QUBOProblemIR:
-        """将价值成本目标及数量、分组、资源和关系约束统一编码为 QUBO。"""
+        """将价值成本目标及数量、分组、资源和关系约束统一编码为 QUBO。
+
+        所有业务变量先登记，随后加入归一化目标。罚项尺度取无约束目标系数
+        绝对值和的上界，再为不同约束使用略高的倍数，确保关系约束不会与业务
+        收益处于同一能量量级。
+        """
         issues = self.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -159,6 +179,7 @@ class ConstrainedSelectionCase:
         builder = QuboBuilder(variables)
         values = self._normalize(tuple(item.value for item in case_input.items))
         costs = self._normalize(tuple(item.cost for item in case_input.items))
+        # ``x_i = 1`` 时只累加该候选的一次系数；低成本、高价值候选更容易降低能量。
         for variable, value, cost in zip(variables, values, costs):
             builder.add_linear(
                 variable,
@@ -168,6 +189,7 @@ class ConstrainedSelectionCase:
         objective_bound = builder.absolute_coefficient_sum
         penalty = (objective_bound + 1.0) * case_input.penalty_multiplier
         if case_input.selected_count is not None:
+            # 固定选择数：``(sum(x_i) - selected_count)^2``。
             builder.add_squared_equality(
                 dict.fromkeys(variables, 1.0),
                 rhs=float(case_input.selected_count),
@@ -178,6 +200,7 @@ class ConstrainedSelectionCase:
         for item, variable in zip(case_input.items, variables):
             by_group.setdefault(item.group, []).append(variable)
         for group, required in sorted(case_input.group_exact.items()):
+            # 分组精确数用于抵押品场景：每个保证金需求恰好选择一个分配方案。
             builder.add_squared_equality(
                 dict.fromkeys(by_group.get(group, ()), 1.0),
                 rhs=float(required),
@@ -188,6 +211,7 @@ class ConstrainedSelectionCase:
                 if len(group_variables) <= case_input.group_cap:
                     continue
                 coefficients = dict.fromkeys(group_variables, 1.0)
+                # 分组上限改写为 ``selected_in_group + slack = group_cap``。
                 for index, weight in enumerate(
                     bounded_binary_weights(case_input.group_cap)
                 ):
@@ -203,6 +227,7 @@ class ConstrainedSelectionCase:
             for item, variable in zip(case_input.items, variables)
         }
         if case_input.maximum_units is not None:
+            # 资源上限：``used + slack = maximum_units``。
             coefficients = dict(units)
             for index, weight in enumerate(
                 bounded_binary_weights(case_input.maximum_units)
@@ -214,6 +239,7 @@ class ConstrainedSelectionCase:
                 penalty=penalty * 1.2,
             )
         if case_input.minimum_units is not None:
+            # 资源下限：``used - slack = minimum_units``。负号表示超过下限的余量。
             coefficients = dict(units)
             extra = (
                 sum(item.units for item in case_input.items) - case_input.minimum_units
@@ -226,8 +252,10 @@ class ConstrainedSelectionCase:
                 penalty=penalty * 1.2,
             )
         for left, right in case_input.conflicts:
+            # 只有冲突双方同时入选时，乘积 ``x_left*x_right`` 才为 1。
             builder.add_quadratic(by_id[left], by_id[right], penalty * 1.25)
         for child, parent in case_input.dependencies:
+            # 展开 ``P*x_child*(1-x_parent)``：选择 child 且未选择 parent 时受罚。
             builder.add_linear(by_id[child], penalty * 1.1)
             builder.add_quadratic(by_id[child], by_id[parent], -penalty * 1.1)
 
@@ -467,7 +495,13 @@ class ConstrainedSelectionCase:
 
 
 class CollateralScenario(ConstrainedSelectionCase):
-    """在多个保证金需求之间分配合格抵押品的 Digital 场景。"""
+    """在多个保证金需求之间分配合格抵押品的 Digital 场景。
+
+    每个候选项是“某批抵押品分配给某个需求方”的方案，而不是一项孤立资产。
+    ``group_exact`` 要求 CCP 和两个双边需求各选一个方案；同一资产批次不能重复
+    分配，因此 COL-01/COL-07、COL-03/COL-08 分别构成冲突。目标在覆盖质量
+    ``value`` 与资金占用 ``cost`` 之间权衡。
+    """
     case_id = "collateral"
     title = "抵押品分配优化"
     item_kind = "抵押品分配候选"
@@ -551,7 +585,13 @@ class CollateralScenario(ConstrainedSelectionCase):
 
 
 class LiquidityScenario(ConstrainedSelectionCase):
-    """选择日内融资动作以满足流动性下限和前置依赖的 Digital 场景。"""
+    """选择日内融资动作以满足流动性下限和前置依赖的 Digital 场景。
+
+    候选项表示不同时点、币种和工具的融资动作。模型恰好选择四项、获得至少
+    12 个离散流动性单位，并限制每个币种最多两项。续作动作 LIQ-08 依赖前序
+    LIQ-04；LIQ-03 与 LIQ-04 互斥。``value`` 表示流动性贡献，``cost`` 表示
+    融资成本的演示评分。
+    """
     case_id = "liquidity"
     title = "日内流动性调度"
     item_kind = "流动性动作"
@@ -632,7 +672,13 @@ class LiquidityScenario(ConstrainedSelectionCase):
 
 
 class CreditLimitScenario(ConstrainedSelectionCase):
-    """在资本消耗和行业集中度约束下配置企业授信档位的 Digital 场景。"""
+    """在资本消耗和行业集中度约束下配置企业授信档位的 Digital 场景。
+
+    每个候选项代表给某企业批准一个额度档位。模型选择四项，资本消耗单位总和
+    不超过 11，每个行业最多两项；同一制造企业的互斥额度档位不能同时批准。
+    ``value`` 是综合收益评分，``cost`` 和 ``units`` 分别表达风险/资本代价及
+    离散资本消耗。
+    """
     case_id = "credit_limits"
     title = "企业授信额度配置"
     item_kind = "已准入额度档位"

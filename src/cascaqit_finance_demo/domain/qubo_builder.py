@@ -1,4 +1,12 @@
-"""面向金融场景的轻量确定性 QUBO 系数构建器。"""
+"""面向金融场景的轻量确定性 QUBO 系数构建器。
+
+QUBO（Quadratic Unconstrained Binary Optimization，二次无约束二元优化）写成
+``E(x) = offset + sum(a_i*x_i) + sum(b_ij*x_i*x_j)``，其中 ``x_i`` 只能取 0 或 1，
+求解目标是最小化 ``E``。业务约束不是被删除，而是展开为能量罚项后并入目标。
+
+本模块只负责可靠地累加系数，不决定业务目标或罚项大小。变量统一按名称排序、
+变量对统一规范化，保证相同输入跨进程生成相同 Problem IR 和位串顺序。
+"""
 
 from __future__ import annotations
 
@@ -12,7 +20,9 @@ from cascaqit import QUBOProblemIR
 def bounded_binary_weights(max_value: int) -> tuple[int, ...]:
     """生成最大可表示值恰为 ``max_value`` 的有界二进制权重。
 
-    最后一位允许小于标准 2 的幂，从而避免松弛变量表示出业务上不存在的容量。
+    例如 ``max_value=6`` 返回 ``(1, 2, 3)``，三位可组合表示 0..6。最后一位
+    允许小于标准 2 的幂，从而避免普通 ``(1, 2, 4)`` 额外表示出 7，减少无效
+    松弛状态进入采样空间。
     """
     if not isinstance(max_value, int) or isinstance(max_value, bool):
         raise TypeError("max_value must be an integer.")
@@ -32,7 +42,11 @@ def bounded_binary_weights(max_value: int) -> tuple[int, ...]:
 
 
 class QuboBuilder:
-    """累加 QUBO 线性项和二次项，同时保持确定性的变量集合与项顺序。"""
+    """累加 QUBO 线性项和二次项，同时保持确定性的变量集合与项顺序。
+
+    多次加入同一项会进行系数求和；``x_i*x_i`` 根据二元恒等式
+    ``x_i^2 = x_i`` 自动并入线性项。构建器允许业务变量和松弛变量分阶段登记。
+    """
 
     def __init__(self, variables: tuple[str, ...] | list[str] = ()) -> None:
         """初始化构建器，并提前登记可选的业务变量。"""
@@ -100,7 +114,12 @@ class QuboBuilder:
         rhs: float,
         penalty: float,
     ) -> None:
-        """加入二元变量等式罚项 ``penalty * (sum(a_i*x_i) - rhs)^2``。"""
+        """加入二元变量等式罚项 ``P * (sum(a_i*x_i) - rhs)^2``。
+
+        平方项只在等式满足时为零，偏离越大罚能越高。调用方可以通过给 slack
+        变量正系数编码上限，或给 slack 变量负系数编码下限。``P`` 必须由场景
+        根据无约束目标尺度选择；本方法只要求它为正数。
+        """
         if not coefficients:
             raise ValueError("coefficients must not be empty.")
         normalized = {
@@ -112,8 +131,11 @@ class QuboBuilder:
         if penalty_value <= 0.0:
             raise ValueError("penalty must be positive.")
 
-        # 二元变量满足 x^2 == x，因此平方展开的对角项合并到线性系数；
-        # 非对角交叉项带有系数 2，并按变量名排序后累加。
+        # 展开 P*(sum(a_i*x_i)-rhs)^2 后：
+        #   线性项为 P*(a_i^2 - 2*rhs*a_i)*x_i；
+        #   交叉项为 2*P*a_i*a_j*x_i*x_j；
+        #   常数项为 P*rhs^2。
+        # 二元变量满足 x_i^2=x_i，所以平方对角项仍是线性项。
         items = tuple(sorted(normalized.items()))
         for variable, weight in items:
             self.add_linear(

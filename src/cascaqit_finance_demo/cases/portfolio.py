@@ -1,4 +1,19 @@
-"""多资产等权重投资组合选择及其 QUBO 映射。"""
+"""多资产等权重投资组合选择及其 QUBO 映射。
+
+场景问题是：从 ``N`` 项资产中恰好选择 ``K`` 项，并按等权重持有；在收益、
+协方差风险、行业集中度和防御资产下限之间寻找能量最低的组合。每项资产对应
+一个二元变量 ``x_i``，``x_i = 1`` 表示资产入选。
+
+业务目标先把收益向量和协方差矩阵归一化，再写成：
+
+``risk_weight * x.T @ covariance @ x / K^2``
+``- (1 - risk_weight) * returns.T @ x / K``
+
+QUBO 求解器最小化能量，因此风险为正项，收益为负项。固定持仓数、行业上限和
+防御资产下限通过平方罚项进入同一个 QUBO；不等式使用有界二进制松弛变量改写
+为等式。小规模演示还会穷举全部 ``K`` 资产组合，作为可行性检查和经典基线，
+但该基线与量子采样候选在结果中分别保留。
+"""
 
 from __future__ import annotations
 
@@ -26,7 +41,11 @@ from cascaqit_finance_demo.domain.qubo_builder import (
 
 
 class PortfolioCase:
-    """构建等权重投资组合 QUBO，并把候选位串还原为业务组合。"""
+    """构建等权重投资组合 QUBO，并把候选位串还原为业务组合。
+
+    这里不求连续权重：资产一旦入选，权重固定为 ``1 / selected_count``。
+    这个约束让“是否持有”可以直接由二元变量表达，也让前端能够逐位解释结果。
+    """
 
     case_id = "portfolio"
 
@@ -129,7 +148,13 @@ class PortfolioCase:
         return tuple(issues)
 
     def build_problem(self, case_input: PortfolioInput) -> QUBOProblemIR:
-        """把收益风险目标、持仓数、行业上限和防御资产下限编码为 QUBO。"""
+        """把收益风险目标、持仓数、行业上限和防御资产下限编码为 QUBO。
+
+        构建顺序有意保持稳定：先加入无约束的风险收益目标，再依据该目标全部
+        系数的绝对值和确定罚项尺度，最后编码三类硬约束。这样一条硬约束的
+        最小违规代价会高于目标函数可能获得的总收益，避免优化器通过违规换取
+        更低能量。
+        """
         issues = self.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -163,6 +188,8 @@ class PortfolioCase:
                     / (count * count),
                 )
 
+        # ``sum(x_i) = K`` 是固定持仓数约束。罚项尺度以无约束目标的系数上界
+        # 为基准，使可行解优先于任何靠破坏持仓数获得的目标改进。
         objective_bound = builder.absolute_coefficient_sum
         base_penalty = (objective_bound + 1.0) * case_input.penalty_multiplier
         builder.add_squared_equality(
@@ -180,6 +207,9 @@ class PortfolioCase:
         for sector, variables in sorted(by_sector.items()):
             if len(variables) <= case_input.sector_cap:
                 continue
+            # 行业上限 ``sum(x_i) <= cap`` 改写为
+            # ``sum(x_i) + slack = cap``。slack 只能表示 0..cap，因而不存在
+            # 通过负松弛值掩盖超限的路径。
             coefficients = dict.fromkeys(variables, 1.0)
             for index, weight in enumerate(
                 bounded_binary_weights(case_input.sector_cap)
@@ -193,6 +223,9 @@ class PortfolioCase:
             )
 
         if case_input.minimum_defensive > 0:
+            # 防御资产下限 ``sum(x_i) >= floor`` 改写为
+            # ``sum(x_i) - slack = floor``。这里松弛变量系数取负，表示超过
+            # 下限的合法余量，而不是允许少选防御资产。
             coefficients = dict.fromkeys(defensive_variables, 1.0)
             slack_max = len(defensive_variables) - case_input.minimum_defensive
             for index, weight in enumerate(bounded_binary_weights(slack_max)):
@@ -218,7 +251,12 @@ class PortfolioCase:
     def exact_business_points(
         self, case_input: PortfolioInput
     ) -> tuple[PortfolioPoint, ...]:
-        """枚举固定持仓数的全部组合，仅保留满足行业和防御性约束的点。"""
+        """枚举固定持仓数的全部组合，仅保留满足行业和防御性约束的点。
+
+        组合数为 ``C(N, K)``，只适合当前演示规模。它的作用是验证输入确实
+        存在可行解，并给可视化提供有效组合集合；不应把这条穷举路径描述成
+        可扩展到大规模资产池的经典优化器。
+        """
         returns, normalized_covariance = self._normalized_market_data(case_input)
         covariance = np.asarray(case_input.covariance, dtype=float)
         points: list[PortfolioPoint] = []
@@ -263,7 +301,12 @@ class PortfolioCase:
         problem: QUBOProblemIR,
         candidate: Any,
     ) -> PortfolioSolution:
-        """按 Problem 变量名提取资产位，并忽略只服务于罚项的松弛变量。"""
+        """按 Problem 变量名提取资产位，并忽略只服务于罚项的松弛变量。
+
+        解码不直接信任 QUBO 能量。它根据原始业务输入重新计算持仓数、行业
+        上限、防御资产下限、预期收益和波动率，最终由这些独立检查决定候选
+        是否可行。
+        """
         bitstring = str(candidate.bitstring)
         if len(bitstring) != len(problem.variables):
             raise ValueError("candidate bitstring does not match problem variables.")

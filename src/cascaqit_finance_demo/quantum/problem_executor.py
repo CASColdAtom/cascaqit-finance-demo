@@ -1,4 +1,18 @@
-"""通过 CASCAQit 统一 ProblemCompiler 分析、编译并执行金融场景。"""
+"""通过 CASCAQit 统一 ProblemCompiler 分析、编译并执行金融场景。
+
+本模块是业务建模与量子运行时之间的编排层，处理六个步骤：
+
+1. 调用场景验证输入并构造带业务语义的 Problem；
+2. 让编译器分析目标机对 Digital、Hybrid、Analog 三种模式的物理可行性；
+3. 将编译器项映射与金融 ``term_groups`` 交叉核对，给出模式建议；
+4. 以 QAOA（Digital/Hybrid）或 QAA（Analog）编译程序并扫描参数；
+5. 对采样候选做业务解码和约束复核，并与经典基线分开保存；
+6. 记录后端、seed、shots、耗时和报告路径等审计证据。
+
+模式名称描述编译与程序结构，不改变业务问题本身。Hybrid 只有在 Analog 段
+承载真实业务冲突、Digital 段也仍有 residual 时成立；Analog 只有在完整问题
+可以由 AHS 表达时成立。
+"""
 
 from __future__ import annotations
 
@@ -26,12 +40,22 @@ from cascaqit_finance_demo.domain.problem_api import (
 
 @dataclass(frozen=True)
 class FinanceModeAdvisor:
-    """同时依据编译器物理事实和金融项语义选择 Digital、Hybrid 或 Analog。"""
+    """同时依据编译器物理事实和金融项语义选择 Digital、Hybrid 或 Analog。
+
+    编译器回答“目标机能否实现这些项”，金融定义回答“这些项在业务上是什么”。
+    两者都通过才会推荐 Analog 或 Hybrid，避免仅凭存在 ``zz`` 二次项就宣称
+    使用了有业务意义的 Analog 计算。
+    """
 
     def decide(
         self, definition: FinanceProblemDefinition, analysis: Any
     ) -> ModeDecision:
-        """判断三种模式的可行性，并确保 Analog 部分确实承载业务项。"""
+        """判断三种模式的可行性，并确保 Analog 部分确实承载业务项。
+
+        ``supported_analog_pairs`` 来自编译器实际映射计划；
+        ``definition.analog_business_pairs`` 来自场景显式声明的业务冲突。二者
+        交集才是既可物理实现、又有金融来源的 Analog 相互作用。
+        """
         plan = analysis.mapping_plan
         supported_analog_pairs = {
             tuple(sorted(candidate.targets))
@@ -44,6 +68,7 @@ class FinanceModeAdvisor:
             sorted(set(definition.analog_business_pairs) & supported_analog_pairs)
         )
 
+        # 物理可行性逐模式保留，不能用 Hybrid 可行性推断 Analog 也可行。
         physical = {mode: plan.feasibility_for(mode) for mode in _MODES}
         analog_business_pairs = set(definition.analog_business_pairs)
         analog_covers_business = bool(analog_business_pairs) and (
@@ -165,7 +190,12 @@ class FinanceModeAdvisor:
 
 
 class ScenarioExecutor:
-    """串联金融场景的验证、分析、编译、执行、解码和审计报告。"""
+    """串联金融场景的验证、分析、编译、执行、解码和审计报告。
+
+    ``analyze`` 只验证和生成编译计划，不执行采样；``run`` 才编译并调用后端。
+    默认目标和后端用于离线确定性演示，执行证据会明确标记为本地模拟，不应
+    解释为真实中性原子硬件结果。
+    """
 
     def __init__(
         self,
@@ -180,7 +210,11 @@ class ScenarioExecutor:
         self.advisor = advisor or FinanceModeAdvisor()
 
     def analyze(self, scenario: FinanceScenario, case_input: Any) -> ScenarioAnalysis:
-        """验证输入并生成不触发执行的 Problem 分析和模式建议。"""
+        """验证输入并生成不触发执行的 Problem 分析和模式建议。
+
+        分析结果包含变量到物理项的候选映射、每种模式的诊断码以及业务模式
+        建议。这个阶段不会产生 counts，也不会运行模拟器。
+        """
         issues = scenario.validate(case_input)
         if issues:
             raise ValueError("; ".join(issue.message for issue in issues))
@@ -205,8 +239,14 @@ class ScenarioExecutor:
     ) -> FinanceExperimentResult:
         """按指定或推荐模式执行场景，并返回业务结果与完整审计证据。
 
-        最佳采样候选若违反业务约束，展示层会回退到同次执行产生的经典基线，
-        但两者都会保留在结果中，避免把回退结果误称为量子采样结果。
+        ``mode='recommended'`` 使用模式顾问结论；显式模式仍必须同时通过编译
+        可行性和业务适配检查。Digital/Hybrid 使用 QAOA 参数 ``gamma/beta``，
+        Analog 使用 QAA 参数 ``anneal_time/omega_max``。
+
+        每个参数点执行给定 ``shots`` 次采样，``optimize`` 根据观测结果选出最佳
+        候选。最佳采样候选若违反业务约束，展示层会回退到同次执行产生的经典
+        基线，但 ``business_candidate``、``baseline_solution`` 和
+        ``displayed_solution`` 三者分别保留，避免把回退结果误称为量子采样结果。
         """
         if shots < 1:
             raise ValueError("shots must be positive.")
@@ -226,12 +266,15 @@ class ScenarioExecutor:
             raise ValueError(decision.reason)
 
         definition = scenario_analysis.definition
+        # QAA 对应完整 Analog 退火；Digital 和 D-A-D Hybrid 都走 QAOA 优化协议。
         compiled = self.compiler.compile(
             definition.problem,
             mode=selected_mode,
             algorithm="qaa" if selected_mode == "analog" else "qaoa",
             target=self.target,
         )
+        # 默认只扫描两个确定性参数点，目的是控制现场演示耗时，不代表已进行
+        # 充分的经典外层参数优化。调用方可传入更多 parameter_sets。
         points = tuple(parameter_sets or default_parameter_sets(selected_mode))
         backend = LocalBackend(
             seed=seed,
@@ -259,6 +302,7 @@ class ScenarioExecutor:
         )
         wall_time = perf_counter() - started
 
+        # 后端候选只提供位串和能量；金融指标与可行性必须由场景重新计算。
         candidate = scenario.decode(
             case_input,
             definition,
@@ -272,6 +316,7 @@ class ScenarioExecutor:
                 execution.baseline,
             )
         displayed = candidate
+        # 回退只影响界面展示来源，不覆盖或删除真实采样候选。
         if not getattr(candidate, "feasible", True) and baseline_solution is not None:
             displayed = baseline_solution
 
@@ -317,7 +362,11 @@ class ScenarioExecutor:
 
 
 def default_parameter_sets(mode: ProblemMode) -> tuple[dict[str, float], ...]:
-    """返回适合现场演示的小规模确定性参数扫描，不依赖在线优化器。"""
+    """返回适合现场演示的小规模确定性参数扫描，不依赖在线优化器。
+
+    这些点是固定演示配置，不是针对每个金融实例训练得到的最优参数。Analog
+    扫描退火时间和最大 Rabi 驱动；Digital/Hybrid 扫描首层 cost/mixer 角度。
+    """
     if mode == "analog":
         return (
             {"anneal_time": 0.4, "omega_max": 1.0},
