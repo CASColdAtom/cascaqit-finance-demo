@@ -1,5 +1,6 @@
 # 文档
 
+- [客户演示技术讲解手册](customer_demo_technical_guide.md)：面向金融和量子计算初学者，解释业务建模、QUBO、Digital/Hybrid/Analog 原理、七个场景、页面解读、演示话术和当前限制。
 - [金融 Demo 架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
 - [金融 Demo 场景与界面设计](finance_demo_design.md)：当前七个场景的输入、结果、页面内容、运行方式和解释边界。
 
