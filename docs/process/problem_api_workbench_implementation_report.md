@@ -39,7 +39,7 @@ FastAPI 会托管 `frontend/dist`，生产形态只需访问 `http://127.0.0.1:8
 
 - 顶部显示“中科酷原金融量子实验台”、服务状态、合成数据和审计状态；
 - 左侧切换七个金融场景；
-- 中间调整预设、业务参数、模式、shots、seed 和参数点；
+- 中间调整预设、业务参数、模式、shots、seed、QAOA 层数、搜索方式和评估预算；
 - 右侧显示业务结果、场景态势、Problem 映射、量子实验和审计证据。
 
 页面支持中英文切换，并记住用户选择。七个场景的标题、说明、预设、参数和主要分析结论均有英文文本。普通操作区使用“实验执行”等中性表述；审计页仍明确显示“本地数值模拟，非量子真机”，同时保留 Backend、Target 和执行事实，不能将本地结果解释为硬件结果。
@@ -73,7 +73,7 @@ Hybrid 量子实验同时显示 D-A-D block、原子布局、Rabi/Detuning/Phase
 业务输入变化后，前端延迟 180 ms 调用 analyze，并使用 revision 丢弃过期响应。每次执行记录完整签名：
 
 ```text
-case + preset + values + mode + shots + seed + parameter_points
+case + preset + values + mode + shots + seed + layers + search_strategy + parameter_budget
 ```
 
 只有签名完全一致时才恢复缓存结果。运行期间按钮禁用；完成后结果写入对应签名，不覆盖用户已经切换到的其他输入。
@@ -98,7 +98,7 @@ FastAPI 使用线程池执行本地模拟，避免阻塞异步请求循环。当
 
 本地联调分别执行了三条代表链：
 
-- Digital：投资组合返回 180 个实际门操作和 16 shots；
+- Digital：投资组合的 `p=1/2/3` 均通过实际编译、执行和采样，参数数量严格为 `2p`；
 - Hybrid：交易结算返回 `digital -> analog -> digital -> measure`、16 sites、波形和 16 shots；
 - Analog：衍生品风险情景返回 9 sites、波形和 16 shots，数字门数量为 0。
 
@@ -110,23 +110,17 @@ FastAPI 使用线程池执行本地模拟，避免阻塞异步请求循环。当
 
 这不会影响本次前后端分离，但不能把它描述成最终的证据驱动模式裁决。后续应按[金融 Demo 架构设计](../finance_problem_api_architecture.md)移除 `preferred_mode` 短路，并增加业务 contribution 的完整映射证据。
 
+## Digital QAOA 参数搜索
+
+Digital 控制区支持 `p=1~3`。预设方式提供两组人工校验参数；二维网格只用于 `p=1`；固定 seed 采样支持全部三种层数，最多评估 24 个离散点。每个点的 `gamma_i`、`beta_i`、目标值和是否入选都进入 API 结果，参数图悬浮提示直接读取这些值。
+
+Hybrid 和 Analog 仍使用一层预设配置。不支持的层数、策略或预算组合返回 HTTP 422，不会退回默认设置。当前搜索仍通过 `compiled.optimize(parameter_sets=...)` 比较离散点，不是连续参数优化。
+
 ## 验证结果
 
 ```text
-python3 -m pytest tests/unit -q
-46 passed
-
-python3 -m pytest tests/integration/test_app_smoke.py -q
-9 passed
-
-python3 -m pytest tests/integration/test_fraud_routing_execution.py tests/integration/test_new_scenario_execution.py tests/integration/test_portfolio_qaoa.py -q
-6 passed
-
-python3 -m pytest tests/integration/test_separated_api.py -q
-5 passed
-
-python3 -m pytest tests/integration/test_settlement_execution.py -q
-1 passed
+/opt/homebrew/bin/python3.11 -m pytest -q
+91 passed
 
 python3 -m ruff check src tests
 All checks passed!
@@ -135,13 +129,11 @@ npm run typecheck
 passed
 
 npm test
-5 files, 11 tests passed
+6 files, 15 tests passed
 
 npm run build
 passed
 
-npm audit --audit-level=moderate
-0 vulnerabilities
 ```
 
 FastAPI 根页面和 health 返回 HTTP 200。重新加载服务后，七个 analyze 接口分别返回 64 个相关性格点、10 个交易节点、21 个告警/实体节点、11 个抵押品流节点、8 个流动性动作与 3 条币种曲线、8 个授信候选和 9 个衍生品重估情景。
@@ -150,8 +142,7 @@ FastAPI 根页面和 health 返回 HTTP 200。重新加载服务后，七个 ana
 
 ## 当前限制
 
-- Demo 目录不是 Git 仓库，无法为本阶段生成独立 commit。
-- 前端已把应用入口、结果视图和 ECharts 拆开。应用入口为 31.12 kB（gzip 11.59 kB），结果视图为 38.60 kB（gzip 11.27 kB）；ECharts 为延迟加载资源，当前为 668.69 kB（gzip 225.69 kB），构建仍会报告大 chunk 警告。
+- 前端已把应用入口、结果视图和 ECharts 拆开。应用入口为 37.57 kB（gzip 13.96 kB），结果视图为 38.98 kB（gzip 11.37 kB）；ECharts 为延迟加载资源，当前为 668.65 kB（gzip 225.65 kB），构建仍会报告大 chunk 警告。
 - 旧 Bokeh 代码仍保留为内部调试路径，不再是公开启动入口。
 - 本地精确模拟规模用于现场演示，不代表中性原子硬件规模。
 - 合成数据和小规模经典基准不能证明真实业务收益或量子优势。

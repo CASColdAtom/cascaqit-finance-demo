@@ -758,18 +758,29 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
     selected = _selected_variables(result)
     sites = result.execution.context.analysis.mapping_plan.layout.sites
     term_mapping = result.execution.context.term_mapping
+    layer_count = int(result.metadata.get("layers", 1))
+    if mode == "hybrid":
+        logical_layers = ["H", "U1", "A", "U2", "RX1", "M"]
+    elif mode == "digital":
+        logical_layers = ["H"]
+        for layer_index in range(layer_count):
+            suffix = "" if layer_count == 1 else f"[{layer_index + 1}]"
+            logical_layers.extend(
+                [f"U1{suffix}", f"U2{suffix}", f"RX1{suffix}"]
+            )
+        logical_layers.append("M")
+    else:
+        logical_layers = ["PREP", "AHS", "MEASURE"]
     return {
         "mode": mode,
         "algorithm": result.execution.algorithm,
         "topology": result.execution.topology,
+        "layerCount": layer_count,
+        "searchStrategy": str(result.metadata.get("search_strategy", "explicit")),
+        "evaluationCount": len(result.execution.parameter_history),
+        "selectedEvaluationIndex": result.execution.selected_evaluation_index,
         "blocks": blocks,
-        "layers": ["H", "U1", "A", "U2", "RX1", "M"]
-        if mode == "hybrid"
-        else (
-            ["H", "U1", "U2", "RX1", "M"]
-            if mode == "digital"
-            else ["PREP", "AHS", "MEASURE"]
-        ),
+        "layers": logical_layers,
         "circuit": _flatten_circuits(circuits),
         "atoms": [
             {
@@ -786,6 +797,7 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
             {
                 "index": item.evaluation_index,
                 "objective": item.objective_value,
+                "parameters": dict(item.parameter_bind.values),
                 "selected": item.evaluation_index
                 == result.execution.selected_evaluation_index,
             }

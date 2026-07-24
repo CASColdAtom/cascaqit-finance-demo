@@ -30,7 +30,6 @@ from cascaqit_finance_demo.api.presenters import analysis_payload, execution_pay
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.quantum.problem_executor import (
     ScenarioExecutor,
-    default_parameter_sets,
 )
 
 # 前端构建产物随 Python wheel 一起安装，不能依赖源码仓库中的 frontend/dist。
@@ -57,12 +56,14 @@ class ScenarioRequest(BaseModel):
 
 
 class RunRequest(ScenarioRequest):
-    """与业务输入分离的执行模式、采样数、随机种子和扫描点数量。"""
+    """与业务输入分离的模式、QAOA 搜索配置、采样数和随机种子。"""
 
     mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended"
     shots: int = Field(default=32, ge=1, le=1024)
     seed: int = Field(default=23, ge=0)
-    parameter_points: int = Field(default=2, ge=1, le=2)
+    layers: int = Field(default=1, ge=1, le=3)
+    search_strategy: Literal["preset", "grid", "seeded_sample"] = "preset"
+    parameter_budget: int = Field(default=2, ge=1, le=24)
 
 
 app = FastAPI(
@@ -192,9 +193,9 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
             scenario,
             case_input,
             mode=selected_mode,
-            parameter_sets=default_parameter_sets(selected_mode)[
-                : request.parameter_points
-            ],
+            layers=request.layers,
+            search_strategy=request.search_strategy,
+            parameter_budget=request.parameter_budget,
             shots=request.shots,
             seed=request.seed,
             report_path=REPORT_DIR / f"{case_id}-{selected_mode}.html",

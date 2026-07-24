@@ -14,6 +14,10 @@ function payload(qubitCount: number): QuantumPayload {
     mode: "digital",
     algorithm: "qaoa",
     topology: null,
+    layerCount: 1,
+    searchStrategy: "preset",
+    evaluationCount: 0,
+    selectedEvaluationIndex: 0,
     blocks: [],
     layers: ["U1", "U2", "RX1", "M"],
     circuit: {

@@ -301,7 +301,7 @@ def main() -> None:
     result = asyncio.run(
         run_scenario(
             "settlement",
-            RunRequest(shots=16, parameter_points=1),
+            RunRequest(shots=16, parameter_budget=1),
         )
     )
     assert {"scenario", "preset", "run"} <= result.keys()
@@ -489,7 +489,7 @@ def test_settlement_runs_on_windows():
     result = asyncio.run(
         run_scenario(
             "settlement",
-            RunRequest(shots=16, parameter_points=1),
+            RunRequest(shots=16, parameter_budget=1),
         )
     )
 

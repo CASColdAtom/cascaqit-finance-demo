@@ -1,4 +1,5 @@
 export type Mode = "digital" | "hybrid" | "analog";
+export type SearchStrategy = "preset" | "grid" | "seeded_sample";
 export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
 
@@ -244,13 +245,22 @@ export interface QuantumPayload {
   mode: Mode;
   algorithm: string;
   topology: string | null;
+  layerCount: number;
+  searchStrategy: "preset" | "grid" | "seeded_sample" | "explicit";
+  evaluationCount: number;
+  selectedEvaluationIndex: number;
   blocks: string[];
   layers: string[];
   circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
   atoms: AtomPoint[];
   waveforms: Record<"rabi" | "detuning" | "phase", WavePoint[]>;
   counts: Array<{ state: string; count: number; rank: number }>;
-  parameterHistory: Array<{ index: number; objective: number; selected: boolean }>;
+  parameterHistory: Array<{
+    index: number;
+    objective: number;
+    parameters: Record<string, number>;
+    selected: boolean;
+  }>;
   termMapping: Array<{
     operator: string;
     targets: string[];
@@ -309,5 +319,7 @@ export interface RunRequest extends ScenarioRequest {
   mode: Mode;
   shots: number;
   seed: number;
-  parameter_points: number;
+  layers: number;
+  search_strategy: SearchStrategy;
+  parameter_budget: number;
 }

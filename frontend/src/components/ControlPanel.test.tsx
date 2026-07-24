@@ -112,6 +112,8 @@ function renderPanel(
 ) {
   const onMode = vi.fn();
   const onRun = vi.fn();
+  const onLayers = vi.fn();
+  const onSearchStrategy = vi.fn();
   render(
     <I18nProvider initialLanguage="zh">
       <ControlPanel
@@ -122,7 +124,9 @@ function renderPanel(
         mode={overrides.mode ?? "hybrid"}
         shots={32}
         seed={23}
-        parameterPoints={2}
+        layers={1}
+        searchStrategy="preset"
+        parameterBudget={2}
         running={overrides.running ?? false}
         analyzing={overrides.analyzing ?? false}
         onPreset={vi.fn()}
@@ -130,13 +134,15 @@ function renderPanel(
         onMode={onMode}
         onShots={vi.fn()}
         onSeed={vi.fn()}
-        onParameterPoints={vi.fn()}
+        onLayers={onLayers}
+        onSearchStrategy={onSearchStrategy}
+        onParameterBudget={vi.fn()}
         onRun={onRun}
         onReset={vi.fn()}
       />
     </I18nProvider>,
   );
-  return { onMode, onRun };
+  return { onLayers, onMode, onRun, onSearchStrategy };
 }
 
 describe("ControlPanel", () => {
@@ -170,6 +176,23 @@ describe("ControlPanel", () => {
     renderPanel({ mode: "digital" });
 
     expect(screen.getByText("可比较")).toBeTruthy();
+  });
+
+  it("shows QAOA search controls only for Digital mode", () => {
+    const { onLayers, onSearchStrategy } = renderPanel({ mode: "digital" });
+
+    fireEvent.change(screen.getByLabelText("QAOA 层数"), {
+      target: { value: "2" },
+    });
+    fireEvent.change(screen.getByLabelText("参数搜索"), {
+      target: { value: "seeded_sample" },
+    });
+
+    expect(onLayers).toHaveBeenCalledWith(2);
+    expect(onSearchStrategy).toHaveBeenCalledWith("seeded_sample");
+    cleanup();
+    renderPanel({ mode: "hybrid" });
+    expect(screen.queryByLabelText("QAOA 层数")).toBeNull();
   });
 
   it("prevents duplicate execution while a run is active", () => {

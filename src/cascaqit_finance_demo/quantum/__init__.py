@@ -2,8 +2,16 @@
 
 from cascaqit_finance_demo.quantum.problem_executor import (
     FinanceModeAdvisor,
+    ParameterSearchStrategy,
     ScenarioExecutor,
     default_parameter_sets,
+    generate_parameter_sets,
 )
 
-__all__ = ["FinanceModeAdvisor", "ScenarioExecutor", "default_parameter_sets"]
+__all__ = [
+    "FinanceModeAdvisor",
+    "ParameterSearchStrategy",
+    "ScenarioExecutor",
+    "default_parameter_sets",
+    "generate_parameter_sets",
+]

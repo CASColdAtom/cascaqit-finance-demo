@@ -289,7 +289,7 @@ result = executor.run(
 - 按原始业务规则重新计算的 objective、feasibility 和 violation；
 - 本地模拟、seed、shots、耗时及无硬件执行声明。
 
-`optimize(parameter_sets=...)` 只比较调用方给出的离散参数点，不表示连续优化或全局寻优。若量子候选不可行，页面可以另行展示经典基准，但必须保留原候选并标出 `displayed_source`。
+`optimize(parameter_sets=...)` 只比较调用方给出的离散参数点，不表示连续优化或全局寻优。Demo 可为 Digital 生成一到三层 QAOA 的预设、二维网格或固定 seed 采样点，最多评估 24 个点；生成策略属于应用编排，不改变 CASCAQit 的 Problem 和 Hamiltonian。若量子候选不可行，页面可以另行展示经典基准，但必须保留原候选并标出 `displayed_source`。
 
 ## 7. 界面信息架构
 
@@ -307,7 +307,7 @@ result = executor.run(
 - Analog：原子阵列与合并波形并列，坐标轴等比例，counts 位于下方，不显示数字线路。
 - Hybrid：同时展示 D-A-D、完整 Analog 业务组、Digital residual、业务边到 interaction 的映射和末端 counts。
 
-模式建议显示具体证据，不只显示 “recommended”。切换业务输入后立即清空旧结果，并重新分析。缓存键包含场景、完整输入、mode、shots、seed 和参数点。
+模式建议显示具体证据，不只显示 “recommended”。切换业务输入后立即清空旧结果，并重新分析。缓存键包含场景、完整输入、mode、shots、seed、层数、搜索方式和评估预算。
 
 ## 8. 落地顺序
 

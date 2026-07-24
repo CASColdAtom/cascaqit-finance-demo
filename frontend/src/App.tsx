@@ -12,6 +12,7 @@ import type {
   RunPayload,
   RunRequest,
   ScenarioSpec,
+  SearchStrategy,
 } from "./types";
 import { executionSignature, MODE_LABELS } from "./utils";
 
@@ -58,7 +59,9 @@ function Workbench() {
   const [mode, setMode] = useState<Mode>("digital");
   const [shots, setShots] = useState(32);
   const [seed, setSeed] = useState(23);
-  const [parameterPoints, setParameterPoints] = useState(2);
+  const [layers, setLayers] = useState(1);
+  const [searchStrategy, setSearchStrategy] = useState<SearchStrategy>("preset");
+  const [parameterBudget, setParameterBudget] = useState(2);
   const [activeView, setActiveView] = useState<ViewId>("scenario");
   const [run, setRun] = useState<RunPayload | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -154,9 +157,24 @@ function Workbench() {
       mode,
       shots,
       seed,
-      parameter_points: parameterPoints,
+      layers: mode === "digital" ? layers : 1,
+      search_strategy: mode === "digital" ? searchStrategy : "preset",
+      parameter_budget:
+        mode === "digital" && searchStrategy !== "preset"
+          ? parameterBudget
+          : Math.min(parameterBudget, 2),
     };
-  }, [activeId, mode, parameterPoints, preset, seed, shots, values]);
+  }, [
+    activeId,
+    layers,
+    mode,
+    parameterBudget,
+    preset,
+    searchStrategy,
+    seed,
+    shots,
+    values,
+  ]);
 
   useEffect(() => {
     if (!currentRequest) return;
@@ -257,7 +275,9 @@ function Workbench() {
           mode={mode}
           shots={shots}
           seed={seed}
-          parameterPoints={parameterPoints}
+          layers={layers}
+          searchStrategy={searchStrategy}
+          parameterBudget={parameterBudget}
           running={running}
           analyzing={analyzing}
           onPreset={selectPreset}
@@ -268,7 +288,18 @@ function Workbench() {
           onMode={setMode}
           onShots={setShots}
           onSeed={setSeed}
-          onParameterPoints={setParameterPoints}
+          onLayers={(value) => {
+            setLayers(value);
+            if (value !== 1 && searchStrategy === "grid") {
+              setSearchStrategy("seeded_sample");
+            }
+          }}
+          onSearchStrategy={(value) => {
+            setSearchStrategy(value);
+            if (value === "preset") setParameterBudget((current) => Math.min(current, 2));
+            if (value === "grid") setLayers(1);
+          }}
+          onParameterBudget={setParameterBudget}
           onRun={execute}
           onReset={() => selectPreset(activeScenario.presets[0].value)}
         />

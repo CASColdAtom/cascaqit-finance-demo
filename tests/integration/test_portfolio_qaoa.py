@@ -48,3 +48,29 @@ def test_fixed_seed_reproduces_problem_counts() -> None:
 
     assert first.execution.result.counts == second.execution.result.counts
     assert first.business_candidate.bitstring == second.business_candidate.bitstring
+
+
+def test_digital_layers_preserve_problem_identity_and_execute_all_parameters() -> None:
+    """验证 p=1/2/3 不改变 Problem 身份，并按 2p 参数真实执行。"""
+    scenario = PortfolioScenario()
+    case_input = scenario.default_input()
+    results = [
+        ScenarioExecutor().run(
+            scenario,
+            case_input,
+            mode="digital",
+            layers=layers,
+            search_strategy="seeded_sample",
+            parameter_budget=1,
+            shots=8,
+            seed=29,
+        )
+        for layers in (1, 2, 3)
+    ]
+
+    assert len({result.execution.problem_hash for result in results}) == 1
+    for layers, result in zip((1, 2, 3), results):
+        parameters = result.execution.parameter_history[0].parameter_bind.values
+        assert len(parameters) == 2 * layers
+        assert result.metadata["layers"] == layers
+        assert sum(result.execution.result.counts.values()) == 8

@@ -5,6 +5,7 @@ import type {
   ControlSpec,
   Mode,
   ScenarioSpec,
+  SearchStrategy,
 } from "../types";
 import { MODE_LABELS } from "../utils";
 import { useI18n } from "../i18n";
@@ -17,7 +18,9 @@ interface ControlPanelProps {
   mode: Mode;
   shots: number;
   seed: number;
-  parameterPoints: number;
+  layers: number;
+  searchStrategy: SearchStrategy;
+  parameterBudget: number;
   running: boolean;
   analyzing: boolean;
   onPreset: (value: string) => void;
@@ -25,7 +28,9 @@ interface ControlPanelProps {
   onMode: (mode: Mode) => void;
   onShots: (value: number) => void;
   onSeed: (value: number) => void;
-  onParameterPoints: (value: number) => void;
+  onLayers: (value: number) => void;
+  onSearchStrategy: (value: SearchStrategy) => void;
+  onParameterBudget: (value: number) => void;
   onRun: () => void;
   onReset: () => void;
 }
@@ -174,16 +179,50 @@ export function ControlPanel(props: ControlPanelProps) {
                 ))}
               </select>
             </label>
-            <label>
-              <span>{t("parameterPoints")}</span>
-              <select
-                value={props.parameterPoints}
-                onChange={(event) => props.onParameterPoints(Number(event.target.value))}
-              >
-                <option value={1}>1 / {t("fast")}</option>
-                <option value={2}>2 / {t("comparison")}</option>
-              </select>
-            </label>
+            {props.mode === "digital" ? (
+              <>
+                <label>
+                  <span>{t("qaoaLayers")}</span>
+                  <select
+                    value={props.layers}
+                    onChange={(event) => props.onLayers(Number(event.target.value))}
+                  >
+                    {[1, 2, 3].map((value) => (
+                      <option key={value} value={value}>p = {value}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{t("searchMethod")}</span>
+                  <select
+                    value={props.searchStrategy}
+                    onChange={(event) =>
+                      props.onSearchStrategy(event.target.value as SearchStrategy)
+                    }
+                  >
+                    <option value="preset">{t("presetSearch")}</option>
+                    <option value="grid" disabled={props.layers !== 1}>
+                      {t("gridSearch")}
+                    </option>
+                    <option value="seeded_sample">{t("seededSearch")}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>{t("evaluationBudget")}</span>
+                  <select
+                    value={props.parameterBudget}
+                    onChange={(event) => props.onParameterBudget(Number(event.target.value))}
+                  >
+                    {(props.searchStrategy === "preset"
+                      ? [1, 2]
+                      : [2, 4, 8, 12, 16, 24]
+                    ).map((value) => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : null}
           </div>
 
           <div className="run-actions">

@@ -778,7 +778,28 @@ export function ParameterChart({ history }: { history: QuantumPayload["parameter
       className="chart-canvas compact-chart"
       option={{
         ...common,
-        tooltip,
+        tooltip: {
+          ...tooltip,
+          formatter: (raw: unknown) => {
+            const point = raw as {
+              name?: string;
+              data?: {
+                value: number;
+                parameters: Record<string, number>;
+              };
+            };
+            const data = point.data;
+            if (!data) return point.name ?? "";
+            const parameters = Object.entries(data.parameters)
+              .map(([name, value]) => `${name}: ${value.toFixed(4)}`)
+              .join("<br/>");
+            return [
+              point.name ?? "",
+              `objective: ${data.value.toFixed(6)}`,
+              parameters,
+            ].filter(Boolean).join("<br/>");
+          },
+        },
         grid: { left: 58, right: 20, top: 22, bottom: 42 },
         xAxis: { ...axis, type: "category", data: history.map((item) => `P${item.index + 1}`), name: t("parameterPointAxis") },
         yAxis: { ...axis, type: "value", name: "objective", scale: true },
@@ -787,6 +808,7 @@ export function ParameterChart({ history }: { history: QuantumPayload["parameter
             type: "line",
             data: history.map((item) => ({
               value: item.objective,
+              parameters: item.parameters,
               itemStyle: { color: item.selected ? palette.green : palette.cyan },
               symbolSize: item.selected ? 12 : 8,
             })),

@@ -92,7 +92,7 @@ def test_digital_execution_returns_business_circuit_counts_and_audit() -> None:
             "mode": "recommended",
             "shots": 16,
             "seed": 17,
-            "parameter_points": 1,
+            "parameter_budget": 1,
         },
     )
 
@@ -118,7 +118,7 @@ def test_hybrid_and_analog_expose_atoms_waveforms_and_real_term_mapping() -> Non
                 "mode": "recommended",
                 "shots": 8,
                 "seed": 19,
-                "parameter_points": 1,
+                "parameter_budget": 1,
             },
         )
 
@@ -153,7 +153,7 @@ def test_run_maps_capability_error_to_stable_422(
     monkeypatch.setattr(app_module.ScenarioExecutor, "run", reject_run)
     response = client.post(
         "/api/scenarios/settlement/run",
-        json={"shots": 1, "parameter_points": 1},
+        json={"shots": 1, "parameter_budget": 1},
     )
 
     assert response.status_code == 422
@@ -175,7 +175,7 @@ def test_run_maps_unknown_error_to_traceable_500(
     monkeypatch.setattr(app_module.ScenarioExecutor, "run", fail_run)
     response = client.post(
         "/api/scenarios/settlement/run",
-        json={"shots": 1, "parameter_points": 1},
+        json={"shots": 1, "parameter_budget": 1},
     )
 
     assert response.status_code == 500
@@ -183,3 +183,75 @@ def test_run_maps_unknown_error_to_traceable_500(
     assert detail["code"] == "internal_execution_error"
     assert len(detail["error_id"]) == 32
     assert "sensitive" not in detail["message"]
+
+
+def test_digital_multilayer_search_returns_real_parameters() -> None:
+    """验证 API 把多层参数搜索真实传入编译器并返回完整参数历史。"""
+    response = client.post(
+        "/api/scenarios/portfolio/run",
+        json={
+            "preset": "base",
+            "mode": "digital",
+            "shots": 8,
+            "seed": 17,
+            "layers": 3,
+            "search_strategy": "seeded_sample",
+            "parameter_budget": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    quantum = response.json()["run"]["quantum"]
+    assert quantum["layerCount"] == 3
+    assert quantum["searchStrategy"] == "seeded_sample"
+    assert quantum["evaluationCount"] == 2
+    assert quantum["selectedEvaluationIndex"] in {0, 1}
+    assert len(quantum["layers"]) == 11
+    assert all(
+        set(item["parameters"])
+        == {
+            "gamma_0",
+            "gamma_1",
+            "gamma_2",
+            "beta_0",
+            "beta_1",
+            "beta_2",
+        }
+        for item in quantum["parameterHistory"]
+    )
+    assert sum(item["count"] for item in quantum["counts"]) == 8
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "mode": "hybrid",
+            "layers": 2,
+            "search_strategy": "preset",
+            "parameter_budget": 2,
+        },
+        {
+            "mode": "digital",
+            "layers": 2,
+            "search_strategy": "grid",
+            "parameter_budget": 4,
+        },
+        {
+            "mode": "digital",
+            "layers": 1,
+            "search_strategy": "preset",
+            "parameter_budget": 3,
+        },
+    ],
+)
+def test_run_rejects_unsupported_search_combinations(
+    payload: dict[str, object],
+) -> None:
+    """验证不支持的层数和搜索策略组合不会被静默降级。"""
+    response = client.post(
+        "/api/scenarios/settlement/run",
+        json={"preset": "base", "shots": 1, "seed": 17, **payload},
+    )
+
+    assert response.status_code == 422

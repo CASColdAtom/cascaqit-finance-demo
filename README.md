@@ -25,7 +25,7 @@ cd ..
 cascaqit-finance-api
 ```
 
-打开 <http://127.0.0.1:8000>。选择场景和预设，调整业务参数后运行。默认使用固定 seed、本地模拟器和两个参数点，不访问网络。
+打开 <http://127.0.0.1:8000>。选择场景和预设，调整业务参数后运行。Digital QAOA 可选择 `p=1~3`、预设参数、二维网格或固定 seed 采样；默认使用一层和两个预设点。执行来自本地模拟器，不访问网络。
 
 前端开发时可以让 Vite 独立运行，`/api` 会代理到 FastAPI：
 
@@ -62,7 +62,7 @@ React 工作台使用三栏布局：场景导航、参数控制和结果工作�
 
 Digital 线路可以切换通用门和 QAOA 逻辑层，线路高度随 qubit 数变化。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
 
-同一业务输入下，各执行模式的结果分别缓存。只有场景、输入、mode、shots、seed 和参数点完全一致时才会恢复旧结果；修改任一字段后，旧的 counts、线路、波形和审计证据不会混入当前页面。
+同一业务输入下，各执行模式的结果分别缓存。只有场景、输入、mode、shots、seed、QAOA 层数、搜索方式和评估预算完全一致时才会恢复旧结果；修改任一字段后，旧的 counts、线路、波形和审计证据不会混入当前页面。
 
 ## Problem API
 
@@ -79,6 +79,9 @@ result = executor.run(
     scenario,
     scenario.default_input(),
     mode="recommended",
+    layers=2,
+    search_strategy="seeded_sample",
+    parameter_budget=8,
     shots=32,
     seed=23,
 )
@@ -95,7 +98,7 @@ print(result.execution.result.counts)
 - 执行来自 `LocalBackend`，不是量子硬件或云端结果。
 - Hybrid 只使用当前 Problem API 支持的一层 D-A-D。
 - Analog 要求完整 AHS 可表达性，不会用隐藏数字项补齐失败映射。
-- 参数搜索只比较调用方给出的一个或两个参数点，不是连续优化器。
+- Digital 参数搜索最多执行 24 个离散参数点；Hybrid 和 Analog 仍使用一到两个预设点。当前没有连续参数优化器。
 - 经典枚举用于小规模校验，不表示量子优势或生产最优性。
 - 衍生品价格来自 Black-Scholes、二叉树或固定 seed Monte Carlo；Analog counts 不参与定价。
 - 结果不构成投资、清算、风控、授信或定价建议。

@@ -8,7 +8,9 @@ describe("executionSignature", () => {
       mode: "digital" as const,
       shots: 32,
       seed: 23,
-      parameter_points: 2,
+      layers: 2,
+      search_strategy: "seeded_sample" as const,
+      parameter_budget: 8,
     };
     expect(
       executionSignature("portfolio", {
@@ -21,6 +23,35 @@ describe("executionSignature", () => {
         values: { selected_count: 4, risk_weight: 0.5 },
       }),
     );
+  });
+
+  it("changes when the QAOA search configuration changes", () => {
+    const request = {
+      preset: "base",
+      values: { risk_weight: 0.5 },
+      mode: "digital" as const,
+      shots: 32,
+      seed: 23,
+      layers: 1,
+      search_strategy: "preset" as const,
+      parameter_budget: 2,
+    };
+    const base = executionSignature("portfolio", request);
+
+    expect(
+      executionSignature("portfolio", {
+        ...request,
+        layers: 2,
+        search_strategy: "seeded_sample",
+      }),
+    ).not.toBe(base);
+    expect(
+      executionSignature("portfolio", {
+        ...request,
+        search_strategy: "grid",
+        parameter_budget: 8,
+      }),
+    ).not.toBe(base);
   });
 });
 

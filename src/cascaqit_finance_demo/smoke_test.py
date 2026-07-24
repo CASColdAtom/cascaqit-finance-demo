@@ -19,7 +19,7 @@ def main() -> None:
     result = asyncio.run(
         run_scenario(
             "settlement",
-            RunRequest(shots=16, parameter_points=1),
+            RunRequest(shots=16, parameter_budget=1),
         )
     )
     if not {"scenario", "preset", "run"}.issubset(result):

@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
 
+import numpy as np
 from cascaqit.problems import ProblemCompiler
 from cascaqit.simulators import LocalBackend, SimulationOptions
 from cascaqit.targets import MockNeutralAtomTarget, TargetSpec
@@ -36,6 +38,8 @@ from cascaqit_finance_demo.domain.problem_api import (
     ProblemMode,
     ScenarioAnalysis,
 )
+
+ParameterSearchStrategy = Literal["preset", "grid", "seeded_sample"]
 
 
 @dataclass(frozen=True)
@@ -233,6 +237,9 @@ class ScenarioExecutor:
         *,
         mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended",
         parameter_sets: Sequence[Mapping[str, float]] | None = None,
+        layers: int = 1,
+        search_strategy: ParameterSearchStrategy = "preset",
+        parameter_budget: int = 2,
         shots: int = 64,
         seed: int = 23,
         report_path: Path | None = None,
@@ -240,8 +247,8 @@ class ScenarioExecutor:
         """按指定或推荐模式执行场景，并返回业务结果与完整审计证据。
 
         ``mode='recommended'`` 使用模式顾问结论；显式模式仍必须同时通过编译
-        可行性和业务适配检查。Digital/Hybrid 使用 QAOA 参数 ``gamma/beta``，
-        Analog 使用 QAA 参数 ``anneal_time/omega_max``。
+        可行性和业务适配检查。Digital 可以选择 QAOA 层数与参数搜索方法，
+        Hybrid 当前只支持一层，Analog 使用固定的一层执行语义。
 
         每个参数点执行给定 ``shots`` 次采样，``optimize`` 根据观测结果选出最佳
         候选。最佳采样候选若违反业务约束，展示层会回退到同次执行产生的经典
@@ -272,10 +279,24 @@ class ScenarioExecutor:
             mode=selected_mode,
             algorithm="qaa" if selected_mode == "analog" else "qaoa",
             target=self.target,
+            layers=layers,
         )
-        # 默认只扫描两个确定性参数点，目的是控制现场演示耗时，不代表已进行
-        # 充分的经典外层参数优化。调用方可传入更多 parameter_sets。
-        points = tuple(parameter_sets or default_parameter_sets(selected_mode))
+        # 高级调用方可以显式给出参数点；普通 API 则由受约束的搜索策略生成。
+        # 两条路径都进入同一个 compiled.optimize()，不会改变 Problem 或解码器。
+        if parameter_sets is None:
+            points = generate_parameter_sets(
+                selected_mode,
+                layers=layers,
+                strategy=search_strategy,
+                budget=parameter_budget,
+                seed=seed,
+            )
+            resolved_strategy = search_strategy
+        else:
+            points = tuple(dict(point) for point in parameter_sets)
+            if not points:
+                raise ValueError("parameter_sets must not be empty.")
+            resolved_strategy = "explicit"
         backend = LocalBackend(
             seed=seed,
             target=self.target,
@@ -352,7 +373,11 @@ class ScenarioExecutor:
             evidence=evidence,
             report_path=saved_report,
             metadata={
+                "layers": layers,
+                "search_strategy": resolved_strategy,
+                "parameter_budget": parameter_budget,
                 "parameter_set_count": len(points),
+                "selected_evaluation_index": execution.selected_evaluation_index,
                 "displayed_source": (
                     "best_observed" if displayed is candidate else "classical_baseline"
                 ),
@@ -361,21 +386,110 @@ class ScenarioExecutor:
         )
 
 
-def default_parameter_sets(mode: ProblemMode) -> tuple[dict[str, float], ...]:
+def default_parameter_sets(
+    mode: ProblemMode,
+    *,
+    layers: int = 1,
+) -> tuple[dict[str, float], ...]:
     """返回适合现场演示的小规模确定性参数扫描，不依赖在线优化器。
 
     这些点是固定演示配置，不是针对每个金融实例训练得到的最优参数。Analog
-    扫描退火时间和最大 Rabi 驱动；Digital/Hybrid 扫描首层 cost/mixer 角度。
+    扫描退火时间和最大 Rabi 驱动；Digital 把同一组 cost/mixer 角度扩展到
+    指定层数，Hybrid 当前只允许一层。
     """
+    _validate_search_shape(mode, layers=layers, budget=2)
     if mode == "analog":
         return (
             {"anneal_time": 0.4, "omega_max": 1.0},
             {"anneal_time": 0.7, "omega_max": 1.4},
         )
-    return (
-        {"gamma_0": 0.16, "beta_0": 0.24},
-        {"gamma_0": 0.28, "beta_0": -0.18},
+    base_points = ((0.16, 0.24), (0.28, -0.18))
+    return tuple(
+        {
+            **{f"gamma_{index}": gamma for index in range(layers)},
+            **{f"beta_{index}": beta for index in range(layers)},
+        }
+        for gamma, beta in base_points
     )
+
+
+def generate_parameter_sets(
+    mode: ProblemMode,
+    *,
+    layers: int = 1,
+    strategy: ParameterSearchStrategy = "preset",
+    budget: int = 2,
+    seed: int = 23,
+) -> tuple[dict[str, float], ...]:
+    """按模式、层数和预算生成可复现的参数点。
+
+    ``preset`` 保留两组人工校验过的演示参数；``grid`` 用于观察一层 Digital
+    QAOA 的二维目标面；``seeded_sample`` 面向多层 Digital QAOA，在固定 seed
+    下生成完全一致的参数序列。当前 Hybrid 和 Analog 仍只开放预设点，避免把
+    尚未实现的多层 Hybrid 或连续优化伪装成可用能力。
+    """
+    _validate_search_shape(mode, layers=layers, budget=budget)
+    if strategy not in {"preset", "grid", "seeded_sample"}:
+        raise ValueError(f"unsupported parameter search strategy: {strategy!r}")
+    if not isinstance(seed, int) or isinstance(seed, bool) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
+
+    if strategy == "preset":
+        presets = default_parameter_sets(mode, layers=layers)
+        if budget > len(presets):
+            raise ValueError("preset search supports at most 2 parameter points.")
+        return presets[:budget]
+
+    if mode != "digital":
+        raise ValueError(f"{strategy} search is currently available only for Digital.")
+
+    if strategy == "grid":
+        if layers != 1:
+            raise ValueError("grid search currently supports Digital layers=1 only.")
+        # 构造接近方形的二维网格，并按 beta/gamma 交错展开。这样较小预算也不会
+        # 退化成完全相同的参数点，同时保持生成结果可解释、可复现。
+        gamma_count = max(1, int(math.floor(math.sqrt(budget))))
+        beta_count = int(math.ceil(budget / gamma_count))
+        gammas = np.linspace(0.0, math.pi, gamma_count)
+        betas = np.linspace(-math.pi / 2.0, math.pi / 2.0, beta_count)
+        return tuple(
+            {"gamma_0": float(gamma), "beta_0": float(beta)}
+            for beta in betas
+            for gamma in gammas
+        )[:budget]
+
+    rng = np.random.default_rng(seed)
+    points: list[dict[str, float]] = []
+    for _ in range(budget):
+        gammas = rng.uniform(0.0, math.pi, size=layers)
+        betas = rng.uniform(-math.pi / 2.0, math.pi / 2.0, size=layers)
+        points.append(
+            {
+                **{
+                    f"gamma_{index}": float(value)
+                    for index, value in enumerate(gammas)
+                },
+                **{
+                    f"beta_{index}": float(value)
+                    for index, value in enumerate(betas)
+                },
+            }
+        )
+    return tuple(points)
+
+
+def _validate_search_shape(mode: ProblemMode, *, layers: int, budget: int) -> None:
+    """集中校验模式、QAOA 层数和演示评估预算。"""
+    if mode not in _MODES:
+        raise ValueError(f"unsupported Problem mode: {mode!r}")
+    if not isinstance(layers, int) or isinstance(layers, bool) or layers < 1:
+        raise ValueError("layers must be a positive integer.")
+    if mode == "digital" and layers > 3:
+        raise ValueError("Digital demo supports layers from 1 to 3.")
+    if mode != "digital" and layers != 1:
+        raise ValueError(f"{mode.capitalize()} currently supports layers=1 only.")
+    if not isinstance(budget, int) or isinstance(budget, bool) or not 1 <= budget <= 24:
+        raise ValueError("parameter budget must be between 1 and 24.")
 
 
 _MODES: tuple[ProblemMode, ...] = ("digital", "hybrid", "analog")
