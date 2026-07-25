@@ -120,7 +120,7 @@ export function ControlPanel(props: ControlPanelProps) {
       <div className="control-panel-body" id="control-panel-body">
 
         <label className="control-field preset-field">
-          <span>{t("demoPreset")}</span>
+          <span>{t("parameterPreset")}</span>
           <select value={props.preset} onChange={(event) => props.onPreset(event.target.value)}>
             {props.scenario.presets.map((option) => (
               <option key={option.value} value={option.value}>

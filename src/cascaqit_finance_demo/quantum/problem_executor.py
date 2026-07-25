@@ -799,7 +799,7 @@ def _validate_search_shape(mode: ProblemMode, *, layers: int, budget: int) -> No
     if not isinstance(layers, int) or isinstance(layers, bool) or layers < 1:
         raise ValueError("layers must be a positive integer.")
     if mode == "digital" and layers > 3:
-        raise ValueError("Digital demo supports layers from 1 to 3.")
+        raise ValueError("Digital mode supports layers from 1 to 3.")
     if mode != "digital" and layers != 1:
         raise ValueError(f"{mode.capitalize()} currently supports layers=1 only.")
     if not isinstance(budget, int) or isinstance(budget, bool) or not 1 <= budget <= 24:

@@ -189,7 +189,7 @@ class SettlementCase:
                     CaseIssue(
                         "QUBO_VARIABLE_LIMIT",
                         "constraints",
-                        f"当前输入需要 {variable_count} 个变量，Demo 上限为 20。",
+                        f"当前输入需要 {variable_count} 个变量，变量上限为 20。",
                     )
                 )
             elif not self.exact_business_points(case_input):

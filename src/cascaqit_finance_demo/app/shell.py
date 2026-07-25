@@ -29,7 +29,7 @@ def build_header() -> Div:
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
             f'<span style="border:1px solid {BORDER};border-radius:5px;padding:5px 9px;'
             f'background:{SURFACE}"><span style="color:{GREEN}">●</span> '
-            "演示环境 · 本地模拟</span>"
+            "实验环境 · 本地模拟</span>"
             f'<span style="border:1px solid {BORDER};border-radius:5px;padding:5px 9px;'
             f'background:{SURFACE}">合成数据</span>'
             f'<span style="border:1px solid {BORDER};border-radius:5px;padding:5px 9px;'

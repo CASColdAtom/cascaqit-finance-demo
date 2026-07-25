@@ -152,13 +152,14 @@ function renderPanel(
     mode?: "digital" | "hybrid" | "analog";
     recommendedConfiguration?: boolean;
   } = {},
+  language: "zh" | "en" = "zh",
 ) {
   const onMode = vi.fn();
   const onRun = vi.fn();
   const onLayers = vi.fn();
   const onSearchStrategy = vi.fn();
   render(
-    <I18nProvider initialLanguage="zh">
+    <I18nProvider initialLanguage={language}>
       <ControlPanel
         scenario={scenario}
         preset="base"
@@ -194,6 +195,18 @@ function renderPanel(
 }
 
 describe("ControlPanel", () => {
+  it("uses neutral preset wording", () => {
+    renderPanel();
+
+    expect(screen.getByText("参数预设")).toBeTruthy();
+    expect(screen.queryByText(/演示|demo/i)).toBeNull();
+
+    cleanup();
+    renderPanel({}, "en");
+    expect(screen.getByText("Parameter Preset")).toBeTruthy();
+    expect(screen.queryByText(/demo/i)).toBeNull();
+  });
+
   it("exposes a compact control toggle for narrow layouts", () => {
     renderPanel();
     const toggle = screen.getByRole("button", { name: /参数与执行/ });

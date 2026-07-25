@@ -293,7 +293,7 @@ def _build_workspace(case_id: str, executor: ScenarioExecutor) -> Workspace:
     analysis = executor.analyze(scenario, default_input)
     controls, control_models = _scenario_controls(case_id, default_input)
     preset = Select(
-        title="演示预设",
+        title="参数预设",
         value=PRESETS[case_id][0][0],
         options=list(PRESETS[case_id]),
         sizing_mode="stretch_width",

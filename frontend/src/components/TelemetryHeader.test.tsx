@@ -18,6 +18,6 @@ describe("TelemetryHeader", () => {
     const header = screen.getByRole("banner");
     expect(within(header).getByText("实验服务在线")).toBeTruthy();
     expect(within(header).getByText("执行可审计")).toBeTruthy();
-    expect(within(header).queryByText("合成演示数据")).toBeNull();
+    expect(within(header).queryByText(/演示|demo/i)).toBeNull();
   });
 });

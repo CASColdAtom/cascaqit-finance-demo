@@ -14,7 +14,7 @@ const zh = {
   productTitle: "中科酷原金融量子实验台",
   productSubtitle: "CASCAQit FINANCIAL QUANTUM WORKBENCH",
   serviceOnline: "实验服务在线",
-  syntheticData: "合成演示数据",
+  syntheticData: "合成数据",
   auditReady: "执行可审计",
   experiments: "金融场景",
   execution: "实验执行",
@@ -24,7 +24,7 @@ const zh = {
   emptyCatalog: "API 未返回场景目录",
   parametersAndExecution: "参数与执行",
   experimentInput: "实验输入",
-  demoPreset: "演示预设",
+  parameterPreset: "参数预设",
   executionMode: "执行模式",
   recommendedConfiguration: "推荐执行配置",
   customConfiguration: "自定义执行配置",
@@ -146,7 +146,7 @@ const en: MessageDictionary = {
   productTitle: "CASColdAtom Financial Quantum Workbench",
   productSubtitle: "CASCAQit FINANCIAL QUANTUM WORKBENCH",
   serviceOnline: "Execution Service Online",
-  syntheticData: "Synthetic Demo Data",
+  syntheticData: "Synthetic Data",
   auditReady: "Auditable Execution",
   experiments: "Financial Scenarios",
   execution: "Experiment Execution",
@@ -156,7 +156,7 @@ const en: MessageDictionary = {
   emptyCatalog: "The API Returned No Scenarios",
   parametersAndExecution: "Parameters and Execution",
   experimentInput: "Experiment Input",
-  demoPreset: "Demo Preset",
+  parameterPreset: "Parameter Preset",
   executionMode: "Execution Mode",
   recommendedConfiguration: "Recommended Configuration",
   customConfiguration: "Custom Configuration",
@@ -720,7 +720,7 @@ export function I18nProvider({
     ) {
       return "zh";
     }
-    return window.localStorage.getItem("finance-demo-language") === "en"
+    return window.localStorage.getItem("finance-workbench-language") === "en"
       ? "en"
       : "zh";
   });
@@ -729,7 +729,7 @@ export function I18nProvider({
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
     document.title = language === "zh" ? zh.productTitle : en.productTitle;
     if (typeof window.localStorage?.setItem === "function") {
-      window.localStorage.setItem("finance-demo-language", language);
+      window.localStorage.setItem("finance-workbench-language", language);
     }
   }, [language]);
 
