@@ -1,5 +1,5 @@
 export type Mode = "digital" | "hybrid" | "analog";
-export type SearchStrategy = "preset" | "grid" | "seeded_sample";
+export type SearchStrategy = "preset" | "grid" | "seeded_sample" | "continuous";
 export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
 
@@ -25,6 +25,8 @@ export interface ExecutionProfile {
   layers: number;
   searchStrategy: SearchStrategy;
   parameterBudget: number;
+  optimizerStarts?: number;
+  repeats?: number;
 }
 
 export interface ScenarioSpec {
@@ -39,7 +41,7 @@ export interface ScenarioSpec {
   controls: ControlSpec[];
   values: Record<string, string | number | boolean>;
   recommendedMode: Mode;
-  recommendedExecution: ExecutionProfile;
+  recommendedExecution?: ExecutionProfile;
 }
 
 export interface InputRow {
@@ -298,9 +300,19 @@ export interface QuantumPayload {
   algorithm: string;
   topology: string | null;
   layerCount: number;
-  searchStrategy: "preset" | "grid" | "seeded_sample" | "explicit";
+  searchStrategy: SearchStrategy | "explicit";
   evaluationCount: number;
   selectedEvaluationIndex: number;
+  optimizer?: {
+    method: string;
+    starts: number;
+    perStartEvaluationBudget: number | null;
+    maximumEvaluationCount: number | null;
+    selectedStartIndex: number | null;
+    startInitializations: string[];
+    terminationReason: string | null;
+    backendExecutionCount: number | null;
+  } | null;
   blocks: string[];
   layers: string[];
   circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
@@ -354,6 +366,35 @@ export interface RunPayload {
   business: BusinessPayload;
   quantum: QuantumPayload;
   audit: AuditPayload;
+  statistics?: RepeatedRunStatistics;
+}
+
+export interface RepeatedRunStatistics {
+  repeatCount: number;
+  feasibleCount: number;
+  feasibleRate: number;
+  successSource: "quantum_business_candidate";
+  representativeRunIndex: number;
+  objective: {
+    mean: number;
+    sampleStandardDeviation: number;
+    confidenceLevel: number;
+    confidenceIntervalLow: number;
+    confidenceIntervalHigh: number;
+  };
+  totalEvaluationCount: number;
+  totalWallTimeSeconds: number;
+  runs: Array<{
+    index: number;
+    seed: number;
+    quantumCandidateFeasible: boolean;
+    objective: number;
+    candidateObjective: number;
+    evaluationCount: number;
+    wallTimeSeconds: number;
+    selected: boolean;
+    diagnosticDisplaySource: string;
+  }>;
 }
 
 export interface RunResponse {
@@ -374,4 +415,6 @@ export interface RunRequest extends ScenarioRequest {
   layers: number;
   search_strategy: SearchStrategy;
   parameter_budget: number;
+  optimizer_starts?: number;
+  repeats?: number;
 }

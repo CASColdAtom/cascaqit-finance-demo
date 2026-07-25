@@ -21,6 +21,8 @@ interface ControlPanelProps {
   layers: number;
   searchStrategy: SearchStrategy;
   parameterBudget: number;
+  optimizerStarts: number;
+  repeats: number;
   recommendedConfiguration: boolean;
   running: boolean;
   analyzing: boolean;
@@ -32,6 +34,8 @@ interface ControlPanelProps {
   onLayers: (value: number) => void;
   onSearchStrategy: (value: SearchStrategy) => void;
   onParameterBudget: (value: number) => void;
+  onOptimizerStarts: (value: number) => void;
+  onRepeats: (value: number) => void;
   onRun: () => void;
   onReset: () => void;
 }
@@ -191,8 +195,8 @@ export function ControlPanel(props: ControlPanelProps) {
                 ))}
               </select>
             </label>
-            {props.mode === "digital" ? (
-              <>
+            <>
+              {props.mode === "digital" ? (
                 <label>
                   <span>{t("qaoaLayers")}</span>
                   <select
@@ -204,6 +208,7 @@ export function ControlPanel(props: ControlPanelProps) {
                     ))}
                   </select>
                 </label>
+              ) : null}
                 <label>
                   <span>{t("searchMethod")}</span>
                   <select
@@ -213,10 +218,15 @@ export function ControlPanel(props: ControlPanelProps) {
                     }
                   >
                     <option value="preset">{t("presetSearch")}</option>
-                    <option value="grid" disabled={props.layers !== 1}>
-                      {t("gridSearch")}
-                    </option>
-                    <option value="seeded_sample">{t("seededSearch")}</option>
+                    {props.mode === "digital" ? (
+                      <>
+                        <option value="grid" disabled={props.layers !== 1}>
+                          {t("gridSearch")}
+                        </option>
+                        <option value="seeded_sample">{t("seededSearch")}</option>
+                      </>
+                    ) : null}
+                    <option value="continuous">{t("continuousSearch")}</option>
                   </select>
                 </label>
                 <label>
@@ -227,14 +237,39 @@ export function ControlPanel(props: ControlPanelProps) {
                   >
                     {(props.searchStrategy === "preset"
                       ? [1, 2]
-                      : [2, 4, 8, 12, 16, 24]
+                      : props.searchStrategy === "continuous"
+                        ? [4, 8, 12, 16, 24]
+                        : [2, 4, 8, 12, 16, 24]
                     ).map((value) => (
                       <option key={value} value={value}>{value}</option>
                     ))}
                   </select>
                 </label>
+                {props.searchStrategy === "continuous" ? (
+                  <label>
+                    <span>{t("optimizerStarts")}</span>
+                    <select
+                      value={props.optimizerStarts}
+                      onChange={(event) => props.onOptimizerStarts(Number(event.target.value))}
+                    >
+                      {[1, 2, 3].map((value) => (
+                        <option key={value} value={value}>{value}</option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label>
+                  <span>{t("independentRuns")}</span>
+                  <select
+                    value={props.repeats}
+                    onChange={(event) => props.onRepeats(Number(event.target.value))}
+                  >
+                    {[1, 3, 5].map((value) => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </label>
               </>
-            ) : null}
           </div>
 
           <div className="run-actions">

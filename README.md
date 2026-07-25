@@ -27,7 +27,7 @@ cd ..
 cascaqit-finance-api
 ```
 
-打开 <http://127.0.0.1:8000>。选择场景和预设，调整业务参数后运行。工作台会加载按场景验收的 shots、QAOA 层数和参数搜索配置，修改任一执行参数后标记为自定义配置。Digital QAOA 可选择 `p=1~3`、预设参数、二维网格或固定 seed 采样。执行来自本地模拟器，不访问网络。
+打开 <http://127.0.0.1:8000>。选择场景和预设，调整业务参数后运行。工作台会加载按场景验收的 shots、QAOA 层数和参数搜索配置，修改任一执行参数后标记为自定义配置。Digital QAOA 可选择 `p=1~3`、预设参数、二维网格、固定 seed 采样或连续优化；Hybrid 和 Analog 支持一层预设参数或连续优化。执行来自本地模拟器，不访问网络。
 
 前端开发时可以让 Vite 独立运行，`/api` 会代理到 FastAPI：
 
@@ -50,7 +50,7 @@ npm run dev
 | 企业授信额度配置 | Digital QAOA | 已准入额度档位、资本上限、行业集中度和风险调整价值 |
 | 衍生品估值与风险情景 | Classic + Analog QAA | 经典方法计算价格和 Greeks；Analog 选择 `3 x 3` 代表性压力情景 |
 
-场景共包含 21 个演示预设。每个预设都已用推荐配置采到可行业务候选。修改业务输入后，应用会重新构造并分析 Problem，再更新模式建议；技术上可以编译但缺少业务映射意义的模式不会作为主结果运行。
+场景共包含 19 个演示预设。每个预设都已按推荐配置完成 3 次独立运行，并由量子采样候选直接通过业务约束复核。修改业务输入后，应用会重新构造并分析 Problem，再更新模式建议；技术上可以编译但缺少业务映射意义的模式不会作为主结果运行。
 
 ## 页面内容
 
@@ -59,13 +59,13 @@ React 工作台使用三栏布局：场景导航、参数控制和结果工作�
 - 业务结果：当前选择、核心指标、约束和未选原因。
 - 场景态势：合成输入、候选空间、冲突网络或依赖关系。
 - Problem 映射：Canonical Problem、Hamiltonian、模式判断、资源估算和 term mapping。
-- 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史和 counts。
+- 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史、counts 和独立重复运行统计。
 - 模式证据：完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。
 - 审计证据：Problem、analysis、compile、execution hash，以及 Target、Backend、seed、shots 和执行边界。
 
 Digital 线路可以切换通用门和 QAOA 逻辑层，线路高度随 qubit 数变化。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
 
-同一业务输入下，各执行模式的结果分别缓存。只有场景、输入、mode、shots、seed、QAOA 层数、搜索方式和评估预算完全一致时才会恢复旧结果；修改任一字段后，旧的 counts、线路、波形和审计证据不会混入当前页面。
+同一业务输入下，各执行模式的结果分别缓存。只有场景、输入、mode、shots、seed、QAOA 层数、搜索方式、评估预算、优化起点数和重复次数完全一致时才会恢复旧结果；修改任一字段后，旧的 counts、线路、波形和审计证据不会混入当前页面。
 
 ## Problem API
 
@@ -82,9 +82,10 @@ result = executor.run(
     scenario,
     scenario.default_input(),
     mode="recommended",
-    layers=2,
-    search_strategy="seeded_sample",
-    parameter_budget=8,
+    layers=1,
+    search_strategy="continuous",
+    parameter_budget=12,
+    optimizer_starts=2,
     shots=32,
     seed=23,
 )
@@ -101,8 +102,9 @@ print(result.execution.result.counts)
 - 执行来自 `LocalBackend`，不是量子硬件或云端结果。
 - Hybrid 只使用当前 Problem API 支持的一层 D-A-D。
 - Analog 要求完整 AHS 可表达性，不会用隐藏数字项补齐失败映射。
-- Digital 参数搜索最多执行 24 个离散参数点；Hybrid 和 Analog 仍使用一到两个预设点。当前没有连续参数优化器。
-- 经典基线只用于小规模校验和自定义输入失败诊断，不作为标准演示预设的结果。标准预设必须由量子采样候选直接通过业务复核。
+- 离散搜索最多比较 24 个参数点。连续搜索使用有界 COBYLA，每个起点最多评估 4～24 次，可配置 1～3 个起点；它不保证找到全局最优参数。
+- 独立重复运行当前提供 1、3、5 次选项。可行率和置信区间只统计量子业务候选；最多 5 次只适合演示稳定性，不构成生产统计结论。
+- 经典基线只用于小规模校验和自定义输入失败诊断，不计入重复运行成功率，也不作为标准演示预设的结果。
 - 经典枚举用于小规模校验，不表示量子优势或生产最优性。
 - 衍生品价格来自 Black-Scholes、二叉树或固定 seed Monte Carlo；Analog counts 不参与定价。
 - 结果不构成投资、清算、风控、授信或定价建议。

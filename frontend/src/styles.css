@@ -1825,6 +1825,57 @@ code,
   }
 }
 
+.statistics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+}
+
+.statistics-summary > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid var(--line);
+}
+
+.statistics-summary > div:last-child {
+  border-right: 0;
+}
+
+.statistics-summary small,
+.statistics-summary span {
+  color: var(--muted);
+}
+
+.statistics-summary strong {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.statistics-summary span {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.statistics-table tr[data-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+@media (max-width: 900px) {
+  .statistics-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statistics-summary > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .statistics-summary > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
 @keyframes scan {
   0%,
   100% {

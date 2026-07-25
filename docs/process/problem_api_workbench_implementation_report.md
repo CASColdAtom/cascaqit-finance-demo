@@ -114,7 +114,7 @@ FastAPI 使用线程池执行本地模拟，避免阻塞异步请求循环。当
 
 Digital 控制区支持 `p=1~3`。预设方式提供两组人工校验参数；二维网格只用于 `p=1`；固定 seed 采样支持全部三种层数，最多评估 24 个离散点。每个点的 `gamma_i`、`beta_i`、目标值和是否入选都进入 API 结果，参数图悬浮提示直接读取这些值。
 
-Hybrid 和 Analog 仍使用一层预设配置。不支持的层数、策略或预算组合返回 HTTP 422，不会退回默认设置。当前搜索仍通过 `compiled.optimize(parameter_sets=...)` 比较离散点，不是连续参数优化。
+本报告完成时，Hybrid 和 Analog 只使用一层预设配置，参数搜索通过 `compiled.optimize(parameter_sets=...)` 比较离散点。后续已接入连续优化、多起点和独立重复运行，当前实现见[参数优化与重复统计实现报告](parameter_optimization_and_repeated_statistics_report.md)。
 
 ## 验证结果
 

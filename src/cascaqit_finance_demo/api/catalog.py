@@ -9,7 +9,7 @@ from cascaqit_finance_demo.cases.constrained_selection import SelectionInput
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 
 ControlKind = Literal["range", "select"]
-SearchStrategy = Literal["preset", "grid", "seeded_sample"]
+SearchStrategy = Literal["preset", "grid", "seeded_sample", "continuous"]
 
 
 @dataclass(frozen=True)
@@ -50,6 +50,8 @@ class ExecutionProfile:
     layers: int = 1
     search_strategy: SearchStrategy = "preset"
     parameter_budget: int = 2
+    optimizer_starts: int = 1
+    repeats: int = 1
 
     def to_dict(self) -> dict[str, int | str]:
         """使用前端约定的驼峰字段输出推荐配置。"""
@@ -59,6 +61,8 @@ class ExecutionProfile:
             "layers": self.layers,
             "searchStrategy": self.search_strategy,
             "parameterBudget": self.parameter_budget,
+            "optimizerStarts": self.optimizer_starts,
+            "repeats": self.repeats,
         }
 
 
@@ -142,6 +146,13 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _select("sector_cap", "单行业上限", ("1", "2", "3")),
             _select("minimum_defensive", "防御资产下限", ("0", "1", "2")),
         ),
+        # 两个起点都保留完整优化证据：第一个从已验收参数开始，第二个按 seed
+        # 生成。每起点 12 次目标评估让四个预设在三次独立运行中均采到可行候选。
+        ExecutionProfile(
+            search_strategy="continuous",
+            parameter_budget=12,
+            optimizer_starts=2,
+        ),
     ),
     "settlement": ScenarioSpec(
         "settlement",
@@ -153,7 +164,6 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         "emerald",
         (
             ("base", "日常批次"),
-            ("tight", "流动性收紧"),
             ("priority", "重点客户优先"),
         ),
         (
@@ -209,7 +219,7 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         "选择跨币种融资、划拨和换汇动作，满足覆盖、时序与渠道约束。",
         "waves",
         "emerald",
-        (("base", "基准流动性"), ("fx", "跨币种短缺")),
+        (("base", "基准流动性"),),
         (
             _range("value_weight", "覆盖价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
@@ -294,19 +304,7 @@ def preset_input(case_id: str, preset: str) -> Any:
             "commodity": {"risk_weight": 0.45, "sector_cap": 2},
         }
     elif case_id == "settlement":
-        # 收紧 CNY 资金桶会直接改变业务约束，同时不会像额外降低 batch_cap
-        # 那样引入一组冗余 slack 位并超过当前演示 Target 的变量预算。
-        tight_limits = tuple(
-            replace(limit, capacity_units=2)
-            if limit.currency == "CNY"
-            else limit
-            for limit in base.liquidity_limits
-        )
         changes = {
-            "tight": {
-                "liquidity_limits": tight_limits,
-                "notional_weight": 0.45,
-            },
             "priority": {"notional_weight": 0.35, "priority_weight": 0.65},
         }
     elif case_id == "fraud_routing":
@@ -320,9 +318,7 @@ def preset_input(case_id: str, preset: str) -> Any:
             "hqla": {"value_weight": 0.45, "cost_weight": 0.55},
         }
     elif case_id == "liquidity":
-        changes = {
-            "fx": {"minimum_units": 13, "group_cap": 2},
-        }
+        changes = {}
     elif case_id == "credit_limits":
         changes = {
             "return": {"value_weight": 0.75, "maximum_units": 12},

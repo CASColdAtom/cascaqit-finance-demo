@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
 
 import numpy as np
+from cascaqit.algorithms import OptimizerConfig
 from cascaqit.exceptions import CapabilityError
 from cascaqit.problems import ProblemCompiler
 from cascaqit.simulators import LocalBackend, SimulationOptions
@@ -33,6 +34,7 @@ from cascaqit_finance_demo.domain.models import ExecutionEvidence
 from cascaqit_finance_demo.domain.problem_api import (
     FinanceExperimentResult,
     FinanceProblemDefinition,
+    FinanceRepeatedExperimentResult,
     FinanceScenario,
     ModeDecision,
     ModeDecisionRow,
@@ -40,7 +42,9 @@ from cascaqit_finance_demo.domain.problem_api import (
     ScenarioAnalysis,
 )
 
-ParameterSearchStrategy = Literal["preset", "grid", "seeded_sample"]
+ParameterSearchStrategy = Literal[
+    "preset", "grid", "seeded_sample", "continuous"
+]
 
 
 @dataclass(frozen=True)
@@ -423,6 +427,7 @@ class ScenarioExecutor:
         layers: int = 1,
         search_strategy: ParameterSearchStrategy = "preset",
         parameter_budget: int = 2,
+        optimizer_starts: int = 1,
         shots: int = 64,
         seed: int = 23,
         report_path: Path | None = None,
@@ -433,15 +438,19 @@ class ScenarioExecutor:
         可行性和业务适配检查。Digital 可以选择 QAOA 层数与参数搜索方法，
         Hybrid 当前只支持一层，Analog 使用固定的一层执行语义。
 
-        每个参数点执行给定 ``shots`` 次采样，``optimize`` 根据观测结果选出最佳
-        候选。最佳采样候选若违反业务约束，展示层会回退到同次执行产生的经典
-        基线，但 ``business_candidate``、``baseline_solution`` 和
-        ``displayed_solution`` 三者分别保留，避免把回退结果误称为量子采样结果。
+        离散策略逐点执行；``continuous`` 使用 CASCAQit 的 SciPy 适配器做有界
+        COBYLA 多起点优化。两者都保留全部真实目标评估。最佳采样候选若违反
+        业务约束，展示层可以显示同次执行的经典基线用于诊断，但量子候选、经典
+        基线和展示结果始终分开保存，重复运行统计也只读取量子候选。
         """
         if shots < 1:
             raise ValueError("shots must be positive.")
         if seed < 0:
             raise ValueError("seed must be non-negative.")
+        if search_strategy != "continuous" and optimizer_starts != 1:
+            raise ValueError(
+                "optimizer_starts is available only with continuous search."
+            )
         scenario_analysis = self.analyze(scenario, case_input)
         selected_mode = (
             scenario_analysis.mode_decision.recommended_mode
@@ -466,7 +475,18 @@ class ScenarioExecutor:
         )
         # 高级调用方可以显式给出参数点；普通 API 则由受约束的搜索策略生成。
         # 两条路径都进入同一个 compiled.optimize()，不会改变 Problem 或解码器。
-        if parameter_sets is None:
+        optimizer: OptimizerConfig | None = None
+        if parameter_sets is None and search_strategy == "continuous":
+            points = None
+            optimizer = build_optimizer_config(
+                mode=selected_mode,
+                layers=layers,
+                evaluation_budget=parameter_budget,
+                starts=optimizer_starts,
+                seed=seed,
+            )
+            resolved_strategy = search_strategy
+        elif parameter_sets is None:
             points = generate_parameter_sets(
                 selected_mode,
                 layers=layers,
@@ -499,6 +519,12 @@ class ScenarioExecutor:
         started = perf_counter()
         execution = compiled.optimize(
             parameter_sets=points,
+            optimizer=optimizer,
+            initial_parameters=(
+                None
+                if optimizer is None
+                else default_parameter_sets(selected_mode, layers=layers)[0]
+            ),
             shots=shots,
             seed=seed,
             backend=backend,
@@ -559,13 +585,88 @@ class ScenarioExecutor:
                 "layers": layers,
                 "search_strategy": resolved_strategy,
                 "parameter_budget": parameter_budget,
-                "parameter_set_count": len(points),
+                "parameter_set_count": len(execution.parameter_history),
+                "optimizer_starts": optimizer_starts if optimizer is not None else None,
+                "optimizer_initialization": (
+                    "validated_preset_then_seeded_random"
+                    if optimizer is not None
+                    else None
+                ),
                 "selected_evaluation_index": execution.selected_evaluation_index,
                 "displayed_source": (
                     "best_observed" if displayed is candidate else "classical_baseline"
                 ),
                 "optimality_claim": execution.optimality_claim,
             },
+        )
+
+    def run_repeated(
+        self,
+        scenario: FinanceScenario,
+        case_input: Any,
+        *,
+        repeats: int,
+        confidence_level: float = 0.95,
+        report_path: Path | None = None,
+        **run_options: Any,
+    ) -> FinanceRepeatedExperimentResult:
+        """独立重复优化和采样，并从量子候选中选择一个代表运行。
+
+        第 ``i`` 次运行使用 ``base_seed + i``。每次都重新分析、编译、优化和采样，
+        因而统计结果反映完整量子链路对 seed 的敏感度，而不是对同一 counts 做
+        重采样。该方法不读取 ``baseline_solution`` 判断成功与否。
+        """
+        if not isinstance(repeats, int) or isinstance(repeats, bool):
+            raise TypeError("repeats must be an integer.")
+        if not 2 <= repeats <= 5:
+            raise ValueError("repeats must be between 2 and 5.")
+        if not 0.5 < float(confidence_level) < 1.0:
+            raise ValueError("confidence_level must be greater than 0.5 and below 1.0.")
+        base_seed = run_options.pop("seed", 23)
+        if (
+            not isinstance(base_seed, int)
+            or isinstance(base_seed, bool)
+            or base_seed < 0
+        ):
+            raise ValueError("seed must be a non-negative integer.")
+
+        runs = tuple(
+            self.run(
+                scenario,
+                case_input,
+                seed=base_seed + repeat_index,
+                report_path=None,
+                **run_options,
+            )
+            for repeat_index in range(repeats)
+        )
+        representative_index = min(
+            range(len(runs)),
+            key=lambda index: (
+                not bool(getattr(runs[index].business_candidate, "feasible", True)),
+                float(runs[index].execution.best_observed_candidate.objective_value),
+                index,
+            ),
+        )
+        representative = runs[representative_index]
+        if report_path is not None:
+            saved_report = report_path.expanduser().resolve()
+            saved_report.parent.mkdir(parents=True, exist_ok=True)
+            representative.execution.report(
+                saved_report,
+                language="zh",
+                title=f"{representative.definition.title} · {representative.mode}",
+            )
+            representative = replace(representative, report_path=saved_report)
+            mutable_runs = list(runs)
+            mutable_runs[representative_index] = representative
+            runs = tuple(mutable_runs)
+
+        return FinanceRepeatedExperimentResult(
+            representative=representative,
+            runs=runs,
+            representative_index=representative_index,
+            confidence_level=float(confidence_level),
         )
 
 
@@ -659,6 +760,36 @@ def generate_parameter_sets(
             }
         )
     return tuple(points)
+
+
+def build_optimizer_config(
+    *,
+    mode: ProblemMode,
+    layers: int,
+    evaluation_budget: int,
+    starts: int,
+    seed: int,
+) -> OptimizerConfig:
+    """构造 Demo 允许的无梯度连续优化配置。
+
+    ``evaluation_budget`` 是每个起点最多调用量子目标函数的次数，总上限为
+    ``evaluation_budget * starts``。参数边界不在金融层重复定义，而由编译结果的
+    Parameter schema 补齐，保证 Digital、Hybrid 和 Analog 使用各自真实参数域。
+    """
+    _validate_search_shape(mode, layers=layers, budget=evaluation_budget)
+    if evaluation_budget < 4:
+        raise ValueError("continuous evaluation budget must be between 4 and 24.")
+    if not isinstance(starts, int) or isinstance(starts, bool) or not 1 <= starts <= 3:
+        raise ValueError("optimizer starts must be between 1 and 3.")
+    if not isinstance(seed, int) or isinstance(seed, bool) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
+    return OptimizerConfig(
+        method="COBYLA",
+        max_iterations=evaluation_budget,
+        max_evaluations=evaluation_budget,
+        starts=starts,
+        seed=seed,
+    )
 
 
 def _validate_search_shape(mode: ProblemMode, *, layers: int, budget: int) -> None:

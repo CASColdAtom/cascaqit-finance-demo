@@ -375,6 +375,21 @@ class FinanceExperimentResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class FinanceRepeatedExperimentResult:
+    """同一业务输入和执行配置下的一组独立量子运行。
+
+    ``representative`` 只从本组量子运行中选择：优先选择业务可行候选，再按采样
+    候选的 Hamiltonian 目标值排序。经典基线仍可用于单次结果对照，但不会进入
+    重复运行成功率，也不会被选作本组代表结果。
+    """
+
+    representative: FinanceExperimentResult
+    runs: tuple[FinanceExperimentResult, ...]
+    representative_index: int
+    confidence_level: float = 0.95
+
+
 class FinanceScenario(Protocol):
     """所有可运行金融场景必须实现的最小协议。
 

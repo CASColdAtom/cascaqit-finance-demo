@@ -92,7 +92,6 @@ PRESETS = {
     ),
     "settlement": (
         ("base", "日常批次"),
-        ("tight", "流动性收紧"),
         ("priority", "重点客户优先"),
     ),
     "fraud_routing": (
@@ -107,7 +106,6 @@ PRESETS = {
     ),
     "liquidity": (
         ("base", "基准流动性"),
-        ("fx", "跨币种短缺"),
     ),
     "credit_limits": (
         ("base", "稳健配置"),
@@ -931,17 +929,7 @@ def _preset_input(case_id: str, preset: str) -> Any:
         }
         return replace(base, **changes.get(preset, {}))
     if case_id == "settlement":
-        tight_limits = tuple(
-            replace(limit, capacity_units=2)
-            if limit.currency == "CNY"
-            else limit
-            for limit in base.liquidity_limits
-        )
         changes = {
-            "tight": {
-                "liquidity_limits": tight_limits,
-                "notional_weight": 0.45,
-            },
             "priority": {"notional_weight": 0.35, "priority_weight": 0.65},
         }
         return replace(base, **changes.get(preset, {}))
@@ -958,10 +946,7 @@ def _preset_input(case_id: str, preset: str) -> Any:
         }
         return replace(base, **changes.get(preset, {}))
     if case_id == "liquidity":
-        changes = {
-            "fx": {"minimum_units": 13, "group_cap": 2},
-        }
-        return replace(base, **changes.get(preset, {}))
+        return base
     if case_id == "credit_limits":
         changes = {
             "return": {"value_weight": 0.75, "maximum_units": 12},

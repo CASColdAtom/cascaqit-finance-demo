@@ -288,7 +288,7 @@ result = executor.run(
 
 金融层的 `mode="recommended"` 先执行裁决，再向 CASCAQit 传入显式 `mode + algorithm`。用户显式选择的模式只有在状态不是 `unsuitable` 时才能执行。
 
-场景目录还提供推荐执行配置，包括 shots、seed、QAOA 层数、搜索方式和评估预算。API 请求省略字段时使用场景配置，React 工作台切换场景或预设时加载同一配置，避免脚本和页面维护两套默认值。推荐模式必须通过编译门禁；若三种模式都不可执行，模式顾问返回 `FINANCE_NO_EXECUTABLE_MODE`，不会把 Digital 当作无条件兜底。
+场景目录还提供推荐执行配置，包括 shots、seed、QAOA 层数、搜索方式、评估预算、优化起点数和重复次数。API 请求省略字段时使用场景配置，React 工作台切换场景或预设时加载同一配置，避免脚本和页面维护两套默认值。推荐模式必须通过编译门禁；若三种模式都不可执行，模式顾问返回 `FINANCE_NO_EXECUTABLE_MODE`，不会把 Digital 当作无条件兜底。
 
 统一结果包含：
 
@@ -299,7 +299,9 @@ result = executor.run(
 - 按原始业务规则重新计算的 objective、feasibility 和 violation；
 - 本地模拟、seed、shots、耗时及无硬件执行声明。
 
-`optimize(parameter_sets=...)` 只比较调用方给出的离散参数点，不表示连续优化或全局寻优。Demo 可为 Digital 生成一到三层 QAOA 的预设、二维网格或固定 seed 采样点，最多评估 24 个点；生成策略属于应用编排，不改变 CASCAQit 的 Problem 和 Hamiltonian。若量子候选不可行，页面可以另行展示经典基准，但必须保留原候选并标出 `displayed_source`。
+离散搜索通过 `optimize(parameter_sets=...)` 比较最多 24 个参数点。连续搜索通过 `OptimizerConfig` 调用有界 COBYLA，支持 1～3 个起点和每起点 4～24 次目标评估；第一个起点使用已验收参数，其余起点按 seed 生成。两条路径共用同一 Problem、Hamiltonian、Backend 和参数历史，连续搜索不表示全局寻优。
+
+`run_repeated()` 对同一输入重新分析、编译、优化和采样，seed 依次为 `base_seed + index`。统计成功只看 `business_candidate`，经典基线不参与可行率或代表运行选择。代表运行优先选择可行量子候选，再按采样候选目标值排序。API 返回可行率、目标均值、样本标准差、95% Student-t 置信区间、总评估次数和总耗时。
 
 ## 7. 界面信息架构
 
@@ -323,12 +325,9 @@ result = executor.run(
 
 已完成：移除 `preferred_mode`，QUBO 接入完整参考坐标，交易结算和反欺诈使用 verified embedding，Hybrid 按完整 core group 裁决，并公开 missing、unexpected term、补边和几何状态。自动测试覆盖完整覆盖、缺边、补边和 Hybrid -> Digital 退化。
 
-### P0：提高优化质量并完成统计验收
+### 已完成：优化质量与统计验收
 
-逐系数业务证据账本、Canonical 守恒核对和 Analog/Digital 实现展开已经完成。下一步：
-
-1. 增加多起点、连续优化或约束感知参数策略；只有量子候选本身通过业务复核后，才重新增加更严格的压力预设。
-2. 使用 repeated runs 和置信区间验收执行配置，不能只依据单次固定 seed 结果。
+连续 COBYLA、多起点和独立重复运行已经接入 Digital、Hybrid 和 Analog。现存 19 个预设按推荐配置各运行 3 次，57 个量子候选全部通过业务复核。四个无法稳定通过的压力预设保持删除；后续只有在约束保持 mixer 等量子策略能够稳定产生可行候选时才恢复。
 
 ### P1：让 Analog 场景与产品输入联动
 
@@ -342,6 +341,10 @@ result = executor.run(
 1. 把当前 group coverage、几何状态和拒绝原因加入导出 HTML 报告。
 2. 增加业务边到原子 interaction 的逐行距离和参考系数表。
 3. 为宽屏、平板和手机完成浏览器截图与溢出验收。
+
+### 交付优先项
+
+当前离线包仍包含旧 CASCAQit wheel。发布下一份客户包前，需要使用公开可安装的 CASCAQit 版本重建 Windows wheelhouse，并在干净 Windows 10/11 x64 环境执行校验、安装、启动和真实场景 smoke test。
 
 ## 9. 验收边界
 

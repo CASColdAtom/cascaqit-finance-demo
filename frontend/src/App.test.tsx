@@ -11,6 +11,15 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
+vi.mock("./components/charts/Charts", () => ({
+  AtomChart: () => null,
+  BusinessChart: () => null,
+  CountsChart: () => null,
+  MatrixHeatmap: () => null,
+  ParameterChart: () => null,
+  ScenarioChart: () => null,
+  WaveformChart: () => null,
+}));
 
 import App from "./App";
 
@@ -113,7 +122,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe("App", () => {
@@ -140,6 +149,66 @@ describe("App", () => {
     expect((screen.getByLabelText("QAOA 层数") as HTMLSelectElement).value).toBe("2");
     expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("128");
     expect(screen.getByText("推荐执行配置")).toBeTruthy();
+  });
+
+  it("uses a safe profile when an older catalog omits recommendedExecution", async () => {
+    const legacyScenario = { ...scenario, recommendedExecution: undefined };
+    api.getScenarios.mockResolvedValueOnce([legacyScenario]);
+    api.analyzeScenario.mockResolvedValueOnce({
+      scenario: legacyScenario,
+      preset: "base",
+      analysis,
+    });
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "多资产投资组合优化" });
+    expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("32");
+    expect((screen.getByLabelText("QAOA 层数") as HTMLSelectElement).value).toBe("1");
+  });
+
+  it("keeps Problem mapping usable with the previous analysis schema", async () => {
+    const legacyAnalysis = {
+      ...analysis,
+      problem: {
+        ...analysis.problem,
+        coefficientLedger: undefined,
+        termGroups: [
+          {
+            group_id: "legacy-group",
+            label: "旧版业务分组",
+            kind: "objective",
+          },
+        ],
+      },
+      decision: {
+        ...analysis.decision,
+        modes: analysis.decision.modes.map((row) => ({
+          mode: row.mode,
+          algorithm: row.algorithm,
+          status: row.status,
+          compilerFeasible: row.compilerFeasible,
+          businessSuitable: row.businessSuitable,
+          reason: row.reason,
+          diagnosticCodes: row.diagnosticCodes,
+          analogTermCount: row.analogTermCount,
+          digitalTermCount: row.digitalTermCount,
+          analogBusinessPairs: row.analogBusinessPairs,
+        })),
+      },
+    } as unknown as AnalysisPayload;
+    api.analyzeScenario.mockResolvedValue({
+      scenario: { ...scenario, recommendedExecution: undefined },
+      preset: "base",
+      analysis: legacyAnalysis,
+    });
+
+    render(<App />);
+
+    await screen.findByText("资产相关性矩阵");
+    fireEvent.click(screen.getByRole("tab", { name: "Problem 映射" }));
+    expect(await screen.findByText("PROBLEM HASH")).toBeTruthy();
+    expect(document.querySelector(".term-groups")?.textContent).toContain("旧版业务分组");
   });
 
   it("switches the workbench shell and scenario metadata to English", async () => {

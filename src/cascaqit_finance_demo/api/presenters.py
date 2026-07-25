@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, replace
 from math import isclose, sqrt
+from statistics import fmean, stdev
 from typing import Any
+
+from scipy.stats import t as student_t
 
 from cascaqit_finance_demo.cases.constrained_selection import SelectionInput
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
@@ -121,7 +124,13 @@ def analysis_payload(
     }
 
 
-def execution_payload(case_id: str, case_input: Any, result: Any) -> dict[str, Any]:
+def execution_payload(
+    case_id: str,
+    case_input: Any,
+    result: Any,
+    *,
+    repeated: Any | None = None,
+) -> dict[str, Any]:
     """将一次真实执行整理为业务、量子实验和审计三个视图的数据。"""
     analysis = analysis_payload(
         case_id,
@@ -129,12 +138,15 @@ def execution_payload(case_id: str, case_input: Any, result: Any) -> dict[str, A
         result.analysis,
         term_mapping=tuple(result.execution.context.term_mapping),
     )
-    return {
+    payload = {
         "analysis": analysis,
         "business": _business_payload(case_id, case_input, result),
         "quantum": _quantum_payload(result),
         "audit": _audit_payload(result),
     }
+    if repeated is not None:
+        payload["statistics"] = _statistics_payload(repeated)
+    return payload
 
 
 def _coefficient_ledger_payload(
@@ -1000,6 +1012,29 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
         logical_layers.append("M")
     else:
         logical_layers = ["PREP", "AHS", "MEASURE"]
+    optimization = result.execution.optimization
+    optimizer = None
+    if optimization is not None and optimization.optimizer is not None:
+        config = optimization.optimizer
+        termination = optimization.termination
+        optimizer = {
+            "method": config.method,
+            "starts": config.starts,
+            "perStartEvaluationBudget": config.max_evaluations,
+            "maximumEvaluationCount": (
+                None
+                if config.max_evaluations is None
+                else config.max_evaluations * config.starts
+            ),
+            "selectedStartIndex": optimization.selected_start_index,
+            "startInitializations": [
+                item.initialization for item in optimization.starts
+            ],
+            "terminationReason": None if termination is None else termination.reason,
+            "backendExecutionCount": (
+                None if termination is None else termination.backend_execution_count
+            ),
+        }
     return {
         "mode": mode,
         "algorithm": result.execution.algorithm,
@@ -1008,6 +1043,7 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
         "searchStrategy": str(result.metadata.get("search_strategy", "explicit")),
         "evaluationCount": len(result.execution.parameter_history),
         "selectedEvaluationIndex": result.execution.selected_evaluation_index,
+        "optimizer": optimizer,
         "blocks": blocks,
         "layers": logical_layers,
         "circuit": _flatten_circuits(circuits),
@@ -1053,6 +1089,68 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
             "qubits": len(result.execution.logical_order),
             "shots": result.execution.result.shots,
         },
+    }
+
+
+def _statistics_payload(repeated: Any) -> dict[str, Any]:
+    """汇总独立量子运行的业务可行率、目标值区间和实际执行成本。"""
+    runs = tuple(repeated.runs)
+    objectives = tuple(float(item.execution.objective_value) for item in runs)
+    objective_mean = fmean(objectives)
+    if len(objectives) == 1:
+        objective_std = 0.0
+        interval_low = objective_mean
+        interval_high = objective_mean
+    else:
+        objective_std = stdev(objectives)
+        critical = float(
+            student_t.ppf(
+                (1.0 + repeated.confidence_level) / 2.0,
+                len(objectives) - 1,
+            )
+        )
+        margin = critical * objective_std / sqrt(len(objectives))
+        interval_low = objective_mean - margin
+        interval_high = objective_mean + margin
+
+    rows = []
+    feasible_count = 0
+    for index, item in enumerate(runs):
+        feasible = bool(getattr(item.business_candidate, "feasible", True))
+        feasible_count += int(feasible)
+        rows.append(
+            {
+                "index": index,
+                "seed": item.evidence.seed,
+                "quantumCandidateFeasible": feasible,
+                "objective": float(item.execution.objective_value),
+                "candidateObjective": float(
+                    item.execution.best_observed_candidate.objective_value
+                ),
+                "evaluationCount": len(item.execution.parameter_history),
+                "wallTimeSeconds": item.evidence.wall_time_seconds,
+                "selected": index == repeated.representative_index,
+                "diagnosticDisplaySource": item.metadata.get("displayed_source"),
+            }
+        )
+    return {
+        "repeatCount": len(runs),
+        "feasibleCount": feasible_count,
+        "feasibleRate": feasible_count / len(runs),
+        "successSource": "quantum_business_candidate",
+        "representativeRunIndex": repeated.representative_index,
+        "objective": {
+            "mean": objective_mean,
+            "sampleStandardDeviation": objective_std,
+            "confidenceLevel": repeated.confidence_level,
+            "confidenceIntervalLow": interval_low,
+            "confidenceIntervalHigh": interval_high,
+        },
+        "totalEvaluationCount": sum(
+            len(item.execution.parameter_history) for item in runs
+        ),
+        "totalWallTimeSeconds": sum(item.evidence.wall_time_seconds for item in runs),
+        "runs": rows,
     }
 
 

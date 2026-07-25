@@ -170,13 +170,23 @@ export function ScenarioView({ analysis, run }: { analysis: AnalysisPayload; run
 export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run: RunPayload | null }) {
   const { t, tx } = useI18n();
   const resource = analysis.resource;
-  const ledger = analysis.problem.coefficientLedger;
+  const termGroups = analysis.problem.termGroups ?? [];
+  // 已打开的页面可能暂时连着升级前启动的后端进程。旧响应没有逐系数账本，
+  // 此时只展示它确实提供的 term groups，不能因部署版本短暂错配让整个页面崩溃。
+  const ledger = analysis.problem.coefficientLedger ?? {
+    applicability: "not_declared" as const,
+    balanced: false,
+    hamiltonianBalanced: false,
+    contributionCount: 0,
+    canonicalTermCount: 0,
+    rows: [],
+  };
   return (
     <div className="view-stack">
       <div className="mapping-readout">
         <div><span>PROBLEM</span><strong>{analysis.problem.id}</strong><small>{analysis.problem.type.toUpperCase()}</small></div>
         <div><span>LOGICAL VARIABLES</span><strong>{numericResource(resource, "logical_variables")}</strong><small>{numericResource(resource, "state_vector_dimension").toLocaleString()} {t("stateDimension")}</small></div>
-        <div><span>LOGICAL TERMS</span><strong>{numericResource(resource, "logical_terms")}</strong><small>{analysis.problem.termGroups.length} {t("businessGroups")}</small></div>
+        <div><span>LOGICAL TERMS</span><strong>{numericResource(resource, "logical_terms")}</strong><small>{termGroups.length} {t("businessGroups")}</small></div>
         <div><span>PROBLEM HASH</span><strong className="mono">{compactId(analysis.problem.hash, 18)}</strong><small>{t("canonicalIdentity")}</small></div>
       </div>
       <section className="mode-decision-grid" aria-label={t("modeDecision")}>
@@ -189,14 +199,14 @@ export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run:
               <div className="mode-numbers"><span>ANALOG <strong>{row.analogTermCount}</strong></span><span>DIGITAL <strong>{row.digitalTermCount}</strong></span></div>
               {row.mode !== "digital" ? (
                 <div className="mode-evidence">
-                  <span>{t("coreCoverage")} <strong>{row.coveredContributionCount}/{row.declaredContributionCount}</strong></span>
-                  <span>{t("geometryEvidence")} <strong>{row.geometryStatus === "verified" ? t("verified") : tx(row.geometryStatus)}</strong></span>
-                  <span>{t("missingEvidence")} <strong>{row.missingContributionIds.length}</strong></span>
-                  <span>{t("unexpectedEvidence")} <strong>{row.unexpectedAnalogTermIds.length + row.unexpectedInteractionPairs.length}</strong></span>
-                  <small>{tx(row.geometrySource ?? "not_applicable")} · {tx(row.layoutPolicy)}</small>
+                  <span>{t("coreCoverage")} <strong>{row.coveredContributionCount ?? 0}/{row.declaredContributionCount ?? 0}</strong></span>
+                  <span>{t("geometryEvidence")} <strong>{row.geometryStatus === "verified" ? t("verified") : tx(row.geometryStatus ?? "not_available")}</strong></span>
+                  <span>{t("missingEvidence")} <strong>{(row.missingContributionIds ?? []).length}</strong></span>
+                  <span>{t("unexpectedEvidence")} <strong>{(row.unexpectedAnalogTermIds ?? []).length + (row.unexpectedInteractionPairs ?? []).length}</strong></span>
+                  <small>{tx(row.geometrySource ?? "not_applicable")} · {tx(row.layoutPolicy ?? "not_available")}</small>
                 </div>
               ) : null}
-              <p>{row.diagnosticCodes.length ? row.diagnosticCodes.join(" · ") : tx(row.reason)}</p>
+              <p>{row.diagnosticCodes?.length ? row.diagnosticCodes.join(" · ") : tx(row.reason)}</p>
             </div>
           );
         })}
@@ -219,17 +229,17 @@ export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run:
             <table className="data-table compact-table coefficient-ledger-table">
               <thead><tr><th>{t("businessRule")}</th><th>{t("contributionId")}</th><th>{t("sourceCoefficient")}</th><th>{t("canonicalTerm")}</th><th>{t("canonicalCoefficient")}</th><th>{t("hamiltonianImplementation")}</th><th>{t("conservation")}</th></tr></thead>
               <tbody>
-                {ledger.rows.map((row) => (
+                {(ledger.rows ?? []).map((row) => (
                   <tr key={row.contributionId}>
                     <td className="ledger-rule"><strong>{tx(row.groupLabel)}</strong><span>{tx(row.sourceRuleLabel)}</span></td>
                     <td className="mono ledger-id">{row.contributionId}</td>
                     <td className="mono">{row.contributionCoefficient.toPrecision(5)}</td>
-                    <td><strong className="mono">{row.canonicalTermId}</strong><small className="ledger-targets">{row.targets.map((target) => compactId(tx(target), 18)).join(" · ") || t("constantOffset")}</small></td>
+                    <td><strong className="mono">{row.canonicalTermId}</strong><small className="ledger-targets">{(row.targets ?? []).map((target) => compactId(tx(target), 18)).join(" · ") || t("constantOffset")}</small></td>
                     <td className="mono">{row.canonicalCoefficient.toPrecision(5)}</td>
                     <td className="ledger-hamiltonian">
-                      {row.hamiltonianTerms.length ? row.hamiltonianTerms.map((term) => (
+                      {(row.hamiltonianTerms ?? []).length ? (row.hamiltonianTerms ?? []).map((term) => (
                         <div key={term.termId}>
-                          <strong className="mono">{term.operator.toUpperCase()} · {term.targets.map((target) => compactId(tx(target), 14)).join(" · ")}</strong>
+                          <strong className="mono">{term.operator.toUpperCase()} · {(term.targets ?? []).map((target) => compactId(tx(target), 14)).join(" · ")}</strong>
                           <small className="mono">Δ {term.contributionEffect.toPrecision(4)} · LΣ {term.logical.toPrecision(4)} · A {term.analog === null ? "--" : term.analog.toPrecision(4)} · D {term.digital === null ? "--" : term.digital.toPrecision(4)} · {tx(term.implementationLabel)}</small>
                         </div>
                       )) : <span className="ledger-offset">{t("noPhysicalTerm")}</span>}
@@ -241,7 +251,7 @@ export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run:
             </table>
           </div>
         ) : (
-          <div className="term-groups">{analysis.problem.termGroups.map((group) => <div key={group.group_id}><span>{tx(group.kind)}</span><strong>{tx(group.label)}</strong><small>{group.variables.length} {t("variables")} · {group.pairs.length} {t("pairs")}</small></div>)}</div>
+          <div className="term-groups">{termGroups.map((group) => <div key={group.group_id}><span>{tx(group.kind)}</span><strong>{tx(group.label)}</strong><small>{(group.variables ?? []).length} {t("variables")} · {(group.pairs ?? []).length} {t("pairs")}</small></div>)}</div>
         )}
       </section>
     </div>
@@ -265,6 +275,26 @@ export function QuantumView({ run, mode }: { run: RunPayload | null; mode: Mode 
   return (
     <div className="view-stack quantum-view">
       <ExperimentHeader run={run} />
+      {run.statistics ? (
+        <section className="data-section statistics-section">
+          <div className="subsection-head">
+            <div><span className="section-kicker">REPEATED EXECUTION</span><h3>{t("repeatedStatistics")}</h3></div>
+            <span className="data-chip">{run.statistics.repeatCount} RUNS</span>
+          </div>
+          <div className="statistics-summary">
+            <div><small>{t("quantumFeasibleRate")}</small><strong>{(run.statistics.feasibleRate * 100).toFixed(1)}%</strong><span>{run.statistics.feasibleCount} / {run.statistics.repeatCount}</span></div>
+            <div><small>{t("objectiveConfidenceInterval")}</small><strong>[{run.statistics.objective.confidenceIntervalLow.toFixed(3)}, {run.statistics.objective.confidenceIntervalHigh.toFixed(3)}]</strong><span>mean {run.statistics.objective.mean.toFixed(3)}</span></div>
+            <div><small>{t("totalEvaluations")}</small><strong>{run.statistics.totalEvaluationCount}</strong><span>{run.statistics.totalWallTimeSeconds.toFixed(3)}s</span></div>
+            <div><small>{t("representativeRun")}</small><strong>#{run.statistics.representativeRunIndex + 1}</strong><span>seed {run.statistics.runs[run.statistics.representativeRunIndex]?.seed}</span></div>
+          </div>
+          <div className="table-scroll">
+            <table className="statistics-table">
+              <thead><tr><th>{t("runIndex")}</th><th>Seed</th><th>{t("candidateFeasible")}</th><th>Objective</th><th>{t("evaluationBudget")}</th><th>Time</th></tr></thead>
+              <tbody>{run.statistics.runs.map((item) => <tr key={item.index} data-selected={item.selected}><td>#{item.index + 1}</td><td>{item.seed}</td><td>{item.quantumCandidateFeasible ? "PASS" : "FAIL"}</td><td>{item.objective.toFixed(4)}</td><td>{item.evaluationCount}</td><td>{item.wallTimeSeconds.toFixed(3)}s</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       {run.quantum.blocks.length ? <div className="dad-timeline" aria-label={t("dadTimeline")}>{run.quantum.blocks.map((block, index) => <div key={`${block}-${index}`} data-kind={block}><small>{String(index + 1).padStart(2, "0")}</small><strong>{block.toUpperCase()}</strong></div>)}</div> : null}
       {hasAnalog ? (
         <div className="split-layout quantum-pair-react">

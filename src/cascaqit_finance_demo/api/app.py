@@ -63,11 +63,13 @@ class RunRequest(ScenarioRequest):
     seed: Optional[int] = Field(default=None, ge=0)  # noqa: UP007
     layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP007
     search_strategy: Optional[  # noqa: UP007
-        Literal["preset", "grid", "seeded_sample"]
+        Literal["preset", "grid", "seeded_sample", "continuous"]
     ] = None
     parameter_budget: Optional[int] = Field(  # noqa: UP007
         default=None, ge=1, le=24
     )
+    optimizer_starts: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP007
+    repeats: Optional[int] = Field(default=None, ge=1, le=5)  # noqa: UP007
 
 
 app = FastAPI(
@@ -190,11 +192,29 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
     seed = request.seed if request.seed is not None else profile.seed
     layers = request.layers if request.layers is not None else profile.layers
     search_strategy = request.search_strategy or profile.search_strategy
-    parameter_budget = (
-        request.parameter_budget
-        if request.parameter_budget is not None
-        else profile.parameter_budget
-    )
+    if request.parameter_budget is not None:
+        parameter_budget = request.parameter_budget
+    elif search_strategy == profile.search_strategy:
+        parameter_budget = profile.parameter_budget
+    elif search_strategy == "continuous":
+        # 连续搜索至少需要四次目标评估。调用方只覆盖搜索方式时，补成最小
+        # 合法预算；显式给出的过小预算仍由执行器拒绝，不能静默改写。
+        parameter_budget = max(profile.parameter_budget, 4)
+    elif search_strategy == "preset":
+        # 预设策略当前只有两个已验收点，不能沿用连续优化的较大预算并在
+        # metadata 中声称执行了更多评估。
+        parameter_budget = min(profile.parameter_budget, 2)
+    else:
+        parameter_budget = profile.parameter_budget
+    if request.optimizer_starts is not None:
+        optimizer_starts = request.optimizer_starts
+    elif search_strategy == "continuous":
+        optimizer_starts = profile.optimizer_starts
+    else:
+        # 多起点只属于连续优化器。调用方切换到离散搜索时，不能继续继承场景
+        # 推荐连续配置中的起点数，否则一组单独看都合法的覆盖参数会组合成 422。
+        optimizer_starts = 1
+    repeats = request.repeats if request.repeats is not None else profile.repeats
     executor = ScenarioExecutor()
     scenario = _scenario(case_id)
     try:
@@ -204,18 +224,33 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
             if request.mode == "recommended"
             else request.mode
         )
-        result = await run_in_threadpool(
-            executor.run,
-            scenario,
-            case_input,
-            mode=selected_mode,
-            layers=layers,
-            search_strategy=search_strategy,
-            parameter_budget=parameter_budget,
-            shots=shots,
-            seed=seed,
-            report_path=REPORT_DIR / f"{case_id}-{selected_mode}.html",
-        )
+        run_options = {
+            "mode": selected_mode,
+            "layers": layers,
+            "search_strategy": search_strategy,
+            "parameter_budget": parameter_budget,
+            "optimizer_starts": optimizer_starts,
+            "shots": shots,
+            "seed": seed,
+            "report_path": REPORT_DIR / f"{case_id}-{selected_mode}.html",
+        }
+        repeated = None
+        if repeats == 1:
+            result = await run_in_threadpool(
+                executor.run,
+                scenario,
+                case_input,
+                **run_options,
+            )
+        else:
+            repeated = await run_in_threadpool(
+                executor.run_repeated,
+                scenario,
+                case_input,
+                repeats=repeats,
+                **run_options,
+            )
+            result = repeated.representative
     except CapabilityError as exc:
         raise HTTPException(
             status_code=422,
@@ -245,7 +280,16 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
             recommended_mode=result.analysis.mode_decision.recommended_mode,
         ),
         "preset": preset,
-        "run": execution_payload(case_id, case_input, result),
+        "run": (
+            execution_payload(case_id, case_input, result)
+            if repeated is None
+            else execution_payload(
+                case_id,
+                case_input,
+                result,
+                repeated=repeated,
+            )
+        ),
     }
 
 

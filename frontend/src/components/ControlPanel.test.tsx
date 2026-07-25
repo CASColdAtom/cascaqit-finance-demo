@@ -170,6 +170,8 @@ function renderPanel(
         layers={1}
         searchStrategy="preset"
         parameterBudget={2}
+        optimizerStarts={1}
+        repeats={1}
         recommendedConfiguration={overrides.recommendedConfiguration ?? true}
         running={overrides.running ?? false}
         analyzing={overrides.analyzing ?? false}
@@ -181,6 +183,8 @@ function renderPanel(
         onLayers={onLayers}
         onSearchStrategy={onSearchStrategy}
         onParameterBudget={vi.fn()}
+        onOptimizerStarts={vi.fn()}
+        onRepeats={vi.fn()}
         onRun={onRun}
         onReset={vi.fn()}
       />

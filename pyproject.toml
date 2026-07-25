@@ -12,6 +12,7 @@ dependencies = [
     "cascaqit>=1.0.7a0,<1.0.8",
     "fastapi>=0.104,<1",
     "numpy>=1.26,<3",
+    "scipy>=1.13,<2",
     "uvicorn>=0.24,<1",
 ]
 

@@ -7,6 +7,7 @@ import math
 import pytest
 
 from cascaqit_finance_demo.quantum import (
+    build_optimizer_config,
     default_parameter_sets,
     generate_parameter_sets,
 )
@@ -64,6 +65,66 @@ def test_grid_search_honors_budget_without_duplicate_points() -> None:
 
     assert len(points) == 12
     assert len({(point["gamma_0"], point["beta_0"]) for point in points}) == 12
+
+
+def test_continuous_optimizer_uses_explicit_per_start_budget() -> None:
+    """连续优化必须把单起点评估预算和起点数分别交给 CASCAQit。"""
+    config = build_optimizer_config(
+        mode="hybrid",
+        layers=1,
+        evaluation_budget=8,
+        starts=3,
+        seed=41,
+    )
+
+    assert config.method == "COBYLA"
+    assert config.max_iterations == 8
+    assert config.max_evaluations == 8
+    assert config.starts == 3
+    assert config.seed == 41
+    assert config.gradient is None
+
+
+@pytest.mark.parametrize(
+    ("mode", "layers", "evaluation_budget", "starts"),
+    [
+        ("analog", 2, 8, 1),
+        ("digital", 1, 3, 1),
+        ("digital", 1, 8, 0),
+        ("digital", 1, 8, 4),
+    ],
+)
+def test_continuous_optimizer_rejects_unsupported_budget_shape(
+    mode: str,
+    layers: int,
+    evaluation_budget: int,
+    starts: int,
+) -> None:
+    """连续优化不静默修正层数、过小预算或越界起点数。"""
+    with pytest.raises(ValueError):
+        build_optimizer_config(  # type: ignore[arg-type]
+            mode=mode,
+            layers=layers,
+            evaluation_budget=evaluation_budget,
+            starts=starts,
+            seed=7,
+        )
+
+
+def test_discrete_search_rejects_optimizer_starts() -> None:
+    """多起点参数不能在离散扫描中被静默忽略。"""
+    from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
+    from cascaqit_finance_demo.quantum import ScenarioExecutor
+
+    scenario = PROBLEM_SCENARIOS["portfolio"]
+    with pytest.raises(ValueError, match="only with continuous"):
+        ScenarioExecutor().run(
+            scenario,
+            scenario.default_input(),
+            search_strategy="preset",
+            optimizer_starts=2,
+            shots=1,
+        )
 
 
 @pytest.mark.parametrize(

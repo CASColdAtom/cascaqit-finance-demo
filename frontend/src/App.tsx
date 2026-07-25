@@ -33,6 +33,20 @@ const AuditView = lazy(() =>
   import("./components/Views").then((module) => ({ default: module.AuditView })),
 );
 
+const DEFAULT_EXECUTION_PROFILE: ExecutionProfile = {
+  shots: 32,
+  seed: 23,
+  layers: 1,
+  searchStrategy: "preset",
+  parameterBudget: 2,
+  optimizerStarts: 1,
+  repeats: 1,
+};
+
+function executionProfile(scenario: ScenarioSpec): ExecutionProfile {
+  return scenario.recommendedExecution ?? DEFAULT_EXECUTION_PROFILE;
+}
+
 function sameValues(
   left: Record<string, string | number | boolean>,
   right: Record<string, string | number | boolean>,
@@ -63,6 +77,8 @@ function Workbench() {
   const [layers, setLayers] = useState(1);
   const [searchStrategy, setSearchStrategy] = useState<SearchStrategy>("preset");
   const [parameterBudget, setParameterBudget] = useState(2);
+  const [optimizerStarts, setOptimizerStarts] = useState(1);
+  const [repeats, setRepeats] = useState(1);
   const [activeView, setActiveView] = useState<ViewId>("scenario");
   const [run, setRun] = useState<RunPayload | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -96,6 +112,8 @@ function Workbench() {
     setLayers(profile.layers);
     setSearchStrategy(profile.searchStrategy);
     setParameterBudget(profile.parameterBudget);
+    setOptimizerStarts(profile.optimizerStarts ?? 1);
+    setRepeats(profile.repeats ?? 1);
   }
 
   useEffect(() => {
@@ -109,7 +127,7 @@ function Workbench() {
         setPreset(first.presets[0].value);
         setValues(first.values);
         setMode(first.recommendedMode);
-        applyExecutionProfile(first.recommendedExecution);
+        applyExecutionProfile(executionProfile(first));
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => mounted && setCatalogLoading(false));
@@ -168,27 +186,36 @@ function Workbench() {
       shots,
       seed,
       layers: mode === "digital" ? layers : 1,
-      search_strategy: mode === "digital" ? searchStrategy : "preset",
+      search_strategy:
+        mode === "digital" || searchStrategy === "continuous"
+          ? searchStrategy
+          : "preset",
       parameter_budget:
-        mode === "digital" && searchStrategy !== "preset"
+        searchStrategy === "continuous"
+          ? Math.max(parameterBudget, 4)
+          : mode === "digital" && searchStrategy !== "preset"
           ? parameterBudget
           : Math.min(parameterBudget, 2),
+      optimizer_starts: searchStrategy === "continuous" ? optimizerStarts : 1,
+      repeats,
     };
   }, [
     activeId,
     layers,
     mode,
+    optimizerStarts,
     parameterBudget,
     preset,
     searchStrategy,
     seed,
     shots,
+    repeats,
     values,
   ]);
 
   const recommendedConfiguration = useMemo(() => {
     if (!activeScenario || !currentRequest) return false;
-    const profile = activeScenario.recommendedExecution;
+    const profile = executionProfile(activeScenario);
     const recommendedMode =
       analysis?.decision.recommendedMode ?? activeScenario.recommendedMode;
     return (
@@ -197,7 +224,9 @@ function Workbench() {
       currentRequest.seed === profile.seed &&
       currentRequest.layers === profile.layers &&
       currentRequest.search_strategy === profile.searchStrategy &&
-      currentRequest.parameter_budget === profile.parameterBudget
+      currentRequest.parameter_budget === profile.parameterBudget &&
+      currentRequest.optimizer_starts === (profile.optimizerStarts ?? 1) &&
+      currentRequest.repeats === (profile.repeats ?? 1)
     );
   }, [activeScenario, analysis, currentRequest, mode]);
 
@@ -211,7 +240,7 @@ function Workbench() {
     setPreset(scenario.presets[0].value);
     setValues(scenario.values);
     setMode(scenario.recommendedMode);
-    applyExecutionProfile(scenario.recommendedExecution);
+    applyExecutionProfile(executionProfile(scenario));
     setAnalysis(null);
     setRun(null);
     setActiveView("scenario");
@@ -235,7 +264,7 @@ function Workbench() {
       setValues(response.scenario.values);
       setAnalysis(response.analysis);
       setMode(response.analysis.decision.recommendedMode);
-      applyExecutionProfile(response.scenario.recommendedExecution);
+      applyExecutionProfile(executionProfile(response.scenario));
       setRun(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -305,6 +334,8 @@ function Workbench() {
           layers={layers}
           searchStrategy={searchStrategy}
           parameterBudget={parameterBudget}
+          optimizerStarts={optimizerStarts}
+          repeats={repeats}
           recommendedConfiguration={recommendedConfiguration}
           running={running}
           analyzing={analyzing}
@@ -313,7 +344,17 @@ function Workbench() {
             setActiveView("scenario");
             setValues((current) => ({ ...current, [key]: value }));
           }}
-          onMode={setMode}
+          onMode={(value) => {
+            setMode(value);
+            if (
+              value !== "digital" &&
+              searchStrategy !== "preset" &&
+              searchStrategy !== "continuous"
+            ) {
+              setSearchStrategy("preset");
+              setParameterBudget((current) => Math.min(current, 2));
+            }
+          }}
           onShots={setShots}
           onSeed={setSeed}
           onLayers={(value) => {
@@ -326,8 +367,11 @@ function Workbench() {
             setSearchStrategy(value);
             if (value === "preset") setParameterBudget((current) => Math.min(current, 2));
             if (value === "grid") setLayers(1);
+            if (value === "continuous") setParameterBudget((current) => Math.max(current, 4));
           }}
           onParameterBudget={setParameterBudget}
+          onOptimizerStarts={setOptimizerStarts}
+          onRepeats={setRepeats}
           onRun={execute}
           onReset={() => selectPreset(activeScenario.presets[0].value)}
         />

@@ -27,24 +27,37 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     assert catalog.status_code == 200
     scenarios = catalog.json()["scenarios"]
     assert len(scenarios) == 7
-    assert sum(len(item["presets"]) for item in scenarios) == 21
+    assert sum(len(item["presets"]) for item in scenarios) == 19
     preset_values = {
         option["value"] for item in scenarios for option in item["presets"]
     }
     assert "eod" not in preset_values
     assert "concentration" not in preset_values
+    assert "tight" not in preset_values
+    assert "fx" not in preset_values
     assert {item["recommendedMode"] for item in scenarios} == {
         "digital",
         "hybrid",
         "analog",
     }
     profiles = {item["caseId"]: item["recommendedExecution"] for item in scenarios}
+    assert profiles["portfolio"] == {
+        "shots": 32,
+        "seed": 23,
+        "layers": 1,
+        "searchStrategy": "continuous",
+        "parameterBudget": 12,
+        "optimizerStarts": 2,
+        "repeats": 1,
+    }
     assert profiles["liquidity"] == {
         "shots": 128,
         "seed": 23,
         "layers": 1,
         "searchStrategy": "preset",
         "parameterBudget": 2,
+        "optimizerStarts": 1,
+        "repeats": 1,
     }
     assert profiles["credit_limits"] == {
         "shots": 128,
@@ -52,6 +65,8 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
         "layers": 2,
         "searchStrategy": "preset",
         "parameterBudget": 2,
+        "optimizerStarts": 1,
+        "repeats": 1,
     }
 
 
@@ -200,6 +215,7 @@ def test_digital_execution_returns_business_circuit_counts_and_audit() -> None:
             "mode": "recommended",
             "shots": 16,
             "seed": 17,
+            "search_strategy": "preset",
             "parameter_budget": 1,
         },
     )
@@ -346,6 +362,102 @@ def test_digital_multilayer_search_returns_real_parameters() -> None:
         for item in quantum["parameterHistory"]
     )
     assert sum(item["count"] for item in quantum["counts"]) == 8
+
+
+def test_continuous_multistart_run_exposes_optimizer_evidence() -> None:
+    """验证连续多起点优化进入真实执行，并返回预算和终止证据。"""
+    response = client.post(
+        "/api/scenarios/portfolio/run",
+        json={
+            "preset": "base",
+            "mode": "digital",
+            "shots": 4,
+            "seed": 17,
+            "layers": 1,
+            "search_strategy": "continuous",
+            "parameter_budget": 4,
+            "optimizer_starts": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    quantum = response.json()["run"]["quantum"]
+    assert quantum["searchStrategy"] == "continuous"
+    assert 2 <= quantum["evaluationCount"] <= 8
+    assert quantum["optimizer"]["method"] == "COBYLA"
+    assert quantum["optimizer"]["starts"] == 2
+    assert quantum["optimizer"]["perStartEvaluationBudget"] == 4
+    assert quantum["optimizer"]["selectedStartIndex"] in {0, 1}
+    assert quantum["optimizer"]["startInitializations"] == ["explicit", "random"]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "preset", "mode", "search_strategy", "expected_budget"),
+    [
+        ("settlement", "base", "hybrid", "continuous", 4),
+        ("portfolio", "base", "digital", "preset", 2),
+    ],
+)
+def test_search_strategy_override_derives_a_valid_default_budget(
+    case_id: str,
+    preset: str,
+    mode: str,
+    search_strategy: str,
+    expected_budget: int,
+) -> None:
+    """只覆盖搜索方式时，应派生合法预算而不是继承不兼容的推荐值。"""
+    response = client.post(
+        f"/api/scenarios/{case_id}/run",
+        json={
+            "preset": preset,
+            "mode": mode,
+            "shots": 1,
+            "seed": 17,
+            "search_strategy": search_strategy,
+        },
+    )
+
+    assert response.status_code == 200
+    quantum = response.json()["run"]["quantum"]
+    assert quantum["searchStrategy"] == search_strategy
+    if search_strategy == "continuous":
+        assert quantum["optimizer"]["perStartEvaluationBudget"] == expected_budget
+    else:
+        assert quantum["evaluationCount"] == expected_budget
+
+
+def test_repeated_run_statistics_use_quantum_candidates_only() -> None:
+    """重复验收统计量子候选可行率，不用经典基线填充失败运行。"""
+    response = client.post(
+        "/api/scenarios/portfolio/run",
+        json={
+            "preset": "base",
+            "mode": "digital",
+            "shots": 4,
+            "seed": 17,
+            "layers": 1,
+            "search_strategy": "preset",
+            "parameter_budget": 1,
+            "repeats": 3,
+        },
+    )
+
+    assert response.status_code == 200
+    statistics = response.json()["run"]["statistics"]
+    assert statistics["repeatCount"] == 3
+    assert len(statistics["runs"]) == 3
+    assert [item["seed"] for item in statistics["runs"]] == [17, 18, 19]
+    assert statistics["feasibleCount"] == sum(
+        item["quantumCandidateFeasible"] for item in statistics["runs"]
+    )
+    assert statistics["feasibleRate"] == pytest.approx(
+        statistics["feasibleCount"] / 3
+    )
+    assert statistics["successSource"] == "quantum_business_candidate"
+    assert statistics["objective"]["confidenceLevel"] == 0.95
+    assert statistics["totalEvaluationCount"] == sum(
+        item["evaluationCount"] for item in statistics["runs"]
+    )
 
 
 @pytest.mark.parametrize(
