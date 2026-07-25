@@ -10,6 +10,7 @@ from cascaqit import QUBOProblemIR
 
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.domain.problem_api import (
+    FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
 )
@@ -109,7 +110,7 @@ def test_executor_runs_real_problem_result_and_rejects_unsuitable_mode() -> None
 
 def test_hybrid_without_digital_residual_uses_complete_analog_path() -> None:
     """验证没有 Digital residual 的图问题直接使用完整 Analog 路径。"""
-    definition = _definition(preferred_mode="hybrid")
+    definition = _definition()
     analysis = _analysis(
         analog_ids=("pair.ab",),
         hybrid_analog_ids=("pair.ab",),
@@ -124,23 +125,28 @@ def test_hybrid_without_digital_residual_uses_complete_analog_path() -> None:
 
 
 def test_complete_business_graph_prefers_analog_without_artificial_residual() -> None:
-    """验证完整业务图不会为制造 Hybrid 展示而添加人工数字残差。"""
-    definition = _definition(preferred_mode="analog")
+    """验证完整业务图的覆盖证据公开分组、贡献和布局状态。"""
+    definition = _definition()
     analysis = _analysis(
         analog_ids=("pair.ab",),
         hybrid_analog_ids=("pair.ab",),
-        hybrid_digital_ids=("linear.a",),
+        hybrid_digital_ids=(),
     )
 
     decision = FinanceModeAdvisor().decide(definition, analysis)
 
     assert decision.recommended_mode == "analog"
-    assert decision.for_mode("hybrid").status == "comparable"
+    analog = decision.for_mode("analog")
+    assert analog.covered_group_ids == ("conflict",)
+    assert analog.declared_contribution_count == 1
+    assert analog.covered_contribution_count == 1
+    assert analog.geometry_status == "verified"
+    assert analog.layout_policy == "provided"
 
 
 def test_analog_preference_can_move_to_hybrid_when_residual_is_required() -> None:
-    """验证存在不可模拟的真实剩余项时，Analog 首选可合理转为 Hybrid。"""
-    definition = _definition(preferred_mode="analog")
+    """验证存在不可模拟的真实剩余项时，完整 core 会推导出 Hybrid。"""
+    definition = _definition()
     analysis = _analysis(
         analog_ids=(),
         analog_feasible=False,
@@ -154,28 +160,86 @@ def test_analog_preference_can_move_to_hybrid_when_residual_is_required() -> Non
     assert decision.for_mode("hybrid").status == "recommended"
 
 
-def _definition(*, preferred_mode: str) -> FinanceProblemDefinition:
-    """构造最小测试 Problem 定义，精确控制冲突项和首选模式。"""
+def test_partial_core_group_cannot_recommend_hybrid() -> None:
+    """验证同一 core 分组缺一条边时必须降为 Digital。"""
+    definition = _definition(pairs=(("a", "b"), ("b", "c")))
+    analysis = _analysis(
+        analog_ids=(),
+        analog_feasible=False,
+        hybrid_analog_ids=("pair.ab",),
+        hybrid_digital_ids=("pair.bc",),
+        supported_pairs=(("a", "b"),),
+        active_pairs=(("a", "b"),),
+        positions={"a": (0.0, 0.0), "b": (6.0, 0.0), "c": (20.0, 0.0)},
+    )
+
+    decision = FinanceModeAdvisor().decide(definition, analysis)
+
+    hybrid = decision.for_mode("hybrid")
+    assert decision.recommended_mode == "digital"
+    assert hybrid.status == "unsuitable"
+    assert hybrid.missing_contribution_ids == ("conflict:b:c",)
+    assert "FINANCE_ANALOG_CONTRIBUTION_MISSING" in hybrid.diagnostic_codes
+
+
+def test_unexpected_physical_interaction_distorts_geometry() -> None:
+    """验证布局补边即使没有业务来源也会阻止 Hybrid。"""
+    definition = _definition()
+    analysis = _analysis(
+        analog_ids=(),
+        analog_feasible=False,
+        hybrid_analog_ids=("pair.ab",),
+        hybrid_digital_ids=("linear.a",),
+        active_pairs=(("a", "b"), ("a", "c")),
+        positions={"a": (0.0, 0.0), "b": (6.0, 0.0), "c": (0.0, 6.0)},
+    )
+
+    decision = FinanceModeAdvisor().decide(definition, analysis)
+
+    hybrid = decision.for_mode("hybrid")
+    assert decision.recommended_mode == "digital"
+    assert hybrid.geometry_status == "distorted"
+    assert hybrid.unexpected_interaction_pairs == (("a", "c"),)
+    assert "FINANCE_INTERACTION_UNEXPECTED" in hybrid.diagnostic_codes
+
+
+def _definition(
+    *, pairs: tuple[tuple[str, str], ...] = (("a", "b"),)
+) -> FinanceProblemDefinition:
+    """构造带完整 core 分组和显式参考布局的最小测试定义。"""
+    variables = tuple(sorted({variable for pair in pairs for variable in pair} | {"c"}))
+    positions = {
+        "a": (0.0, 0.0),
+        "b": (6.0, 0.0),
+        "c": (20.0, 0.0),
+    }
     problem = QUBOProblemIR.from_terms(
         problem_id="finance.mode-policy",
-        variables=("a", "b"),
-        linear_terms={"a": -1.0, "b": -1.0},
-        quadratic_terms={("a", "b"): 2.0},
+        variables=variables,
+        linear_terms={variable: -1.0 for variable in variables},
+        quadratic_terms={pair: 2.0 for pair in pairs},
+        positions={variable: positions[variable] for variable in variables},
     )
     return FinanceProblemDefinition(
         case_id="mode-policy",
         title="模式策略",
         problem_kind="qubo",
         problem=problem,
-        preferred_mode=preferred_mode,  # type: ignore[arg-type]
-        business_variables=("a", "b"),
+        business_variables=variables,
         term_groups=(
             FinanceTermGroup(
                 "conflict",
                 "业务冲突",
                 "pairwise_conflict",
-                pairs=(("a", "b"),),
+                pairs=pairs,
             ),
+        ),
+        analog_candidate_group_ids=("conflict",),
+        geometry_evidence=FinanceGeometryEvidence(
+            source="verified_embedding",
+            coordinate_unit="um",
+            positions=tuple((variable, positions[variable]) for variable in variables),
+            expected_interactions=pairs,
         ),
     )
 
@@ -186,6 +250,9 @@ def _analysis(
     analog_feasible: bool = True,
     hybrid_analog_ids: tuple[str, ...],
     hybrid_digital_ids: tuple[str, ...],
+    supported_pairs: tuple[tuple[str, str], ...] = (("a", "b"),),
+    active_pairs: tuple[tuple[str, str], ...] = (("a", "b"),),
+    positions: dict[str, tuple[float, float]] | None = None,
 ) -> SimpleNamespace:
     """构造模式顾问所需的最小编译分析替身，隔离编译器实现细节。"""
     feasibility = {
@@ -208,13 +275,35 @@ def _analysis(
             digital_term_ids=(),
         ),
     }
+    resolved_positions = positions or {
+        "a": (0.0, 0.0),
+        "b": (6.0, 0.0),
+        "c": (20.0, 0.0),
+    }
     mapping_plan = SimpleNamespace(
-        term_candidates=(
+        term_candidates=tuple(
             SimpleNamespace(
+                term_id=f"pair.{left}{right}",
                 operator="zz",
                 implementation="analog_interaction",
                 status="supported",
-                targets=("a", "b"),
+                targets=(left, right),
+            )
+            for left, right in supported_pairs
+        ),
+        interactions=tuple(
+            SimpleNamespace(
+                left=left,
+                right=right,
+                reference_coefficient=1.0,
+            )
+            for left, right in active_pairs
+        ),
+        layout=SimpleNamespace(
+            layout_policy="provided",
+            sites=tuple(
+                SimpleNamespace(logical_id=name, position=position)
+                for name, position in sorted(resolved_positions.items())
             ),
         ),
         feasibility_for=feasibility.__getitem__,

@@ -60,6 +60,17 @@ def analysis_payload(case_id: str, case_input: Any, analysis: Any) -> dict[str, 
                     "analogBusinessPairs": [
                         list(pair) for pair in row.analog_business_pairs
                     ],
+                    "coveredGroupIds": list(row.covered_group_ids),
+                    "missingContributionIds": list(row.missing_contribution_ids),
+                    "unexpectedAnalogTermIds": list(row.unexpected_analog_term_ids),
+                    "unexpectedInteractionPairs": [
+                        list(pair) for pair in row.unexpected_interaction_pairs
+                    ],
+                    "geometryStatus": row.geometry_status,
+                    "geometrySource": row.geometry_source,
+                    "layoutPolicy": row.layout_policy,
+                    "declaredContributionCount": row.declared_contribution_count,
+                    "coveredContributionCount": row.covered_contribution_count,
                 }
                 for row in analysis.mode_decision.rows
             ],

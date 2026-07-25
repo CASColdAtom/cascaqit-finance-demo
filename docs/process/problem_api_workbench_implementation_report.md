@@ -106,9 +106,9 @@ FastAPI 使用线程池执行本地模拟，避免阻塞异步请求循环。当
 
 ## 模式判断现状
 
-当前 `FinanceModeAdvisor` 已同时读取 Target feasibility 和金融冲突 pair，但还没有完成架构文档定义的 term ledger 与完整 group coverage。`preferred_mode="digital"` 仍会提前采用 Digital；Hybrid 目前只要求至少一条业务冲突 pair 映射成功。
+`FinanceModeAdvisor` 不再读取场景预填的 `preferred_mode`。Analog 与 Hybrid 必须使用 `provided` 布局，完整覆盖声明的 core group，且实际物理 interaction 图不能漏边或补边；进入 Analog 的二体 Hamiltonian 项也必须能回到业务 pair。API 返回 covered group、missing contribution、unexpected term、unexpected interaction、geometry source/status 和 layout policy。
 
-这不会影响本次前后端分离，但不能把它描述成最终的证据驱动模式裁决。后续应按[金融 Demo 架构设计](../finance_problem_api_architecture.md)移除 `preferred_mode` 短路，并增加业务 contribution 的完整映射证据。
+默认交易结算和反欺诈均为 `3/3` core contribution 覆盖，衍生品风险图为 `12/12`；三者均为 0 漏项、0 异常二体项、0 补边。分组缺边和物理补边已有负向测试。尚未实现的是 coefficient-level term ledger，即把同一聚合 QUBO term 内的目标和多组罚项系数分别展开给用户查看。
 
 ## Digital QAOA 参数搜索
 

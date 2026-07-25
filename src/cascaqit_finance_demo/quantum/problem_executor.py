@@ -43,23 +43,28 @@ ParameterSearchStrategy = Literal["preset", "grid", "seeded_sample"]
 
 
 @dataclass(frozen=True)
-class FinanceModeAdvisor:
-    """同时依据编译器物理事实和金融项语义选择 Digital、Hybrid 或 Analog。
+class _AnalogBusinessEvidence:
+    """模式顾问内部使用的完整分组与几何核对结果。"""
 
-    编译器回答“目标机能否实现这些项”，金融定义回答“这些项在业务上是什么”。
-    两者都通过才会推荐 Analog 或 Hybrid，避免仅凭存在 ``zz`` 二次项就宣称
-    使用了有业务意义的 Analog 计算。
-    """
+    matched_pairs: tuple[tuple[str, str], ...]
+    covered_group_ids: tuple[str, ...]
+    missing_contribution_ids: tuple[str, ...]
+    unexpected_interaction_pairs: tuple[tuple[str, str], ...]
+    geometry_status: Literal["verified", "missing", "distorted"]
+    geometry_source: Literal["business_native", "verified_embedding"] | None
+    layout_policy: str
+    declared_contribution_count: int
+    covered_contribution_count: int
+
+
+@dataclass(frozen=True)
+class FinanceModeAdvisor:
+    """依据编译事实、完整业务分组和几何保真选择 Problem 模式。"""
 
     def decide(
         self, definition: FinanceProblemDefinition, analysis: Any
     ) -> ModeDecision:
-        """判断三种模式的可行性，并确保 Analog 部分确实承载业务项。
-
-        ``supported_analog_pairs`` 来自编译器实际映射计划；
-        ``definition.analog_business_pairs`` 来自场景显式声明的业务冲突。二者
-        交集才是既可物理实现、又有金融来源的 Analog 相互作用。
-        """
+        """判断三种模式；Hybrid 不能靠单条偶然命中的冲突边通过门禁。"""
         plan = analysis.mapping_plan
         supported_analog_pairs = {
             tuple(sorted(candidate.targets))
@@ -68,70 +73,79 @@ class FinanceModeAdvisor:
             and candidate.implementation == "analog_interaction"
             and candidate.status == "supported"
         }
-        matched_pairs = tuple(
-            sorted(set(definition.analog_business_pairs) & supported_analog_pairs)
+        expected_pairs = set(definition.analog_business_pairs)
+        matched_pairs = tuple(sorted(expected_pairs & supported_analog_pairs))
+        evidence = self._business_evidence(
+            definition,
+            plan,
+            supported_analog_pairs=supported_analog_pairs,
+            matched_pairs=matched_pairs,
         )
 
-        # 物理可行性逐模式保留，不能用 Hybrid 可行性推断 Analog 也可行。
+        # 每种模式读取自己的项分配，防止用 Hybrid 可行性推断 Analog 可行性。
         physical = {mode: plan.feasibility_for(mode) for mode in _MODES}
-        analog_business_pairs = set(definition.analog_business_pairs)
-        analog_covers_business = bool(analog_business_pairs) and (
-            analog_business_pairs <= supported_analog_pairs
+        unexpected_by_mode = {
+            mode: self._unexpected_analog_term_ids(
+                plan,
+                analog_term_ids=physical[mode].analog_term_ids,
+                expected_pairs=expected_pairs,
+            )
+            for mode in ("hybrid", "analog")
+        }
+        core_complete = (
+            bool(definition.analog_candidate_group_ids)
+            and not evidence.missing_contribution_ids
+            and set(evidence.covered_group_ids)
+            == set(definition.analog_candidate_group_ids)
         )
+        geometry_verified = evidence.geometry_status == "verified"
         analog_suitable = (
             physical["analog"].feasible
             and bool(physical["analog"].analog_term_ids)
             and not physical["analog"].digital_term_ids
-            and analog_covers_business
+            and core_complete
+            and geometry_verified
+            and not unexpected_by_mode["analog"]
         )
         hybrid_suitable = (
             physical["hybrid"].feasible
-            and bool(matched_pairs)
             and bool(physical["hybrid"].analog_term_ids)
             and bool(physical["hybrid"].digital_term_ids)
+            and core_complete
+            and geometry_verified
+            and not unexpected_by_mode["hybrid"]
         )
 
-        # 只有 Analog 与 Digital 两部分都保留真实业务含义时才推荐 Hybrid。
-        # 可完整模拟的图问题不应人为制造 Digital residual；以全局约束为主的问题
-        # 也不能为了展示 Hybrid 而把普通罚项包装成 Analog 业务贡献。
-        if definition.preferred_mode == "digital" and physical["digital"].feasible:
-            recommended: ProblemMode = "digital"
-            recommendation = "问题主体是稠密、全局或有方向的约束，使用 Digital。"
-        elif definition.preferred_mode == "hybrid" and hybrid_suitable:
+        # 优先级只作用于已经通过完整门禁的模式。完整 AHS 问题没有 Digital
+        # residual，因此不会为了展示 D-A-D 人工制造 Hybrid block。
+        if hybrid_suitable:
             recommended: ProblemMode = "hybrid"
             recommendation = "业务冲突项由原子相互作用承担，其余约束保留为数字项。"
-        elif definition.preferred_mode == "analog" and analog_suitable:
-            recommended: ProblemMode = "analog"
-            recommendation = "完整业务图可由 AHS 表达，不需要 Digital residual。"
-        elif hybrid_suitable:
-            recommended = "hybrid"
-            recommendation = "当前输入需要同时保留 Analog 业务项和 Digital residual。"
         elif analog_suitable:
             recommended = "analog"
-            recommendation = "当前输入已完整适配 AHS，不再保留人工 Digital residual。"
+            recommendation = "完整业务图可由 AHS 表达，不需要 Digital residual。"
         else:
             recommended = "digital"
-            if definition.preferred_mode == "hybrid" and not matched_pairs:
+            if evidence.missing_contribution_ids:
                 recommendation = (
-                    "当前布局没有可追溯的 Analog 业务冲突项，使用 Digital。"
+                    "Analog core 未完整覆盖全部业务贡献，使用 Digital 保留原问题。"
                 )
-            elif definition.preferred_mode == "hybrid":
+            elif evidence.geometry_status != "verified" and (
+                definition.analog_candidate_group_ids
+            ):
                 recommendation = (
-                    "Hybrid 未同时保留有效的 Analog 业务项和 Digital residual，"
-                    "使用 Digital。"
+                    "原子几何未通过业务图保真检查，使用 Digital 保留原问题。"
                 )
-            elif definition.preferred_mode == "analog":
-                recommendation = "完整 AHS 映射不可行，使用 Digital 保留原问题。"
             else:
                 recommendation = "问题主体是稠密、全局或有方向的约束，使用 Digital。"
 
         rows = tuple(
             self._row(
                 mode=mode,
-                definition=definition,
                 feasibility=physical[mode],
                 recommended=recommended,
-                matched_pairs=matched_pairs,
+                evidence=evidence,
+                unexpected_analog_term_ids=unexpected_by_mode.get(mode, ()),
                 analog_suitable=analog_suitable,
                 hybrid_suitable=hybrid_suitable,
             )
@@ -144,13 +158,98 @@ class FinanceModeAdvisor:
         )
 
     @staticmethod
+    def _business_evidence(
+        definition: FinanceProblemDefinition,
+        plan: Any,
+        *,
+        supported_analog_pairs: set[tuple[str, str]],
+        matched_pairs: tuple[tuple[str, str], ...],
+    ) -> _AnalogBusinessEvidence:
+        """逐 contribution 验证 core group，并核对实际物理 interaction 图。"""
+        active_pairs = {
+            tuple(sorted((item.left, item.right)))
+            for item in plan.interactions
+            if item.reference_coefficient > 0.0
+        }
+        expected_pairs = set(definition.analog_business_pairs)
+        missing_ids: list[str] = []
+        covered_group_ids: list[str] = []
+        declared_count = 0
+        covered_count = 0
+        for group in definition.analog_candidate_groups:
+            group_complete = bool(group.pairs)
+            for pair in group.pairs:
+                normalized = tuple(sorted(pair))
+                declared_count += 1
+                contribution_id = f"{group.group_id}:{normalized[0]}:{normalized[1]}"
+                if normalized in supported_analog_pairs and normalized in active_pairs:
+                    covered_count += 1
+                else:
+                    group_complete = False
+                    missing_ids.append(contribution_id)
+            if group_complete:
+                covered_group_ids.append(group.group_id)
+
+        geometry = definition.geometry_evidence
+        layout_policy = str(plan.layout.layout_policy)
+        if geometry is None:
+            geometry_status: Literal["verified", "missing", "distorted"] = "missing"
+            geometry_source = None
+        else:
+            declared_positions = dict(geometry.positions)
+            actual_positions = {
+                site.logical_id: tuple(site.position) for site in plan.layout.sites
+            }
+            exact_layout = (
+                layout_policy == "provided" and declared_positions == actual_positions
+            )
+            interaction_graph_exact = (
+                not (expected_pairs - active_pairs)
+                and not (active_pairs - expected_pairs)
+            )
+            geometry_status = (
+                "verified" if exact_layout and interaction_graph_exact else "distorted"
+            )
+            geometry_source = geometry.source
+
+        return _AnalogBusinessEvidence(
+            matched_pairs=matched_pairs,
+            covered_group_ids=tuple(covered_group_ids),
+            missing_contribution_ids=tuple(missing_ids),
+            unexpected_interaction_pairs=tuple(sorted(active_pairs - expected_pairs)),
+            geometry_status=geometry_status,
+            geometry_source=geometry_source,
+            layout_policy=layout_policy,
+            declared_contribution_count=declared_count,
+            covered_contribution_count=covered_count,
+        )
+
+    @staticmethod
+    def _unexpected_analog_term_ids(
+        plan: Any,
+        *,
+        analog_term_ids: Sequence[str],
+        expected_pairs: set[tuple[str, str]],
+    ) -> tuple[str, ...]:
+        """找出进入 Analog 但不属于声明 core pair 的二体 Hamiltonian 项。"""
+        by_term = {candidate.term_id: candidate for candidate in plan.term_candidates}
+        unexpected = []
+        for term_id in analog_term_ids:
+            candidate = by_term.get(term_id)
+            if candidate is None or candidate.operator != "zz":
+                continue
+            if tuple(sorted(candidate.targets)) not in expected_pairs:
+                unexpected.append(term_id)
+        return tuple(sorted(unexpected))
+
+    @staticmethod
     def _row(
         *,
         mode: ProblemMode,
-        definition: FinanceProblemDefinition,
         feasibility: Any,
         recommended: ProblemMode,
-        matched_pairs: tuple[tuple[str, str], ...],
+        evidence: _AnalogBusinessEvidence,
+        unexpected_analog_term_ids: tuple[str, ...],
         analog_suitable: bool,
         hybrid_suitable: bool,
     ) -> ModeDecisionRow:
@@ -167,8 +266,12 @@ class FinanceModeAdvisor:
         elif mode == "hybrid" and not hybrid_suitable:
             status = "unsuitable"
             suitable = False
-            if not matched_pairs:
-                reason = "没有可追溯到业务冲突的 Analog interaction。"
+            if evidence.missing_contribution_ids:
+                reason = "Analog core 没有完整覆盖全部业务贡献。"
+            elif evidence.geometry_status != "verified":
+                reason = "原子几何没有通过业务 interaction 图保真检查。"
+            elif unexpected_analog_term_ids:
+                reason = "Analog 包含未声明的业务二体项。"
             else:
                 reason = "Analog 业务项或 Digital residual 为空，不构成 Hybrid。"
         elif mode == "analog" and not analog_suitable:
@@ -186,11 +289,74 @@ class FinanceModeAdvisor:
             compiler_feasible=compiler_feasible,
             business_suitable=suitable,
             reason=reason,
-            diagnostic_codes=tuple(feasibility.diagnostic_codes),
-            analog_business_pairs=matched_pairs if mode in {"hybrid", "analog"} else (),
+            diagnostic_codes=FinanceModeAdvisor._diagnostic_codes(
+                feasibility,
+                evidence=evidence,
+                unexpected_analog_term_ids=unexpected_analog_term_ids,
+                mode=mode,
+            ),
+            analog_business_pairs=(
+                evidence.matched_pairs if mode in {"hybrid", "analog"} else ()
+            ),
+            covered_group_ids=(
+                evidence.covered_group_ids if mode in {"hybrid", "analog"} else ()
+            ),
+            missing_contribution_ids=(
+                evidence.missing_contribution_ids
+                if mode in {"hybrid", "analog"}
+                else ()
+            ),
+            unexpected_analog_term_ids=(
+                unexpected_analog_term_ids if mode in {"hybrid", "analog"} else ()
+            ),
+            unexpected_interaction_pairs=(
+                evidence.unexpected_interaction_pairs
+                if mode in {"hybrid", "analog"}
+                else ()
+            ),
+            geometry_status=(
+                evidence.geometry_status if mode in {"hybrid", "analog"} else "missing"
+            ),
+            geometry_source=(
+                evidence.geometry_source if mode in {"hybrid", "analog"} else None
+            ),
+            layout_policy=evidence.layout_policy,
+            declared_contribution_count=(
+                evidence.declared_contribution_count
+                if mode in {"hybrid", "analog"}
+                else 0
+            ),
+            covered_contribution_count=(
+                evidence.covered_contribution_count
+                if mode in {"hybrid", "analog"}
+                else 0
+            ),
             analog_term_count=len(feasibility.analog_term_ids),
             digital_term_count=len(feasibility.digital_term_ids),
         )
+
+    @staticmethod
+    def _diagnostic_codes(
+        feasibility: Any,
+        *,
+        evidence: _AnalogBusinessEvidence,
+        unexpected_analog_term_ids: tuple[str, ...],
+        mode: ProblemMode,
+    ) -> tuple[str, ...]:
+        """合并编译器诊断和金融业务门禁诊断，供 API 与界面直接展示。"""
+        codes = list(feasibility.diagnostic_codes)
+        if mode in {"hybrid", "analog"}:
+            if evidence.geometry_status == "missing":
+                codes.append("FINANCE_GEOMETRY_MISSING")
+            elif evidence.geometry_status == "distorted":
+                codes.append("FINANCE_GEOMETRY_DISTORTED")
+            if evidence.missing_contribution_ids:
+                codes.append("FINANCE_ANALOG_CONTRIBUTION_MISSING")
+            if evidence.unexpected_interaction_pairs:
+                codes.append("FINANCE_INTERACTION_UNEXPECTED")
+            if unexpected_analog_term_ids:
+                codes.append("FINANCE_ANALOG_TERM_UNEXPECTED")
+        return tuple(dict.fromkeys(codes))
 
 
 class ScenarioExecutor:

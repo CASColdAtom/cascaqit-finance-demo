@@ -237,7 +237,8 @@ CASCAQit 的 Problem IR 保存可编译的数学结构，金融 Demo 的 `Financ
 - `business_variables`：可以解码回资产、交易或告警的变量；
 - `auxiliary_variables`：slack 等辅助变量；
 - `term_groups`：目标、业务冲突、全局约束、依赖和辅助罚项；
-- `preferred_mode`：场景设计上的首选模式。
+- `analog_candidate_group_ids`：允许进入 Analog core 的完整业务分组。
+- `geometry_evidence`：坐标来源、预期 interaction 和禁止 interaction。
 
 `term_groups` 不修改 QUBO 系数。它保留“这条项来自什么业务规则”的解释，供模式选择和页面展示使用。
 
@@ -273,12 +274,10 @@ CASCAQit 的 Problem IR 保存可编译的数学结构，金融 Demo 的 `Financ
 
 - 稠密目标、全局约束或方向依赖占主导时，优先 Digital；
 - 编译器能完整表达全部 Hamiltonian，且业务冲突图完整进入 Analog 时，选择 Analog；
-- 至少有一条可追溯业务冲突进入 Analog，同时 Digital residual 非空时，允许 Hybrid；
+- 完整 core 业务冲突组进入 Analog、几何无漏边或补边，同时 Digital residual 非空时，允许 Hybrid；
 - 缺少真实 Analog 业务项时，不为展示效果制造 Hybrid。
 
-这里有一个需要向客户谨慎说明的限制。当前交易结算默认声明三条业务冲突，确定性布局只匹配到其中一条，但现有顾问仍会推荐 Hybrid。架构设计中的下一步门禁更严格：要求完整业务冲突组覆盖、拒绝无业务来源的 Analog term，并验证几何没有漏边或补边。这些规则尚未在当前 Demo 中全部实现。
-
-因此当前交易结算 Hybrid 可以证明 D-A-D 编译和执行链路已经工作，也可以证明至少一条真实交易冲突进入了 Analog；它不能证明全部结算冲突都由原子几何完整承担。反欺诈默认输入声明的三条共享实体冲突当前都能匹配。
+当前交易结算和反欺诈各声明三条 core 冲突，并通过完整参考布局全部映射到 Analog interaction。模式顾问逐条报告 `3/3` 覆盖，同时检查没有物理补边和未声明 Analog 二体项；任一检查失败都会退回 Digital。页面模式卡显示这组覆盖率、几何来源和异常计数。
 
 ## 七个场景逐一讲解
 
@@ -340,7 +339,7 @@ Hybrid 的 Analog 中段承载可映射的交易冲突；金额、优先级、�
 
 风险、敞口和时效先分别归一化到 0..1，再按用户权重加权。约束要求固定数量的调查席位全部分配，并限制同一实体同时进入调查队列的告警数。
 
-当单实体并行上限为 1 时，同一实体的告警形成明确冲突边。默认输入中有三条这类共享实体冲突，当前三条都能与 Analog interaction 对应；调查价值和席位约束保留为 Digital。因此该场景比当前结算场景更适合说明 Hybrid 的业务含义。
+当单实体并行上限为 1 时，同一实体的告警形成明确冲突边。默认输入中三条共享实体冲突全部与 Analog interaction 对应；调查价值和席位约束保留为 Digital。它与交易结算都可以用于说明 Hybrid，反欺诈更适合现场演示输入变化触发 Hybrid -> Digital 退化。
 
 把单实体并行上限改为 2 后，冲突边消失，系统会重新建模并把推荐模式切换到 Digital。这是很好的现场演示点：它证明模式不是写死在页面里，而是随着业务输入变化。
 

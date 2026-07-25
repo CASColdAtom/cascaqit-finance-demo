@@ -25,6 +25,7 @@ from cascaqit import GraphProblemIR
 
 from cascaqit_finance_demo.domain.models import CaseIssue, ConstraintCheck
 from cascaqit_finance_demo.domain.problem_api import (
+    FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
 )
@@ -118,7 +119,6 @@ class DerivativesScenario:
             title=self.title,
             problem_kind="graph",
             problem=problem,
-            preferred_mode="analog",
             business_variables=problem.nodes,
             term_groups=(
                 FinanceTermGroup(
@@ -127,6 +127,13 @@ class DerivativesScenario:
                     "pairwise_conflict",
                     pairs=problem.edges,
                 ),
+            ),
+            analog_candidate_group_ids=("similarity",),
+            geometry_evidence=FinanceGeometryEvidence(
+                source="business_native",
+                coordinate_unit="um",
+                positions=problem.node_positions,
+                expected_interactions=problem.edges,
             ),
             metadata={"counts_feed_pricing": False},
         )

@@ -34,7 +34,7 @@ Demo 面向银行、证券、基金和金融科技客户。所有数据均为合
 
 默认数据包含 10 条三币种结算指令。每条指令记录名义金额、优先级、现金单位、依赖和冲突。用户可以调整金额权重、优先级权重、批次上限和罚项倍数。
 
-同一份 `QUBOProblemIR` 同时用于 Digital 和 Hybrid。`FinanceModeAdvisor` 只有在至少一条实际交易冲突能映射为 Analog interaction 时才推荐 Hybrid。金额、优先级、币种额度、依赖、批次限制和映射补偿项保留为 Digital residual。
+同一份 `QUBOProblemIR` 同时用于 Digital 和 Hybrid。交易冲突使用完整参考坐标进入 Problem mapping；`FinanceModeAdvisor` 只有在整个 core 冲突组完整映射、物理 interaction 图没有漏边或补边、且 Digital residual 非空时才推荐 Hybrid。金额、优先级、币种额度、依赖和批次限制保留为 Digital residual。
 
 业务结果显示结算金额、交易数量、流动性占用、约束和未选原因。量子实验显示 D-A-D block 顺序、原子排列、合并控制波形、数字 residual 线路和末端 counts。
 

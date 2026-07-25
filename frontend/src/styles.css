@@ -1244,6 +1244,38 @@ code,
   font-weight: 500;
 }
 
+.mode-evidence {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 0.58rem;
+}
+
+.mode-evidence span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mode-evidence strong {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.mode-evidence small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--dim);
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mode-decision p {
   min-height: 2.7em;
   margin: 10px 0 0;

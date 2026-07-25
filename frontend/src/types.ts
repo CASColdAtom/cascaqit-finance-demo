@@ -53,6 +53,15 @@ export interface ModeDecisionRow {
   analogTermCount: number;
   digitalTermCount: number;
   analogBusinessPairs: string[][];
+  coveredGroupIds: string[];
+  missingContributionIds: string[];
+  unexpectedAnalogTermIds: string[];
+  unexpectedInteractionPairs: string[][];
+  geometryStatus: "verified" | "missing" | "distorted";
+  geometrySource: "business_native" | "verified_embedding" | null;
+  layoutPolicy: string;
+  declaredContributionCount: number;
+  coveredContributionCount: number;
 }
 
 export interface MatrixCell {

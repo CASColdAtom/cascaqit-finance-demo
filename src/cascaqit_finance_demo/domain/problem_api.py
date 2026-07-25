@@ -1,7 +1,7 @@
 """金融领域对 CASCAQit 统一 Problem API 的语义封装。
 
 业务场景先生成 CASCAQit 能编译的 QUBO、Graph 或 Ising Problem IR，再用
-``FinanceProblemDefinition`` 补充业务变量、辅助变量、项分组和首选模式。这样
+``FinanceProblemDefinition`` 补充业务变量、辅助变量、项分组和几何证据。这样
 编译器处理数学结构，金融层保留“这个变量代表哪项资产/交易、这对相互作用来自
 哪个业务冲突”的解释。
 
@@ -25,6 +25,8 @@ from cascaqit.problems import GraphProblemIR, IsingModelIR, QUBOProblemIR
 ProblemMode = Literal["digital", "hybrid", "analog"]
 ModeStatus = Literal["recommended", "comparable", "unsuitable"]
 ProblemKind = Literal["qubo", "graph", "ising"]
+GeometrySource = Literal["business_native", "verified_embedding"]
+GeometryStatus = Literal["verified", "missing", "distorted"]
 TermKind = Literal[
     "objective",
     "pairwise_conflict",
@@ -59,34 +61,74 @@ class FinanceTermGroup:
 
 
 @dataclass(frozen=True)
+class FinanceGeometryEvidence:
+    """业务变量到参考原子坐标的来源与预期 interaction 图。
+
+    ``expected_interactions`` 是允许进入 Analog core 的业务边；
+    ``forbidden_interactions`` 是 Problem 中存在、但必须留在 Digital residual 的
+    二次项。模式顾问还会检查全部物理 interaction，因此即使补边没有对应 QUBO
+    项，也不能绕过几何保真门禁。
+    """
+
+    source: GeometrySource
+    coordinate_unit: str
+    positions: tuple[tuple[str, tuple[float, float]], ...]
+    expected_interactions: tuple[tuple[str, str], ...]
+    forbidden_interactions: tuple[tuple[str, str], ...] = ()
+
+    def __post_init__(self) -> None:
+        """规范化变量、坐标和无向边顺序，保证前后端展示可复现。"""
+        object.__setattr__(self, "positions", tuple(sorted(self.positions)))
+        object.__setattr__(
+            self,
+            "expected_interactions",
+            tuple(sorted(tuple(sorted(pair)) for pair in self.expected_interactions)),
+        )
+        object.__setattr__(
+            self,
+            "forbidden_interactions",
+            tuple(sorted(tuple(sorted(pair)) for pair in self.forbidden_interactions)),
+        )
+
+
+@dataclass(frozen=True)
 class FinanceProblemDefinition:
-    """一个可编译 Problem 及其金融变量、项分组和首选执行模式。
+    """一个可编译 Problem 及其金融变量、项分组和映射证据。
 
     ``business_variables`` 可被解码回金融对象；``auxiliary_variables`` 只负责
-    罚项或 slack，不应作为资产、交易或告警展示。``preferred_mode`` 是场景的
-    业务建议，最终是否可用仍以目标机编译分析为准。
+    罚项或 slack，不应作为资产、交易或告警展示。模式必须由编译事实、完整
+    Analog 分组和几何保真共同推导，场景不能预填首选结果。
     """
 
     case_id: str
     title: str
     problem_kind: ProblemKind
     problem: QUBOProblemIR | GraphProblemIR | IsingModelIR
-    preferred_mode: ProblemMode
     business_variables: tuple[str, ...]
     auxiliary_variables: tuple[str, ...] = ()
     term_groups: tuple[FinanceTermGroup, ...] = ()
+    analog_candidate_group_ids: tuple[str, ...] = ()
+    geometry_evidence: FinanceGeometryEvidence | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def analog_business_pairs(self) -> tuple[tuple[str, str], ...]:
-        """返回可映射为原子相互作用的业务冲突对，并去重、排序。"""
+        """返回允许映射为原子相互作用的候选分组边，并去重、排序。"""
         pairs = {
             tuple(sorted(pair))
             for group in self.term_groups
-            if group.kind == "pairwise_conflict"
+            if group.group_id in self.analog_candidate_group_ids
             for pair in group.pairs
         }
         return tuple(sorted(pairs))
+
+    @property
+    def analog_candidate_groups(self) -> tuple[FinanceTermGroup, ...]:
+        """返回按定义顺序排列的 Analog core 候选分组。"""
+        candidates = set(self.analog_candidate_group_ids)
+        return tuple(
+            group for group in self.term_groups if group.group_id in candidates
+        )
 
 
 @dataclass(frozen=True)
@@ -101,6 +143,15 @@ class ModeDecisionRow:
     reason: str
     diagnostic_codes: tuple[str, ...] = ()
     analog_business_pairs: tuple[tuple[str, str], ...] = ()
+    covered_group_ids: tuple[str, ...] = ()
+    missing_contribution_ids: tuple[str, ...] = ()
+    unexpected_analog_term_ids: tuple[str, ...] = ()
+    unexpected_interaction_pairs: tuple[tuple[str, str], ...] = ()
+    geometry_status: GeometryStatus = "missing"
+    geometry_source: GeometrySource | None = None
+    layout_policy: str = "unavailable"
+    declared_contribution_count: int = 0
+    covered_contribution_count: int = 0
     analog_term_count: int = 0
     digital_term_count: int = 0
 

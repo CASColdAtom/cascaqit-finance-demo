@@ -186,6 +186,15 @@ export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run:
               <div className="mode-decision-head"><span>{MODE_LABELS[row.mode]}</span><strong>{row.status === "recommended" ? t("recommended") : row.status === "comparable" ? t("comparable") : t("unsuitable")}</strong></div>
               <div className="mode-term-track" aria-label={`Analog ${shares.analog.toFixed(1)}%，Digital ${shares.digital.toFixed(1)}%`}><i style={{ width: `${shares.analog}%` }} /><i style={{ width: `${shares.digital}%` }} /></div>
               <div className="mode-numbers"><span>ANALOG <strong>{row.analogTermCount}</strong></span><span>DIGITAL <strong>{row.digitalTermCount}</strong></span></div>
+              {row.mode !== "digital" ? (
+                <div className="mode-evidence">
+                  <span>{t("coreCoverage")} <strong>{row.coveredContributionCount}/{row.declaredContributionCount}</strong></span>
+                  <span>{t("geometryEvidence")} <strong>{row.geometryStatus === "verified" ? t("verified") : tx(row.geometryStatus)}</strong></span>
+                  <span>{t("missingEvidence")} <strong>{row.missingContributionIds.length}</strong></span>
+                  <span>{t("unexpectedEvidence")} <strong>{row.unexpectedAnalogTermIds.length + row.unexpectedInteractionPairs.length}</strong></span>
+                  <small>{tx(row.geometrySource ?? "not_applicable")} · {tx(row.layoutPolicy)}</small>
+                </div>
+              ) : null}
               <p>{row.diagnosticCodes.length ? row.diagnosticCodes.join(" · ") : tx(row.reason)}</p>
             </div>
           );

@@ -142,12 +142,11 @@ decode(case_input, definition, candidate)
 | `business_variables` | 可直接解释和解码的业务变量 |
 | `auxiliary_variables` | slack 等编码变量 |
 | `term_groups` | 目标、局域冲突、全局约束、依赖和辅助罚项 |
-| `term_ledger` | 每条业务贡献的来源、变量、系数和规范化后 term |
-| `analog_candidate_groups` | 允许 Analog 承担的完整 `core` 分组 |
+| `analog_candidate_group_ids` | 允许 Analog 承担的完整 `core` 分组 |
 | `geometry_evidence` | 坐标来源、变换、期望边、禁用边和图保真检查 |
 | `metadata` | 业务边界与结果解释信息 |
 
-同一个 QUBO term 可能聚合多个业务规则，因此 `term_ledger` 记录 contribution，而不是只记录最终 pair：
+当前实现按 `group_id:left:right` 生成 Analog core contribution 标识，逐条报告 declared、covered 和 missing。后续若要解释同一 QUBO term 内部聚合的多个业务系数，还需要增加 coefficient-level term ledger：
 
 ```text
 contribution_id
@@ -159,7 +158,7 @@ role: core | supporting
 normalized_term_ids
 ```
 
-所有 contribution 聚合后必须还原 Canonical Problem 中的系数。无法归因的 term 可以执行 Digital 对照，但不能作为 Analog 或 Hybrid 的业务依据。
+该 ledger 属于后续增强，不是当前完整覆盖门禁的前提。当前门禁已经要求 core pair 全覆盖、物理 interaction 图无漏边和补边、Analog 二体项都有业务依据；无法归因的 term 只能执行 Digital 对照。
 
 ### 4.2 几何证据
 
@@ -170,7 +169,7 @@ normalized_term_ids
 
 证据至少包含 logical variable 到 site 的映射、坐标单位与缩放、blockade 阈值、期望 interaction、禁止 interaction、漏边和补边。仅使用 `deterministic_grid` 且未验证图保真时，Analog 和 Hybrid 不能被推荐。
 
-当前 CASCAQit 的 `GraphProblemIR` 可以携带位置；`QUBOProblemIR` 不能直接携带 layout hints。Hybrid QUBO 在没有显式位置时使用确定性网格，因此金融层必须验证该网格，或先补充正式的 QUBO mapping-hint 契约。不能通过变量命名或排序技巧暗中迁就布局。
+`GraphProblemIR` 和 `QUBOProblemIR` 都可以携带完整参考位置。QUBO 的 `positions` 经 `variable_positions` 和 canonical `layout_hints` 进入映射规划器，结果必须显示 `layout_policy="provided"`。未提供完整坐标时虽可生成确定性网格，但该网格不能通过金融层的 Analog/Hybrid 推荐门禁。
 
 ### 4.3 模式证据
 
@@ -183,7 +182,7 @@ normalized_term_ids
 | `covered_group_ids` | 完整覆盖的业务分组 |
 | `missing_contribution_ids` | 应映射但未覆盖的业务贡献 |
 | `unexpected_analog_term_ids` | 进入 Analog 但没有业务依据的 term |
-| `analog_term_ids`、`digital_term_ids` | 两部分实际承担的 Hamiltonian term |
+| `analog_term_count`、`digital_term_count` | 两部分实际承担的 Hamiltonian term 数量 |
 | `geometry_status` | `verified`、`missing` 或 `distorted` |
 | `diagnostic_codes` | 编译或适配失败原因 |
 | `status` | `recommended`、`comparable` 或 `unsuitable` |
@@ -211,7 +210,7 @@ Digital preparation
   -> measurement
 ```
 
-当前默认输入有 3 条业务冲突，但现有确定性网格只映射成功 1 条。按新门禁，当前结果不能作为推荐 Hybrid；在完整冲突组和几何证据补齐前，应默认运行 Digital，并把 Hybrid 标为 `unsuitable` 或“设计验证中”。
+默认输入的 3 条交易冲突使用独立 pair 单元布局，三条边均落入 blockade 半径，其他变量彼此隔离。当前门禁结果为 `3/3` 覆盖、0 漏边、0 补边和 0 异常 Analog 二体项，因此推荐 Hybrid；布局或输入变化破坏任一条件时自动退回 Digital。
 
 页面在 Hybrid 可用后展示交易冲突网络、依赖链、流动性占用、业务边到原子 interaction 的逐项映射、D-A-D、Digital residual、波形和 counts。
 
@@ -219,7 +218,7 @@ Digital preparation
 
 本场景只安排已经生成的告警，不判断交易是否欺诈。共享账户、设备或收款方形成局域冲突组；风险分、涉案金额、时效、席位和工时属于 Digital residual。
 
-当前默认输入的 3 条共享实体冲突都能命中 Analog candidate，但仍缺 contribution ledger、异常 Analog term 检查和正式几何证据。补齐这些证据后可作为首个 Hybrid 主场景。用户将单实体并行上限改为 2 后，冲突组消失，系统必须自动退回 Digital。
+默认输入的 3 条共享实体冲突使用同一套 verified embedding，当前门禁结果为 `3/3` 覆盖、0 漏边、0 补边和 0 异常 Analog 二体项。用户将单实体并行上限改为 2 后，冲突组消失，系统自动退回 Digital。
 
 页面展示告警实体网络、风险与金额覆盖、席位和工时、冲突到 interaction 的映射、D-A-D、波形、counts 及业务约束。
 
@@ -309,35 +308,28 @@ result = executor.run(
 
 模式建议显示具体证据，不只显示 “recommended”。切换业务输入后立即清空旧结果，并重新分析。缓存键包含场景、完整输入、mode、shots、seed、层数、搜索方式和评估预算。
 
-## 8. 落地顺序
+## 8. 后续顺序
 
-### P0：修正模式裁决
+已完成：移除 `preferred_mode`，QUBO 接入完整参考坐标，交易结算和反欺诈使用 verified embedding，Hybrid 按完整 core group 裁决，并公开 missing、unexpected term、补边和几何状态。自动测试覆盖完整覆盖、缺边、补边和 Hybrid -> Digital 退化。
 
-1. 移除 `preferred_mode` 对推荐结果的短路。
-2. 增加 contribution ledger 和 Canonical term attribution。
-3. Hybrid 从“至少一条业务边命中”改为“完整 core group 覆盖”。
-4. 拒绝没有业务来源的 Analog term，并返回缺失、意外 term 和几何诊断。
-5. 当前交易结算默认回退 Digital，直到 3 条冲突全部映射且图保真通过。
+### P0：补齐 coefficient-level term ledger
 
-### P1：补齐几何与 Hybrid 主场景
+1. 在 QUBO 建模过程中记录每次目标或罚项展开产生的系数 contribution。
+2. 将 contribution 聚合值与 Canonical linear/quadratic term 逐项核对。
+3. 在界面展开“业务规则 -> contribution -> Hamiltonian term -> Analog/Digital implementation”。
 
-1. 为 QUBO 增加正式 mapping hints，或在 CASCAQit Problem API 中提供独立的布局约束契约。
-2. 完成交易结算和调查编排的 verified embedding。
-3. 验证 Analog contribution + Digital residual 与原 Hamiltonian 逐项守恒。
-4. 用自动测试覆盖输入变化后的 Hybrid -> Digital 退化。
-
-### P2：让 Analog 场景与产品输入联动
+### P1：让 Analog 场景与产品输入联动
 
 1. 从衍生品定价结果生成风险场景特征和相似度。
 2. 验证风险图与原子 interaction graph 一致。
 3. 增加情景覆盖、冗余违反和经典选择基准。
 4. 保持价格链与量子情景链在类型、接口和页面中分离。
 
-### P3：界面与报告收口
+### P2：界面与报告收口
 
-1. 前端展示完整 group coverage、几何状态和模式拒绝原因。
-2. Hybrid 页面只在门禁通过后展示为推荐主链。
-3. 导出业务、Problem、量子实验和审计证据一致的 HTML 报告。
+1. 把当前 group coverage、几何状态和拒绝原因加入导出 HTML 报告。
+2. 增加业务边到原子 interaction 的逐行距离和参考系数表。
+3. 为宽屏、平板和手机完成浏览器截图与溢出验收。
 
 ## 9. 验收边界
 

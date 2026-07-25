@@ -6,7 +6,8 @@ QUBO 系数；本模块不重复构造系数，只补充编译模式选择所需
 - ``business_variables`` 标记可解码回业务对象的变量；
 - ``auxiliary_variables`` 标记 slack 和其他罚项辅助位；
 - ``term_groups`` 说明目标、全局约束、依赖和两两业务冲突分别来自哪里；
-- ``preferred_mode`` 表示场景设计上的首选链路，但不能越过编译器可行性检查。
+- ``analog_candidate_group_ids`` 明确哪些完整业务分组允许进入 Analog core；
+- ``geometry_evidence`` 记录布局来源和预期 interaction，供模式顾问验证图保真。
 
 只有显式列入 ``pairwise_conflict`` 的变量对才允许被模式顾问认定为 Analog
 业务相互作用。这个限制避免把普通 QUBO 二次项误解为中性原子原生业务结构。
@@ -14,6 +15,7 @@ QUBO 系数；本模块不重复构造系数，只补充编译模式选择所需
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from cascaqit_finance_demo.cases.constrained_selection import (
@@ -26,9 +28,75 @@ from cascaqit_finance_demo.cases.fraud_routing import FraudRoutingCase
 from cascaqit_finance_demo.cases.portfolio import PortfolioCase
 from cascaqit_finance_demo.cases.settlement import SettlementCase
 from cascaqit_finance_demo.domain.problem_api import (
+    FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
 )
+
+
+def _isolated_pair_layout(
+    variables: tuple[str, ...],
+    pairs: tuple[tuple[str, str], ...],
+) -> dict[str, tuple[float, float]] | None:
+    """为互不重叠的业务冲突对生成无补边的本地参考布局。
+
+    每个 pair 或单变量占一个 28 μm 网格单元；pair 两端相距 6 μm。当前
+    Target 的 blockade 半径为 8 μm，因此同一 pair 产生 interaction，而相邻
+    单元最近仍相距 22 μm。若输入出现共享端点，当前简单嵌入不能保证图保真，
+    函数返回 ``None``，上层会保留 Digital 路径而不是伪造 Hybrid 几何。
+    """
+    known = set(variables)
+    normalized = tuple(sorted(tuple(sorted(pair)) for pair in pairs))
+    endpoints = tuple(variable for pair in normalized for variable in pair)
+    if any(left == right for left, right in normalized):
+        return None
+    if not set(endpoints) <= known or len(set(endpoints)) != len(endpoints):
+        return None
+
+    units: list[tuple[str, ...]] = [tuple(pair) for pair in normalized]
+    units.extend((variable,) for variable in sorted(known - set(endpoints)))
+    if len(units) > 16:
+        return None
+
+    axis = (-42.0, -14.0, 14.0, 42.0)
+    positions: dict[str, tuple[float, float]] = {}
+    for index, unit in enumerate(units):
+        center_x = axis[index % 4]
+        center_y = axis[index // 4]
+        if len(unit) == 2:
+            positions[unit[0]] = (center_x - 3.0, center_y)
+            positions[unit[1]] = (center_x + 3.0, center_y)
+        else:
+            positions[unit[0]] = (center_x, center_y)
+    return positions
+
+
+def _positioned_qubo_definition(
+    problem: Any,
+    *,
+    candidate_pairs: tuple[tuple[str, str], ...],
+) -> tuple[Any, FinanceGeometryEvidence | None]:
+    """把已构建 QUBO 与经过图保真设计的完整参考布局绑定。"""
+    positions = _isolated_pair_layout(tuple(problem.variables), candidate_pairs)
+    if positions is None:
+        return problem, None
+    positioned = replace(
+        problem,
+        variable_positions=tuple(sorted(positions.items())),
+    )
+    candidate_set = {tuple(sorted(pair)) for pair in candidate_pairs}
+    quadratic_pairs = {
+        tuple(sorted((left, right)))
+        for left, right, _coefficient in problem.quadratic_terms
+    }
+    evidence = FinanceGeometryEvidence(
+        source="verified_embedding",
+        coordinate_unit="um",
+        positions=tuple(sorted(positions.items())),
+        expected_interactions=tuple(sorted(candidate_set)),
+        forbidden_interactions=tuple(sorted(quadratic_pairs - candidate_set)),
+    )
+    return positioned, evidence
 
 
 class PortfolioScenario:
@@ -64,7 +132,6 @@ class PortfolioScenario:
             title=self.title,
             problem_kind="qubo",
             problem=problem,
-            preferred_mode="digital",
             business_variables=business,
             auxiliary_variables=auxiliary,
             term_groups=(
@@ -127,12 +194,15 @@ class SettlementScenario:
             )
             for left, right in self.case._conflict_pairs(case_input)
         )
+        problem, geometry = _positioned_qubo_definition(
+            problem,
+            candidate_pairs=conflict_pairs,
+        )
         return FinanceProblemDefinition(
             case_id=self.case_id,
             title=self.title,
             problem_kind="qubo",
             problem=problem,
-            preferred_mode="hybrid",
             business_variables=business,
             auxiliary_variables=auxiliary,
             term_groups=(
@@ -148,6 +218,8 @@ class SettlementScenario:
                     "slack", "额度辅助变量", "auxiliary_penalty", auxiliary
                 ),
             ),
+            analog_candidate_group_ids=("conflicts",) if conflict_pairs else (),
+            geometry_evidence=geometry,
         )
 
     def decode(
@@ -196,12 +268,15 @@ class FraudRoutingScenario:
             )
             for left, right in self.case._conflict_pairs(case_input)
         )
+        problem, geometry = _positioned_qubo_definition(
+            problem,
+            candidate_pairs=conflict_pairs,
+        )
         return FinanceProblemDefinition(
             case_id=self.case_id,
             title=self.title,
             problem_kind="qubo",
             problem=problem,
-            preferred_mode="hybrid",
             business_variables=business,
             auxiliary_variables=auxiliary,
             term_groups=(
@@ -217,6 +292,8 @@ class FraudRoutingScenario:
                     "slack", "席位辅助变量", "auxiliary_penalty", auxiliary
                 ),
             ),
+            analog_candidate_group_ids=("conflicts",) if conflict_pairs else (),
+            geometry_evidence=geometry,
             metadata={"decision_scope": "investigation routing only"},
         )
 

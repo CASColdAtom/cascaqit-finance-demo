@@ -286,7 +286,6 @@ class ConstrainedSelectionCase:
             title=self.title,
             problem_kind="qubo",
             problem=problem,
-            preferred_mode="digital",
             business_variables=business,
             auxiliary_variables=auxiliary,
             term_groups=(

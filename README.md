@@ -58,6 +58,7 @@ React 工作台使用三栏布局：场景导航、参数控制和结果工作�
 - 场景态势：合成输入、候选空间、冲突网络或依赖关系。
 - Problem 映射：Canonical Problem、Hamiltonian、模式判断、资源估算和 term mapping。
 - 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史和 counts。
+- 模式证据：完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。
 - 审计证据：Problem、analysis、compile、execution hash，以及 Target、Backend、seed、shots 和执行边界。
 
 Digital 线路可以切换通用门和 QAOA 逻辑层，线路高度随 qubit 数变化。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
