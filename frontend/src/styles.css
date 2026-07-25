@@ -1939,10 +1939,6 @@ code,
     font-size: 0.57rem;
   }
 
-  .telemetry-item:nth-child(2) {
-    display: none;
-  }
-
   .language-switch {
     min-width: 126px;
     padding: 0 8px;

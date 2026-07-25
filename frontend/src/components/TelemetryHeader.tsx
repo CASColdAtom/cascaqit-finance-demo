@@ -1,4 +1,4 @@
-import { Database, Languages, ShieldCheck } from "lucide-react";
+import { Languages, ShieldCheck } from "lucide-react";
 import { useI18n } from "../i18n";
 
 export function TelemetryHeader() {
@@ -19,9 +19,6 @@ export function TelemetryHeader() {
       <div className="telemetry-strip">
         <span className="telemetry-item status-live">
           <i aria-hidden="true" /> {t("serviceOnline")}
-        </span>
-        <span className="telemetry-item">
-          <Database size={14} aria-hidden="true" /> {t("syntheticData")}
         </span>
         <span className="telemetry-item telemetry-wide">
           <ShieldCheck size={14} aria-hidden="true" /> {t("auditReady")}
