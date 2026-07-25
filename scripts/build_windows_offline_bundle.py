@@ -249,17 +249,14 @@ def _download_file(url: str, destination: Path) -> None:
 
 
 def _extract_runtime_archive(archive: tarfile.TarFile, destination: Path) -> None:
-    """安全解压 runtime，并兼容没有 ``tarfile.data_filter`` 的 Python 3.9。
+    """安全解压 runtime，并在不同 Python 版本保持同一安全契约。
 
-    构建脚本需要在项目支持的最低 Python 版本运行。Python 3.9 没有标准
-    ``data`` filter，因此先验证全部成员：只允许归档内的普通文件和目录，拒绝
-    绝对路径、目录穿越、符号链接、硬链接和设备文件。目标目录由构建器新建，
-    验证后一次性解压不会经过归档内创建的链接。
+    标准 ``data`` filter 在不同补丁版本对绝对路径的处理并不完全一致，因此
+    项目先验证全部成员：只允许归档内的普通文件和目录，拒绝绝对路径、目录
+    穿越、符号链接、硬链接和设备文件。目标目录由构建器新建，验证后一次性
+    解压不会经过归档内创建的链接。支持 ``data`` filter 的版本继续使用它作为
+    第二层防护；Python 3.9 则在完成同一套前置校验后使用普通解压。
     """
-
-    if hasattr(tarfile, "data_filter"):
-        archive.extractall(destination, filter="data")
-        return
 
     destination_root = destination.resolve()
     for member in archive.getmembers():
@@ -276,7 +273,10 @@ def _extract_runtime_archive(archive: tarfile.TarFile, destination: Path) -> Non
                 f"Python runtime 归档成员越过目标目录：{member.name}"
             ) from exc
 
-    archive.extractall(destination)
+    if hasattr(tarfile, "data_filter"):
+        archive.extractall(destination, filter="data")
+    else:
+        archive.extractall(destination)
 
 
 def _prepare_python_runtime(destination: Path) -> None:

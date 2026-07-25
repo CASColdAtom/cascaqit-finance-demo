@@ -10,6 +10,8 @@ offline/cascaqit-finance-demo-windows-x64-py311.zip
 
 `offline/` 不进入 Git。该文件是本机交付制品，不是 GitHub Release。构建使用本地 CASCAQit 源码；SDK 尚未形成公开 Python 分发包，因此当前结果不能替代公开安装链。
 
+该 ZIP 生成于 Problem 映射入口禁缓存修改之前。包内已经包含旧响应字段兜底，但不包含本次新增的 `Cache-Control: no-store` 中间件；下次 Windows 交付前需要重新构建并重做实机验收。
+
 ## 制品内容
 
 | 项目 | 当前值 |
@@ -36,7 +38,7 @@ Finance Demo wheel 已确认包含：
 
 首次重建在 Python 3.9 失败。脚本直接调用 `tarfile.extractall(filter="data")`，但 Python 3.9 没有 `filter` 参数。
 
-构建器现在按运行版本选择解包路径：较新 Python 使用标准 `data_filter`；Python 3.9 先检查所有成员，只允许目标目录内的普通文件和目录，拒绝绝对路径、`..`、符号链接、硬链接和设备文件，再执行解包。单元测试覆盖正常 runtime 文件、绝对路径和目录穿越。
+构建器现在先在所有 Python 版本检查归档成员，只允许目标目录内的普通文件和目录，拒绝绝对路径、`..`、符号链接、硬链接和设备文件。较新 Python 在预校验后继续使用标准 `data_filter`，Python 3.9 使用兼容解包。单元测试覆盖正常 runtime 文件、绝对路径和目录穿越。
 
 ## 已完成检查
 

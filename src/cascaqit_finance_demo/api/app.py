@@ -9,12 +9,13 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
 from cascaqit.exceptions import CapabilityError
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -84,6 +85,23 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def prevent_stale_frontend_entry(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """禁止缓存前端入口，确保每次打开页面都引用当前构建产物。"""
+
+    response = await call_next(request)
+    if request.url.path in {"/", "/index.html"} and response.status_code == 200:
+        # JavaScript 文件名包含内容哈希，可以由浏览器长期缓存；入口 HTML 不能长期
+        # 缓存，否则升级后的页面仍会请求上一版 chunk，并继续执行已经修复的旧代码。
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 def _scenario(case_id: str) -> Any:

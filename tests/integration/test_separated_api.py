@@ -16,6 +16,18 @@ app_module = import_module("cascaqit_finance_demo.api.app")
 client = TestClient(app)
 
 
+@pytest.mark.parametrize("path", ["/", "/index.html"])
+def test_frontend_entry_is_not_cached_across_demo_upgrades(path: str) -> None:
+    """验证入口页面不会让浏览器长期持有上一版前端 chunk。"""
+
+    response = client.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+    assert response.headers["pragma"] == "no-cache"
+    assert response.headers["expires"] == "0"
+
+
 def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     """验证健康接口明确披露离线模拟边界，目录完整返回七个场景。"""
     health = client.get("/api/health")
