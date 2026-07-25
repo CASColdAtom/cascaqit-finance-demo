@@ -1,5 +1,7 @@
 """离线 wheel 的静态资源、启动配置和 Windows 依赖闭包测试。"""
 
+from __future__ import annotations
+
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -47,6 +49,14 @@ def test_packaged_frontend_excludes_source_maps() -> None:
     """验证客户 Release wheel 不携带浏览器可读取的 JavaScript source map。"""
 
     assert list(FRONTEND_DIST.rglob("*.map")) == []
+
+
+def test_runtime_requires_qubo_layout_capable_cascaqit() -> None:
+    """验证 Demo 不会安装缺少 QUBO 完整参考布局契约的旧版 CASCAQit。"""
+
+    project = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert '"cascaqit>=1.0.7a0,<1.0.8"' in project
 
 
 def test_default_server_is_local_only() -> None:

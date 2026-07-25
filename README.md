@@ -10,6 +10,8 @@
 python3 -m pip install -e ../cascaqit-new/CASCAQit -e .
 ```
 
+Demo 需要 CASCAQit `1.0.7a0` 系列提供的 QUBO 完整参考布局契约；旧版 SDK 不能运行当前 Hybrid 场景。
+
 构建 React 前端：
 
 ```bash
