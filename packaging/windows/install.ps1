@@ -35,6 +35,19 @@ function Test-Python311X64 {
     return $LASTEXITCODE -eq 0
 }
 
+function Expand-PortablePythonArchive {
+    param(
+        [Parameter(Mandatory = $true)][string]$Archive,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    # Windows PowerShell 5.1 的内置归档模块在 ZIP 包含显式目录项时，可能在
+    # 清理阶段重复删除已经不存在的目录。直接使用 .NET Framework 的 ZipFile
+    # 解压到唯一临时目录，避开该模块缺陷；目标目录中不会存在需要覆盖的文件。
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($Archive, $Destination)
+}
+
 # 安装前先校验可重定位 runtime、全部 wheel 和脚本。运行时生成目录不在清单中。
 & (Join-Path $Root "verify.ps1")
 New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
@@ -46,22 +59,21 @@ if (-not (Test-Python311X64 -Executable $PortablePython)) {
         throw "离线包缺少可重定位 Python runtime：$PortableArchive"
     }
     Write-InstallEvent "正在解压包内 CPython 3.11.9 x64 runtime……"
-    $ExtractRoot = Join-Path $Runtime ("python-extract-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Force -Path $ExtractRoot | Out-Null
+    # 归档自身带有顶层 python 目录。直接解压到 runtime 能让深层 pip 路径保持
+    # 最短，避免包内 GUID 临时目录触发 Windows 默认 MAX_PATH 限制。
+    if (Test-Path -LiteralPath $PythonHome) {
+        Remove-Item -LiteralPath $PythonHome -Recurse -Force
+    }
     try {
-        Expand-Archive -LiteralPath $PortableArchive -DestinationPath $ExtractRoot -Force
-        $ExtractedPython = Join-Path $ExtractRoot "python\python.exe"
-        if (-not (Test-Python311X64 -Executable $ExtractedPython)) {
-            throw "解压后的 Python 解释器不存在、版本不符或无法运行：$ExtractedPython"
+        Expand-PortablePythonArchive -Archive $PortableArchive -Destination $Runtime
+        if (-not (Test-Python311X64 -Executable $PortablePython)) {
+            throw "解压后的 Python 解释器不存在、版本不符或无法运行：$PortablePython"
         }
+    } catch {
         if (Test-Path -LiteralPath $PythonHome) {
             Remove-Item -LiteralPath $PythonHome -Recurse -Force
         }
-        Move-Item -LiteralPath (Join-Path $ExtractRoot "python") -Destination $PythonHome
-    } finally {
-        if (Test-Path -LiteralPath $ExtractRoot) {
-            Remove-Item -LiteralPath $ExtractRoot -Recurse -Force
-        }
+        throw
     }
 }
 

@@ -102,13 +102,21 @@ def test_windows_dependency_audit_accepts_complete_marker_dependency(
 
 
 def test_windows_installer_uses_portable_runtime_and_real_smoke() -> None:
-    """验证安装模板不再调用系统安装器，并覆盖重复安装和真实执行自检。"""
+    """验证安装模板使用兼容 PowerShell 5.1 的 runtime 解压与真实自检。"""
 
     install_script = Path("packaging/windows/install.ps1").read_text(encoding="utf-8")
     run_script = Path("packaging/windows/run.ps1").read_text(encoding="utf-8")
 
     assert PYTHON_RUNTIME_ZIP_NAME in install_script
-    assert "Expand-Archive" in install_script
+    assert "Expand-Archive" not in install_script
+    assert "System.IO.Compression.FileSystem" in install_script
+    assert "[System.IO.Compression.ZipFile]::ExtractToDirectory" in install_script
+    assert (
+        "Expand-PortablePythonArchive -Archive $PortableArchive -Destination $Runtime"
+        in install_script
+    )
+    assert "python-extract-" not in install_script
+    assert "Move-Item" not in install_script
     assert "python-3.11.9-amd64.exe" not in install_script
     assert "--force-reinstall" in install_script
     assert "if ($ForceReinstall)" in install_script
