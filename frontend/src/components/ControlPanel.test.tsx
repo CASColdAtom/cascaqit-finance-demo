@@ -31,6 +31,13 @@ const scenario: ScenarioSpec = {
   ],
   values: { weight: 0.5 },
   recommendedMode: "hybrid",
+  recommendedExecution: {
+    shots: 32,
+    seed: 23,
+    layers: 1,
+    searchStrategy: "preset",
+    parameterBudget: 2,
+  },
 };
 
 const analysis = {
@@ -135,6 +142,7 @@ function renderPanel(
     running?: boolean;
     analyzing?: boolean;
     mode?: "digital" | "hybrid" | "analog";
+    recommendedConfiguration?: boolean;
   } = {},
 ) {
   const onMode = vi.fn();
@@ -154,6 +162,7 @@ function renderPanel(
         layers={1}
         searchStrategy="preset"
         parameterBudget={2}
+        recommendedConfiguration={overrides.recommendedConfiguration ?? true}
         running={overrides.running ?? false}
         analyzing={overrides.analyzing ?? false}
         onPreset={vi.fn()}
@@ -203,6 +212,15 @@ describe("ControlPanel", () => {
     renderPanel({ mode: "digital" });
 
     expect(screen.getByText("可比较")).toBeTruthy();
+  });
+
+  it("identifies recommended and custom execution configurations", () => {
+    renderPanel();
+    expect(screen.getByText("推荐执行配置")).toBeTruthy();
+
+    cleanup();
+    renderPanel({ recommendedConfiguration: false });
+    expect(screen.getByText("自定义执行配置")).toBeTruthy();
   });
 
   it("shows QAOA search controls only for Digital mode", () => {

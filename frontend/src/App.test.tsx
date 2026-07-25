@@ -26,6 +26,13 @@ const scenario: ScenarioSpec = {
   controls: [],
   values: { risk_weight: 0.5 },
   recommendedMode: "digital",
+  recommendedExecution: {
+    shots: 128,
+    seed: 23,
+    layers: 2,
+    searchStrategy: "preset",
+    parameterBudget: 2,
+  },
 };
 
 const analysis: AnalysisPayload = {
@@ -122,6 +129,9 @@ describe("App", () => {
       expect.any(AbortSignal),
     );
     expect(screen.queryByText("运行后显示场景结构")).toBeNull();
+    expect((screen.getByLabelText("QAOA 层数") as HTMLSelectElement).value).toBe("2");
+    expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("128");
+    expect(screen.getByText("推荐执行配置")).toBeTruthy();
   });
 
   it("switches the workbench shell and scenario metadata to English", async () => {

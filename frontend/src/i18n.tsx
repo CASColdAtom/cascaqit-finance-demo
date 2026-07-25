@@ -26,6 +26,8 @@ const zh = {
   experimentInput: "实验输入",
   demoPreset: "演示预设",
   executionMode: "执行模式",
+  recommendedConfiguration: "推荐执行配置",
+  customConfiguration: "自定义执行配置",
   qaoaLayers: "QAOA 层数",
   searchMethod: "参数搜索",
   presetSearch: "预设参数",
@@ -141,6 +143,8 @@ const en: MessageDictionary = {
   experimentInput: "Experiment Input",
   demoPreset: "Demo Preset",
   executionMode: "Execution Mode",
+  recommendedConfiguration: "Recommended Configuration",
+  customConfiguration: "Custom Configuration",
   qaoaLayers: "QAOA Layers",
   searchMethod: "Parameter Search",
   presetSearch: "Preset",
@@ -324,7 +328,6 @@ const scenarioEnglish: Record<
       "Select funding, transfer, and FX actions across currencies under coverage, timing, and channel constraints.",
     presets: {
       base: "Baseline Liquidity",
-      eod: "End-of-day Stress",
       fx: "Cross-currency Shortfall",
     },
     controls: {
@@ -343,7 +346,6 @@ const scenarioEnglish: Record<
     presets: {
       base: "Prudent Allocation",
       return: "Return Priority",
-      concentration: "Lower Concentration",
     },
     controls: {
       value_weight: "Risk-adjusted Value Weight",

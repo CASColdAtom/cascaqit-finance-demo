@@ -107,13 +107,11 @@ PRESETS = {
     ),
     "liquidity": (
         ("base", "基准流动性"),
-        ("eod", "日终压力"),
         ("fx", "跨币种短缺"),
     ),
     "credit_limits": (
         ("base", "稳健配置"),
         ("return", "收益优先"),
-        ("concentration", "行业集中压降"),
     ),
     "derivatives": (
         ("european_call", "欧式看涨"),
@@ -933,8 +931,17 @@ def _preset_input(case_id: str, preset: str) -> Any:
         }
         return replace(base, **changes.get(preset, {}))
     if case_id == "settlement":
+        tight_limits = tuple(
+            replace(limit, capacity_units=2)
+            if limit.currency == "CNY"
+            else limit
+            for limit in base.liquidity_limits
+        )
         changes = {
-            "tight": {"batch_cap": 5, "notional_weight": 0.45},
+            "tight": {
+                "liquidity_limits": tight_limits,
+                "notional_weight": 0.45,
+            },
             "priority": {"notional_weight": 0.35, "priority_weight": 0.65},
         }
         return replace(base, **changes.get(preset, {}))
@@ -952,19 +959,14 @@ def _preset_input(case_id: str, preset: str) -> Any:
         return replace(base, **changes.get(preset, {}))
     if case_id == "liquidity":
         changes = {
-            "eod": {"minimum_units": 14, "cost_weight": 0.22},
             "fx": {"minimum_units": 13, "group_cap": 2},
         }
         return replace(base, **changes.get(preset, {}))
     if case_id == "credit_limits":
         changes = {
             "return": {"value_weight": 0.75, "maximum_units": 12},
-            "concentration": {"group_cap": 1, "selected_count": 4},
         }
-        candidate = replace(base, **changes.get(preset, {}))
-        if preset == "concentration" and not scenario.exact_business_points(candidate):
-            candidate = replace(candidate, selected_count=3)
-        return candidate
+        return replace(base, **changes.get(preset, {}))
     return replace(base, product=preset)
 
 

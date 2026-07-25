@@ -9,6 +9,7 @@ from cascaqit_finance_demo.cases.constrained_selection import SelectionInput
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 
 ControlKind = Literal["range", "select"]
+SearchStrategy = Literal["preset", "grid", "seeded_sample"]
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,27 @@ class ControlSpec:
 
 
 @dataclass(frozen=True)
+class ExecutionProfile:
+    """场景在默认输入下经过确定性验收的执行参数。"""
+
+    shots: int = 32
+    seed: int = 23
+    layers: int = 1
+    search_strategy: SearchStrategy = "preset"
+    parameter_budget: int = 2
+
+    def to_dict(self) -> dict[str, int | str]:
+        """使用前端约定的驼峰字段输出推荐配置。"""
+        return {
+            "shots": self.shots,
+            "seed": self.seed,
+            "layers": self.layers,
+            "searchStrategy": self.search_strategy,
+            "parameterBudget": self.parameter_budget,
+        }
+
+
+@dataclass(frozen=True)
 class ScenarioSpec:
     """一个金融场景稳定的导航、说明、预设和控件元数据。"""
 
@@ -53,6 +75,7 @@ class ScenarioSpec:
     accent: Literal["cyan", "emerald", "amber"]
     presets: tuple[tuple[str, str], ...]
     controls: tuple[ControlSpec, ...]
+    recommended_execution: ExecutionProfile = ExecutionProfile()
 
     def to_dict(
         self, *, values: dict[str, Any], recommended_mode: str
@@ -72,6 +95,7 @@ class ScenarioSpec:
             "controls": [control.to_dict() for control in self.controls],
             "values": values,
             "recommendedMode": recommended_mode,
+            "recommendedExecution": self.recommended_execution.to_dict(),
         }
 
 
@@ -173,6 +197,9 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("value_weight", "业务价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
         ),
+        # “市场波动”预设在 32 shots 下偶尔没有观测到可行候选；64 shots
+        # 能稳定覆盖三个抵押品预设，额外运行成本可以忽略。
+        ExecutionProfile(shots=64),
     ),
     "liquidity": ScenarioSpec(
         "liquidity",
@@ -182,7 +209,7 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         "选择跨币种融资、划拨和换汇动作，满足覆盖、时序与渠道约束。",
         "waves",
         "emerald",
-        (("base", "基准流动性"), ("eod", "日终压力"), ("fx", "跨币种短缺")),
+        (("base", "基准流动性"), ("fx", "跨币种短缺")),
         (
             _range("value_weight", "覆盖价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
@@ -190,6 +217,9 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("minimum_units", "最低覆盖单位", 8, 16, 1),
             _select("group_cap", "单币种上限", ("1", "2", "3")),
         ),
+        # 32/64 shots 在固定种子下可能没有采到可行方案；128 shots 已通过
+        # 默认业务约束复核，同时仍保持现场可接受的运行时间。
+        ExecutionProfile(shots=128),
     ),
     "credit_limits": ScenarioSpec(
         "credit_limits",
@@ -202,7 +232,6 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         (
             ("base", "稳健配置"),
             ("return", "收益优先"),
-            ("concentration", "行业集中压降"),
         ),
         (
             _range("value_weight", "风险调整价值权重", 0.2, 0.85, 0.05),
@@ -211,6 +240,9 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("maximum_units", "资本使用上限", 8, 14, 1),
             _select("group_cap", "单行业上限", ("1", "2", "3")),
         ),
+        # 一层预设点在默认授信约束下没有采到可行方案。两层使用相同的固定
+        # 参数语义即可得到可行业务候选，不需要把随机搜索伪装成优化器。
+        ExecutionProfile(shots=128, layers=2),
     ),
     "derivatives": ScenarioSpec(
         "derivatives",
@@ -262,8 +294,19 @@ def preset_input(case_id: str, preset: str) -> Any:
             "commodity": {"risk_weight": 0.45, "sector_cap": 2},
         }
     elif case_id == "settlement":
+        # 收紧 CNY 资金桶会直接改变业务约束，同时不会像额外降低 batch_cap
+        # 那样引入一组冗余 slack 位并超过当前演示 Target 的变量预算。
+        tight_limits = tuple(
+            replace(limit, capacity_units=2)
+            if limit.currency == "CNY"
+            else limit
+            for limit in base.liquidity_limits
+        )
         changes = {
-            "tight": {"batch_cap": 5, "notional_weight": 0.45},
+            "tight": {
+                "liquidity_limits": tight_limits,
+                "notional_weight": 0.45,
+            },
             "priority": {"notional_weight": 0.35, "priority_weight": 0.65},
         }
     elif case_id == "fraud_routing":
@@ -278,13 +321,11 @@ def preset_input(case_id: str, preset: str) -> Any:
         }
     elif case_id == "liquidity":
         changes = {
-            "eod": {"minimum_units": 14, "cost_weight": 0.22},
             "fx": {"minimum_units": 13, "group_cap": 2},
         }
     elif case_id == "credit_limits":
         changes = {
             "return": {"value_weight": 0.75, "maximum_units": 12},
-            "concentration": {"group_cap": 1, "selected_count": 4},
         }
     else:
         return replace(base, product=preset)

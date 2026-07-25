@@ -329,7 +329,7 @@ risk_weight * x.T @ normalized_covariance @ x / K^2
 
 Hybrid 的 Analog 中段承载可映射的交易冲突；金额、优先级、依赖、流动性和批次限制保留为 Digital residual。页面中的 D-A-D block、原子阵列、控制波形和数字 residual 都来自实际 `HybridProgram`，不是前端画出的示意动画。
 
-默认模型声明三条交易冲突，当前布局只把其中一条识别为可追溯 Analog 业务对。演示时可以说“当前链路已经让真实交易冲突参与 Analog 演化”，不能说“三条冲突都已经原生映射”或“完整结算 QUBO 已全部由 Analog 求解”。
+默认模型声明三条交易冲突，三条 core contribution 均已映射到可追溯的 Analog interaction，并通过漏边、补边和异常二体项检查。金额、优先级、依赖和流动性等其余项仍由 Digital residual 承担，因此不能说“完整结算 QUBO 已全部由 Analog 求解”。
 
 `cash_units` 是演示用整数资金桶，不是交易名义金额。这个场景只选择结算批次，不执行清算账务、支付报文或资金交割。
 
@@ -581,7 +581,7 @@ Hybrid 只有在 Analog 中段承载真实局域业务结构，并且 Digital re
 | Analog 选择代表性风险情景 | 量子计算完成衍生品定价 |
 | 反欺诈场景安排调查资源 | 量子算法识别了欺诈交易 |
 | 授信场景配置已准入额度候选 | 量子算法自动审批企业贷款 |
-| 当前结算 Hybrid 映射到一条真实冲突 | 全部结算冲突已由原子相互作用表达 |
+| 当前结算三条 core 冲突均进入 Analog，其余约束保留为 Digital residual | 完整结算 QUBO 已全部由 Analog 求解 |
 
 ## 建议的源码阅读顺序
 

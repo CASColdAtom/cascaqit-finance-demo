@@ -24,6 +24,7 @@ from time import perf_counter
 from typing import Any, Literal
 
 import numpy as np
+from cascaqit.exceptions import CapabilityError
 from cascaqit.problems import ProblemCompiler
 from cascaqit.simulators import LocalBackend, SimulationOptions
 from cascaqit.targets import MockNeutralAtomTarget, TargetSpec
@@ -124,7 +125,7 @@ class FinanceModeAdvisor:
         elif analog_suitable:
             recommended = "analog"
             recommendation = "完整业务图可由 AHS 表达，不需要 Digital residual。"
-        else:
+        elif physical["digital"].feasible:
             recommended = "digital"
             if evidence.missing_contribution_ids:
                 recommendation = (
@@ -138,6 +139,22 @@ class FinanceModeAdvisor:
                 )
             else:
                 recommendation = "问题主体是稠密、全局或有方向的约束，使用 Digital。"
+        else:
+            # 推荐模式必须始终可执行。输入规模或 Target 能力可能让三条链路
+            # 同时失败，此时返回明确能力错误，不能把 Digital 当作无条件兜底。
+            diagnostics = tuple(
+                dict.fromkeys(
+                    code
+                    for mode in _MODES
+                    for code in physical[mode].diagnostic_codes
+                )
+            )
+            suffix = f"（{', '.join(diagnostics)}）" if diagnostics else ""
+            raise CapabilityError(
+                f"当前 Target 无法完整编译该金融 Problem{suffix}。",
+                code="FINANCE_NO_EXECUTABLE_MODE",
+                stage="finance_mode_advisor",
+            )
 
         rows = tuple(
             self._row(

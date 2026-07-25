@@ -21,6 +21,7 @@ interface ControlPanelProps {
   layers: number;
   searchStrategy: SearchStrategy;
   parameterBudget: number;
+  recommendedConfiguration: boolean;
   running: boolean;
   analyzing: boolean;
   onPreset: (value: string) => void;
@@ -137,7 +138,18 @@ export function ControlPanel(props: ControlPanelProps) {
         </div>
 
         <div className="execution-controls">
-          <span className="section-kicker">{t("executionMode")}</span>
+          <div className="execution-control-heading">
+            <span className="section-kicker">{t("executionMode")}</span>
+            <span
+              className="execution-profile-status"
+              data-recommended={props.recommendedConfiguration}
+            >
+              <i aria-hidden="true" />
+              {props.recommendedConfiguration
+                ? t("recommendedConfiguration")
+                : t("customConfiguration")}
+            </span>
+          </div>
           <div className="mode-segments" role="group" aria-label={t("executionMode")}>
             {(["digital", "hybrid", "analog"] as Mode[]).map((candidate) => {
               const row = modes.find((item) => item.mode === candidate);

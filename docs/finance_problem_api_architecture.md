@@ -279,6 +279,8 @@ result = executor.run(
 
 金融层的 `mode="recommended"` 先执行裁决，再向 CASCAQit 传入显式 `mode + algorithm`。用户显式选择的模式只有在状态不是 `unsuitable` 时才能执行。
 
+场景目录还提供推荐执行配置，包括 shots、seed、QAOA 层数、搜索方式和评估预算。API 请求省略字段时使用场景配置，React 工作台切换场景或预设时加载同一配置，避免脚本和页面维护两套默认值。推荐模式必须通过编译门禁；若三种模式都不可执行，模式顾问返回 `FINANCE_NO_EXECUTABLE_MODE`，不会把 Digital 当作无条件兜底。
+
 统一结果包含：
 
 - 原始业务输入、Problem、Target 和 analysis hash；
@@ -312,11 +314,13 @@ result = executor.run(
 
 已完成：移除 `preferred_mode`，QUBO 接入完整参考坐标，交易结算和反欺诈使用 verified embedding，Hybrid 按完整 core group 裁决，并公开 missing、unexpected term、补边和几何状态。自动测试覆盖完整覆盖、缺边、补边和 Hybrid -> Digital 退化。
 
-### P0：补齐 coefficient-level term ledger
+### P0：补齐业务系数证据和优化质量
 
 1. 在 QUBO 建模过程中记录每次目标或罚项展开产生的系数 contribution。
 2. 将 contribution 聚合值与 Canonical linear/quadratic term 逐项核对。
 3. 在界面展开“业务规则 -> contribution -> Hamiltonian term -> Analog/Digital implementation”。
+4. 增加多起点、连续优化或约束感知参数策略；只有量子候选本身通过业务复核后，才重新增加更严格的压力预设。
+5. 使用 repeated runs 和置信区间验收执行配置，不能只依据单次固定 seed 结果。
 
 ### P1：让 Analog 场景与产品输入联动
 

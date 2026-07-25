@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 from cascaqit import QUBOProblemIR
+from cascaqit.exceptions import CapabilityError
 
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.domain.problem_api import (
@@ -248,6 +249,7 @@ def _analysis(
     *,
     analog_ids: tuple[str, ...],
     analog_feasible: bool = True,
+    digital_feasible: bool = True,
     hybrid_analog_ids: tuple[str, ...],
     hybrid_digital_ids: tuple[str, ...],
     supported_pairs: tuple[tuple[str, str], ...] = (("a", "b"),),
@@ -257,8 +259,10 @@ def _analysis(
     """构造模式顾问所需的最小编译分析替身，隔离编译器实现细节。"""
     feasibility = {
         "digital": SimpleNamespace(
-            feasible=True,
-            diagnostic_codes=(),
+            feasible=digital_feasible,
+            diagnostic_codes=(
+                () if digital_feasible else ("PROBLEM_VARIABLE_BUDGET_EXCEEDED",)
+            ),
             analog_term_ids=(),
             digital_term_ids=("linear.a", "linear.b", "pair.ab"),
         ),
@@ -309,3 +313,21 @@ def _analysis(
         feasibility_for=feasibility.__getitem__,
     )
     return SimpleNamespace(mapping_plan=mapping_plan)
+
+
+def test_mode_advisor_rejects_problem_when_no_mode_is_executable() -> None:
+    """验证 Digital 不会在三种模式都不可编译时被当作无条件兜底。"""
+    with pytest.raises(CapabilityError) as captured:
+        FinanceModeAdvisor().decide(
+            _definition(),
+            _analysis(
+                analog_ids=(),
+                analog_feasible=False,
+                digital_feasible=False,
+                hybrid_analog_ids=(),
+                hybrid_digital_ids=(),
+            ),
+        )
+
+    assert captured.value.code == "FINANCE_NO_EXECUTABLE_MODE"
+    assert captured.value.stage == "finance_mode_advisor"

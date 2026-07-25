@@ -56,14 +56,18 @@ class ScenarioRequest(BaseModel):
 
 
 class RunRequest(ScenarioRequest):
-    """与业务输入分离的模式、QAOA 搜索配置、采样数和随机种子。"""
+    """与业务输入分离的可选执行参数；省略项使用场景推荐配置。"""
 
     mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended"
-    shots: int = Field(default=32, ge=1, le=1024)
-    seed: int = Field(default=23, ge=0)
-    layers: int = Field(default=1, ge=1, le=3)
-    search_strategy: Literal["preset", "grid", "seeded_sample"] = "preset"
-    parameter_budget: int = Field(default=2, ge=1, le=24)
+    shots: Optional[int] = Field(default=None, ge=1, le=1024)  # noqa: UP007
+    seed: Optional[int] = Field(default=None, ge=0)  # noqa: UP007
+    layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP007
+    search_strategy: Optional[  # noqa: UP007
+        Literal["preset", "grid", "seeded_sample"]
+    ] = None
+    parameter_budget: Optional[int] = Field(  # noqa: UP007
+        default=None, ge=1, le=24
+    )
 
 
 app = FastAPI(
@@ -179,6 +183,18 @@ def analyze(case_id: str, request: ScenarioRequest) -> dict[str, Any]:
 async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
     """在线程池运行同步模拟器，避免阻塞 FastAPI 事件循环。"""
     preset, case_input = _request_input(case_id, request)
+    # 推荐配置由场景目录统一维护。API 调用方可以只覆盖关心的字段，其余字段
+    # 继续沿用已验收值，避免 Web UI 与脚本调用产生两套隐式默认值。
+    profile = SCENARIO_SPECS[case_id].recommended_execution
+    shots = request.shots if request.shots is not None else profile.shots
+    seed = request.seed if request.seed is not None else profile.seed
+    layers = request.layers if request.layers is not None else profile.layers
+    search_strategy = request.search_strategy or profile.search_strategy
+    parameter_budget = (
+        request.parameter_budget
+        if request.parameter_budget is not None
+        else profile.parameter_budget
+    )
     executor = ScenarioExecutor()
     scenario = _scenario(case_id)
     try:
@@ -193,11 +209,11 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
             scenario,
             case_input,
             mode=selected_mode,
-            layers=request.layers,
-            search_strategy=request.search_strategy,
-            parameter_budget=request.parameter_budget,
-            shots=request.shots,
-            seed=request.seed,
+            layers=layers,
+            search_strategy=search_strategy,
+            parameter_budget=parameter_budget,
+            shots=shots,
+            seed=seed,
             report_path=REPORT_DIR / f"{case_id}-{selected_mode}.html",
         )
     except CapabilityError as exc:

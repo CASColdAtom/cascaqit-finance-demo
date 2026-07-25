@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from importlib import import_module
+from types import SimpleNamespace
 
 import pytest
 from cascaqit.exceptions import CapabilityError
 from fastapi.testclient import TestClient
 
 from cascaqit_finance_demo.api.app import app
+from cascaqit_finance_demo.quantum.problem_executor import ScenarioExecutor
 
 app_module = import_module("cascaqit_finance_demo.api.app")
 client = TestClient(app)
@@ -25,11 +27,71 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     assert catalog.status_code == 200
     scenarios = catalog.json()["scenarios"]
     assert len(scenarios) == 7
+    assert sum(len(item["presets"]) for item in scenarios) == 21
+    preset_values = {
+        option["value"] for item in scenarios for option in item["presets"]
+    }
+    assert "eod" not in preset_values
+    assert "concentration" not in preset_values
     assert {item["recommendedMode"] for item in scenarios} == {
         "digital",
         "hybrid",
         "analog",
     }
+    profiles = {item["caseId"]: item["recommendedExecution"] for item in scenarios}
+    assert profiles["liquidity"] == {
+        "shots": 128,
+        "seed": 23,
+        "layers": 1,
+        "searchStrategy": "preset",
+        "parameterBudget": 2,
+    }
+    assert profiles["credit_limits"] == {
+        "shots": 128,
+        "seed": 23,
+        "layers": 2,
+        "searchStrategy": "preset",
+        "parameterBudget": 2,
+    }
+
+
+@pytest.mark.parametrize(
+    ("case_id", "expected_layers"),
+    [("liquidity", 1), ("credit_limits", 2)],
+)
+def test_run_uses_scenario_execution_profile_when_fields_are_omitted(
+    case_id: str,
+    expected_layers: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """验证脚本调用省略执行字段时与 Web UI 使用同一套推荐值。"""
+    captured: dict[str, object] = {}
+
+    def record_run(
+        self: ScenarioExecutor,
+        scenario: object,
+        case_input: object,
+        **kwargs: object,
+    ) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(analysis=self.analyze(scenario, case_input))
+
+    monkeypatch.setattr(app_module.ScenarioExecutor, "run", record_run)
+    monkeypatch.setattr(
+        app_module,
+        "execution_payload",
+        lambda case_id, case_input, result: {"recorded": True},
+    )
+
+    response = client.post(f"/api/scenarios/{case_id}/run", json={})
+
+    assert response.status_code == 200
+    assert response.json()["run"] == {"recorded": True}
+    assert captured["shots"] == 128
+    assert captured["seed"] == 23
+    assert captured["layers"] == expected_layers
+    assert captured["search_strategy"] == "preset"
+    assert captured["parameter_budget"] == 2
 
 
 def test_analysis_recommends_digital_after_fraud_conflicts_disappear() -> None:

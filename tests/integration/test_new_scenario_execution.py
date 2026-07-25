@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from cascaqit_finance_demo.api.catalog import SCENARIO_SPECS, preset_input
 from cascaqit_finance_demo.api.presenters import execution_payload
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.quantum.problem_executor import ScenarioExecutor
@@ -47,3 +48,35 @@ def test_new_scenario_runs_real_digital_problem(case_id: str) -> None:
         }
     if case_id == "collateral":
         assert chart["points"][0]["label"] != chart["points"][0]["id"]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "preset"),
+    [
+        ("collateral", "haircut"),
+        ("liquidity", "base"),
+        ("credit_limits", "base"),
+    ],
+)
+def test_recommended_execution_profile_returns_sampled_feasible_candidate(
+    case_id: str,
+    preset: str,
+) -> None:
+    """验证关键推荐配置展示真实采样可行解，而不是经典回退。"""
+    scenario = PROBLEM_SCENARIOS[case_id]
+    case_input = preset_input(case_id, preset)
+    profile = SCENARIO_SPECS[case_id].recommended_execution
+
+    result = ScenarioExecutor().run(
+        scenario,
+        case_input,
+        mode="digital",
+        shots=profile.shots,
+        seed=profile.seed,
+        layers=profile.layers,
+        search_strategy=profile.search_strategy,
+        parameter_budget=profile.parameter_budget,
+    )
+
+    assert result.business_candidate.feasible is True
+    assert result.metadata["displayed_source"] == "best_observed"

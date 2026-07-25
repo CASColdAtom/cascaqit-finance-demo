@@ -8,6 +8,7 @@ import { viewTabs, type ViewId } from "./components/viewTabs";
 import { I18nProvider, useI18n } from "./i18n";
 import type {
   AnalysisPayload,
+  ExecutionProfile,
   Mode,
   RunPayload,
   RunRequest,
@@ -89,6 +90,14 @@ function Workbench() {
     [analysis, mode],
   );
 
+  function applyExecutionProfile(profile: ExecutionProfile) {
+    setShots(profile.shots);
+    setSeed(profile.seed);
+    setLayers(profile.layers);
+    setSearchStrategy(profile.searchStrategy);
+    setParameterBudget(profile.parameterBudget);
+  }
+
   useEffect(() => {
     let mounted = true;
     getScenarios()
@@ -100,6 +109,7 @@ function Workbench() {
         setPreset(first.presets[0].value);
         setValues(first.values);
         setMode(first.recommendedMode);
+        applyExecutionProfile(first.recommendedExecution);
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => mounted && setCatalogLoading(false));
@@ -176,6 +186,21 @@ function Workbench() {
     values,
   ]);
 
+  const recommendedConfiguration = useMemo(() => {
+    if (!activeScenario || !currentRequest) return false;
+    const profile = activeScenario.recommendedExecution;
+    const recommendedMode =
+      analysis?.decision.recommendedMode ?? activeScenario.recommendedMode;
+    return (
+      mode === recommendedMode &&
+      currentRequest.shots === profile.shots &&
+      currentRequest.seed === profile.seed &&
+      currentRequest.layers === profile.layers &&
+      currentRequest.search_strategy === profile.searchStrategy &&
+      currentRequest.parameter_budget === profile.parameterBudget
+    );
+  }, [activeScenario, analysis, currentRequest, mode]);
+
   useEffect(() => {
     if (!currentRequest) return;
     setRun(cache.current.get(executionSignature(activeId, currentRequest)) ?? null);
@@ -186,6 +211,7 @@ function Workbench() {
     setPreset(scenario.presets[0].value);
     setValues(scenario.values);
     setMode(scenario.recommendedMode);
+    applyExecutionProfile(scenario.recommendedExecution);
     setAnalysis(null);
     setRun(null);
     setActiveView("scenario");
@@ -209,6 +235,7 @@ function Workbench() {
       setValues(response.scenario.values);
       setAnalysis(response.analysis);
       setMode(response.analysis.decision.recommendedMode);
+      applyExecutionProfile(response.scenario.recommendedExecution);
       setRun(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -278,6 +305,7 @@ function Workbench() {
           layers={layers}
           searchStrategy={searchStrategy}
           parameterBudget={parameterBudget}
+          recommendedConfiguration={recommendedConfiguration}
           running={running}
           analyzing={analyzing}
           onPreset={selectPreset}

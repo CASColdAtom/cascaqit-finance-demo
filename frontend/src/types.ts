@@ -19,6 +19,14 @@ export interface ControlSpec {
   unit: string;
 }
 
+export interface ExecutionProfile {
+  shots: number;
+  seed: number;
+  layers: number;
+  searchStrategy: SearchStrategy;
+  parameterBudget: number;
+}
+
 export interface ScenarioSpec {
   caseId: string;
   shortTitle: string;
@@ -31,6 +39,7 @@ export interface ScenarioSpec {
   controls: ControlSpec[];
   values: Record<string, string | number | boolean>;
   recommendedMode: Mode;
+  recommendedExecution: ExecutionProfile;
 }
 
 export interface InputRow {

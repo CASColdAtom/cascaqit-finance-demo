@@ -491,6 +491,38 @@ code,
   border-top: 1px solid var(--line);
 }
 
+.execution-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.execution-profile-status {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 0.54rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-profile-status i {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.execution-profile-status[data-recommended="true"] {
+  color: var(--green);
+}
+
 .mode-segments {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

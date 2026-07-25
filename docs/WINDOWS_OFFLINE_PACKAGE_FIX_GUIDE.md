@@ -1,5 +1,7 @@
 # CASCAQit Finance Demo Windows 离线包问题与修复指南
 
+> 本文是旧离线包的故障复盘，文中的 `1.0.2a0`、`1.0.2a1` 和制品哈希只对应当时的测试包，不是当前安装要求。当前 Demo 依赖 `cascaqit>=1.0.7a0,<1.0.8`；交付前应按[运行时依赖兼容性报告](process/runtime_dependency_compatibility_report.md)重新构建并完成 Windows 实机验收。
+
 ## 1. 文档目的
 
 本文整理本次在 Windows x64、CPython 3.11 环境中，对 `cascaqit-finance-demo` 离线安装包进行安装、启动和场景运行验证时发现的全部问题。
@@ -947,7 +949,7 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps
 4. Windows README 明确要求只使用 BAT 入口，并说明企业组策略边界。
 5. 新增三项字节级与构建失败回归测试。
 
-最终交付物：
+当时的交付物，现已过期：
 
 ```text
 文件：offline/cascaqit-finance-demo-windows-x64-py311.zip
