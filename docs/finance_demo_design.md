@@ -73,9 +73,9 @@ Demo 面向银行、证券、基金和金融科技客户。所有数据均为合
 - Delta、Gamma 和 Vega 使用确定性有限差分计算。
 - Monte Carlo 产品返回标准误差；障碍期权另返回敲出概率。
 
-量子实验是一个独立的风险情景选择 Problem。标的价格冲击和波动率冲击组成 `3 x 3` 格点，相邻情景视为信息接近的冲突节点。带二维位置的 `GraphProblemIR` 可以完整编译为 Analog QAA/AHS。
+量子实验是一个独立的风险情景选择 Problem。系统先用当前产品重估标的价格冲击与波动率冲击组成的 `3 x 3` 格点，再按 `0.05 + 0.95 x |P&L| / max|P&L|` 生成节点权重。上下左右相邻情景视为信息接近的冲突节点，带二维位置的 `MWISProblemIR` 完整编译为 Analog QAA/AHS：风险权重进入局域失谐，冲突边进入原子相互作用。
 
-经典价格不会读取量子执行结果。`DerivativePricingResult` 没有 counts，`ProblemExecutionResult` 没有 `reference_price`。页面和报告均说明 counts 不参与定价。
+P&L 热图、输入表、MWIS 权重和业务结果读取同一组九格重估事实。经典价格不会读取量子执行结果；`DerivativePricingResult` 没有 counts，`ProblemExecutionResult` 没有 `reference_price`。
 
 ## 工作台
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from math import isclose, sqrt
 from statistics import fmean, stdev
 from typing import Any
@@ -166,7 +166,7 @@ def _coefficient_ledger_payload(
     if not contributions:
         return {
             "applicability": "not_applicable_graph"
-            if definition.problem_kind == "graph"
+            if definition.problem_kind in {"graph", "mwis"}
             else "not_declared",
             "balanced": definition.problem_kind != "qubo",
             "hamiltonianBalanced": definition.problem_kind != "qubo",
@@ -377,15 +377,17 @@ def _input_rows(case_id: str, case_input: Any) -> list[dict[str, str]]:
         scenario = PROBLEM_SCENARIOS[case_id]
         rows = [
             {
-                "id": scenario._node_id(row, column),
-                "label": f"S {spot:+.0%} / σ {vol:+.0%}",
+                "id": item.scenario_id,
+                "label": (
+                    f"S {item.spot_shock:+.0%} / "
+                    f"σ {item.volatility_shock:+.0%}"
+                ),
                 "group": "风险情景",
-                "primary": f"S={case_input.spot * (1 + spot):.1f}",
-                "secondary": f"σ={max(0.01, case_input.volatility + vol):.1%}",
-                "detail": "Analog 候选",
+                "primary": f"压力价格 {item.stressed_price:.4f}",
+                "secondary": f"P&L {item.pnl:+.4f}",
+                "detail": f"风险权重 {item.normalized_risk_weight:.3f}",
             }
-            for row, vol in enumerate(scenario.volatility_shocks)
-            for column, spot in enumerate(scenario.spot_shocks)
+            for item in scenario.risk_scenarios(case_input)
         ]
     return rows
 
@@ -620,41 +622,32 @@ def _scenario_visual(case_id: str, case_input: Any) -> dict[str, Any]:
         }
 
     scenario = PROBLEM_SCENARIOS[case_id]
-    base_price = scenario.price(case_input).reference_price
+    risk_scenarios = scenario.risk_scenarios(case_input)
     x_labels = [f"{shock:+.0%}" for shock in scenario.spot_shocks]
     y_labels = [f"{shock:+.0%}" for shock in scenario.volatility_shocks]
-    cells = []
-    for row, volatility_shock in enumerate(scenario.volatility_shocks):
-        for column, spot_shock in enumerate(scenario.spot_shocks):
-            stressed_spot = case_input.spot * (1.0 + spot_shock)
-            stressed_volatility = max(0.01, case_input.volatility + volatility_shock)
-            if (
-                case_input.product == "up_and_out_call"
-                and stressed_spot >= case_input.barrier
-            ):
-                stressed_price = 0.0
-            else:
-                stressed_price = scenario.price(
-                    replace(
-                        case_input,
-                        spot=stressed_spot,
-                        volatility=stressed_volatility,
-                    )
-                ).reference_price
-            cells.append(
-                {
-                    "id": scenario._node_id(row, column),
-                    "x": column,
-                    "y": row,
-                    "value": stressed_price - base_price,
-                    "label": f"S {spot_shock:+.0%} / σ {volatility_shock:+.0%}",
-                }
-            )
+    cells = [
+        {
+            "id": item.scenario_id,
+            "x": item.column,
+            "y": item.row,
+            "value": item.pnl,
+            "label": (
+                f"S {item.spot_shock:+.0%} / "
+                f"σ {item.volatility_shock:+.0%}"
+            ),
+            "stressedPrice": item.stressed_price,
+            "riskWeight": item.normalized_risk_weight,
+            "delta": item.delta,
+            "gamma": item.gamma,
+            "vega": item.vega,
+        }
+        for item in risk_scenarios
+    ]
     return {
         **visual,
         "kind": "derivatives-pnl-surface",
         "title": "衍生品压力情景损益",
-        "subtitle": "每个格点由经典定价链重估；Analog 只选择代表情景。",
+        "subtitle": "经典链重估每个格点；绝对 P&L 权重进入 Analog 局域失谐。",
         "xLabel": "标的价格冲击",
         "yLabel": "波动率冲击",
         "matrix": {"xLabels": x_labels, "yLabels": y_labels, "cells": cells},
@@ -666,6 +659,8 @@ def _matrix_cells(problem: Any) -> list[dict[str, Any]]:
     cells: dict[tuple[str, str], float] = {}
     for variable, coefficient in getattr(problem, "linear_terms", ()):
         cells[(variable, variable)] = float(coefficient)
+    for node, weight in getattr(problem, "node_weights", ()):
+        cells[(node, node)] = float(weight)
     for left, right, coefficient in getattr(problem, "quadratic_terms", ()):
         cells[(left, right)] = float(coefficient)
         cells[(right, left)] = float(coefficient)
@@ -756,7 +751,11 @@ def _business_payload(case_id: str, case_input: Any, result: Any) -> dict[str, A
         "network": _business_network(case_id, case_input),
     }
     if case_id == "derivatives":
-        payload["pricing"] = asdict(PROBLEM_SCENARIOS[case_id].price(case_input))
+        scenario = PROBLEM_SCENARIOS[case_id]
+        payload["pricing"] = asdict(scenario.price(case_input))
+        payload["riskScenarios"] = [
+            asdict(item) for item in scenario.risk_scenarios(case_input)
+        ]
     return payload
 
 
@@ -816,6 +815,28 @@ def _business_points(
                 }
             )
         return points
+    if case_id == "derivatives":
+        scenario = PROBLEM_SCENARIOS[case_id]
+        for item in scenario.risk_scenarios(case_input):
+            points.append(
+                {
+                    "id": item.scenario_id,
+                    "label": (
+                        f"S {item.spot_shock:+.0%} / "
+                        f"σ {item.volatility_shock:+.0%}"
+                    ),
+                    "group": "风险情景",
+                    "x": item.spot_shock,
+                    "y": item.volatility_shock,
+                    "size": 8.0 + 22.0 * item.normalized_risk_weight,
+                    "selected": item.scenario_id in selected,
+                    "detail": (
+                        f"P&L {item.pnl:+.4f} / "
+                        f"风险权重 {item.normalized_risk_weight:.3f}"
+                    ),
+                }
+            )
+        return points
     if isinstance(case_input, SettlementInput):
         source = (
             (
@@ -839,12 +860,7 @@ def _business_points(
             for item in case_input.alerts
         )
     else:
-        scenario = PROBLEM_SCENARIOS[case_id]
-        source = (
-            (scenario._node_id(row, column), "风险情景", spot, vol, 1)
-            for row, vol in enumerate(scenario.volatility_shocks)
-            for column, spot in enumerate(scenario.spot_shocks)
-        )
+        source = ()
     for item_id, group, x_value, y_value, size_value in source:
         points.append(
             {

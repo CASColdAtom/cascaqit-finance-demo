@@ -10,11 +10,13 @@
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。
 - [参数优化与重复统计实现报告](process/parameter_optimization_and_repeated_statistics_report.md)：记录连续 COBYLA、多起点、量子候选统计和 19 个标准预设的三次独立运行结果。
+- [衍生品重估风险图实现报告](process/derivative_revaluation_risk_graph_report.md)：记录九格压力重估、MWIS 风险权重、Analog 局域失谐映射和四类产品验收结果。
 - [Problem 映射旧前端热修复报告](process/problem_mapping_stale_frontend_hotfix_report.md)：记录旧响应字段兜底、入口禁缓存和升级后强制刷新边界。
 - [量子实验与审计界面收敛报告](process/quantum_audit_interface_convergence_report.md)：记录 QAOA 逻辑层与执行上下文摘要的展示范围。
 - [Windows 离线包重建报告](process/windows_offline_bundle_rebuild_report.md)：记录当前源码离线包、依赖闭包、完整性检查、Python 3.9 构建兼容修复和待完成的 Windows 实机验收。
 - [运行时依赖兼容性报告](process/runtime_dependency_compatibility_report.md)：记录 Python 3.9 收集修复、CASCAQit 最低版本和离线包重建边界。
 - [当前实现复盘与迭代优先级](process/current_implementation_review_and_iteration_priorities.md)：汇总七场景链路、默认与全预设执行结果、关键缺口和后续顺序。
+- [v0.1.1 发布验收报告](process/v0_1_1_release_report.md)：记录功能冻结范围、发布门禁、安装后烟雾验证和已知边界。
 
 历史实现记录：
 

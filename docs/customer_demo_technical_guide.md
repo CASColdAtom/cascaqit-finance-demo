@@ -24,7 +24,7 @@
 |---|---|
 | 业务源代码 | 资产、交易、告警、融资动作等业务输入 |
 | 语义检查 | `scenario.validate()` |
-| 中间表示 | `QUBOProblemIR`、`GraphProblemIR`、`IsingModelIR` |
+| 中间表示 | `QUBOProblemIR`、`GraphProblemIR`、`MWISProblemIR`、`IsingModelIR` |
 | 编译分析 | `ProblemCompiler.analyze()` |
 | 目标相关 Lowering | Digital、Hybrid 或 Analog 编译 |
 | 可执行程序 | `Circuit`、`HybridProgram`、`AHSProgram` |
@@ -381,11 +381,11 @@ Demo 不读取真实持仓、资格规则、折扣表或法律协议。页面上
 
 Delta、Gamma 和 Vega 由中心有限差分计算。Monte Carlo 路径服从风险中性几何布朗运动，结果还包含标准误。实现没有波动率曲面、利率曲线、分红、交易日历或市场校准，只是确定性演示定价器。
 
-量子链路使用固定 3×3 风险网格。横轴是标的价格冲击 `-12% / 0 / +12%`，纵轴是波动率冲击 `-8% / 0 / +8%`。上下左右相邻的情景视为信息接近，图问题选择互不相邻的代表节点，相当于最大独立集实验。
+量子链路使用 3×3 风险网格。横轴是标的价格冲击 `-12% / 0 / +12%`，纵轴是波动率冲击 `-8% / 0 / +8%`。系统先按当前产品重估九个格点，保存压力价格、P&L 和 Greeks，再把绝对 P&L 归一化为 `0.05` 到 `1.0` 的风险权重。上下左右相邻的情景视为信息接近，MWIS 选择互不相邻且总风险权重较高的节点。
 
-九个图节点有明确二维位置，完整 Hamiltonian 可以由当前 AHS 目标表达，所以推荐 Analog QAA。页面会显示 3×3 原子排列、Rabi/Detuning/Phase 波形和 counts。
+九个节点有明确二维位置，完整 Hamiltonian 可以由当前 AHS 目标表达，所以推荐 Analog QAA。节点权重进入局域 Detuning，近邻冲突进入 Rydberg interaction；页面显示 3×3 原子排列、Rabi/Detuning/Phase 波形和 counts。
 
-当前风险图对四类产品都相同，量子选择没有读取经典价格或 Greeks。正确说法是“经典模型负责定价，Analog 负责独立的风险情景压缩实验”；不能说“量子计算提升了定价精度”或“counts 参与了价格计算”。
+四类产品使用相同冲击坐标和近邻边，但重估得到的节点权重和 Problem hash 不同。正确说法是“经典模型负责定价和情景重估，Analog 根据重估风险选择情景”；不能说“量子计算提升了定价精度”或“counts 参与了价格计算”。
 
 ## 页面五个页签怎样讲
 
@@ -517,7 +517,8 @@ Digital、Hybrid 和 Analog 共用问题 hash、逻辑变量顺序、Hamiltonian
 讲解重点：
 
 - 成熟经典模型继续负责它擅长的定价；
-- 量子图问题只负责代表性情景选择；
+- 量子 MWIS 只负责风险加权的独立情景选择；
+- P&L 权重进入局域 Detuning，不是前端着色数据；
 - 原子二维排列直接对应风险网格；
 - QAA 波形比 Hybrid cost block 更有动态变化；
 - counts 不进入价格计算。

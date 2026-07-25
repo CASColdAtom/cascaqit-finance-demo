@@ -266,13 +266,33 @@ export function ScenarioChart({
           tooltip: {
             ...tooltip,
             formatter: (params: {
-              data: { id: string; label: string; value: [number, number, number] };
+              data: {
+                id: string;
+                label: string;
+                value: [number, number, number];
+                stressedPrice?: number;
+                riskWeight?: number;
+                delta?: number;
+                gamma?: number;
+                vega?: number;
+              };
             }) => {
               const value = params.data.value[2];
               const formatted = isCorrelation
                 ? value.toFixed(3)
                 : `${value >= 0 ? "+" : ""}${value.toFixed(4)}`;
-              return `<strong>${tx(params.data.label)}</strong><br/>${isCorrelation ? t("correlation") : t("priceChange")} ${formatted}`;
+              if (isCorrelation) {
+                return `<strong>${tx(params.data.label)}</strong><br/>${t("correlation")} ${formatted}`;
+              }
+              return [
+                `<strong>${tx(params.data.label)}</strong>`,
+                `${t("priceChange")} ${formatted}`,
+                `${t("referencePrice")} ${(params.data.stressedPrice ?? 0).toFixed(4)}`,
+                `${t("riskWeight")} ${(params.data.riskWeight ?? 0).toFixed(3)}`,
+                `Delta ${(params.data.delta ?? 0).toFixed(4)}`,
+                `Gamma ${(params.data.gamma ?? 0).toFixed(4)}`,
+                `Vega ${(params.data.vega ?? 0).toFixed(4)}`,
+              ].join("<br/>");
             },
           },
           grid: { left: 78, right: 26, top: 18, bottom: 72 },
@@ -319,6 +339,11 @@ export function ScenarioChart({
                 id: cell.id,
                 label: cell.label,
                 value: [cell.x, cell.y, cell.value],
+                stressedPrice: cell.stressedPrice,
+                riskWeight: cell.riskWeight,
+                delta: cell.delta,
+                gamma: cell.gamma,
+                vega: cell.vega,
                 itemStyle: selected.has(cell.id)
                   ? { borderColor: palette.green, borderWidth: 3 }
                   : { borderColor: palette.surface, borderWidth: 1 },

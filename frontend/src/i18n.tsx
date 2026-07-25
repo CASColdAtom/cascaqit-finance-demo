@@ -121,6 +121,8 @@ const zh = {
   parameterPointAxis: "参数点",
   correlation: "相关系数",
   priceChange: "价格变化",
+  referencePrice: "压力价格",
+  riskWeight: "风险权重",
   positiveCorrelation: "正相关",
   negativeCorrelation: "负相关",
   profit: "盈利",
@@ -254,6 +256,8 @@ const en: MessageDictionary = {
   parameterPointAxis: "Parameter Point",
   correlation: "Correlation",
   priceChange: "Price Change",
+  referencePrice: "Stressed Price",
+  riskWeight: "Risk Weight",
   positiveCorrelation: "Positive",
   negativeCorrelation: "Negative",
   profit: "Profit",
@@ -446,6 +450,8 @@ const contentEnglish: Record<string, string> = {
   "日内资金动作与累计覆盖": "Intraday Funding Actions and Cumulative Coverage",
   "资本效率与行业集中度": "Capital Efficiency and Sector Concentration",
   "衍生品压力情景损益": "Derivatives Stress-scenario P&L",
+  "压力损益风险权重": "Stress P&L Risk Weight",
+  "压力价格": "Stressed Price",
   "由当前协方差与波动率计算，显示组合风险的稠密连接。":
     "Computed from current covariance and volatility inputs to expose dense portfolio-risk relationships.",
   "实线表示不可同批结算，虚线箭头表示前置依赖。":
@@ -458,8 +464,8 @@ const contentEnglish: Record<string, string> = {
     "Points are available actions; lines show cumulative candidate funding by currency.",
   "横轴为资本成本，纵轴为风险调整价值，气泡大小表示资本占用。":
     "The axes show capital cost and risk-adjusted value; bubble size represents capital usage.",
-  "每个格点由经典定价链重估；Analog 只选择代表情景。":
-    "Each cell is repriced classically; Analog selects representative scenarios only.",
+  "经典链重估每个格点；绝对 P&L 权重进入 Analog 局域失谐。":
+    "Each cell is repriced classically; absolute P&L weights drive Analog local detuning.",
   "可行组合与当前候选": "Feasible Portfolios and Current Candidate",
   "结算金额与流动性占用": "Settlement Notional and Liquidity Usage",
   "调查风险与金额覆盖": "Investigation Risk and Exposure Coverage",

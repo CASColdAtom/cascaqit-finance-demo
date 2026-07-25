@@ -684,7 +684,7 @@ def default_parameter_sets(
     _validate_search_shape(mode, layers=layers, budget=2)
     if mode == "analog":
         return (
-            {"anneal_time": 0.4, "omega_max": 1.0},
+            {"anneal_time": 0.6, "omega_max": 1.0},
             {"anneal_time": 0.7, "omega_max": 1.4},
         )
     base_points = ((0.16, 0.24), (0.28, -0.18))

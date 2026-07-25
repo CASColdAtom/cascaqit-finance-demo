@@ -52,7 +52,7 @@ class ScenarioRequest(BaseModel):
 
     # Pydantic 在 Python 3.9 中会运行时求值类型标注，无法回移植 ``str | None``，
     # 因此这里保留 Optional 写法以兼容项目支持的最低 Python 版本。
-    preset: Optional[str] = None  # noqa: UP007
+    preset: Optional[str] = None  # noqa: UP045
     values: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -60,17 +60,17 @@ class RunRequest(ScenarioRequest):
     """与业务输入分离的可选执行参数；省略项使用场景推荐配置。"""
 
     mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended"
-    shots: Optional[int] = Field(default=None, ge=1, le=1024)  # noqa: UP007
-    seed: Optional[int] = Field(default=None, ge=0)  # noqa: UP007
-    layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP007
-    search_strategy: Optional[  # noqa: UP007
+    shots: Optional[int] = Field(default=None, ge=1, le=1024)  # noqa: UP045
+    seed: Optional[int] = Field(default=None, ge=0)  # noqa: UP045
+    layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
+    search_strategy: Optional[  # noqa: UP045
         Literal["preset", "grid", "seeded_sample", "continuous"]
     ] = None
-    parameter_budget: Optional[int] = Field(  # noqa: UP007
+    parameter_budget: Optional[int] = Field(  # noqa: UP045
         default=None, ge=1, le=24
     )
-    optimizer_starts: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP007
-    repeats: Optional[int] = Field(default=None, ge=1, le=5)  # noqa: UP007
+    optimizer_starts: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
+    repeats: Optional[int] = Field(default=None, ge=1, le=5)  # noqa: UP045
 
 
 app = FastAPI(

@@ -125,6 +125,11 @@ export interface ScenarioVisualCell {
   y: number;
   value: number;
   label: string;
+  stressedPrice?: number;
+  riskWeight?: number;
+  delta?: number;
+  gamma?: number;
+  vega?: number;
 }
 
 export interface ScenarioVisualSeries {
@@ -272,6 +277,7 @@ export interface BusinessPayload {
   baseline: Record<string, unknown> | null;
   network: NetworkData | null;
   pricing?: Record<string, string | number | null>;
+  riskScenarios?: Array<Record<string, string | number>>;
 }
 
 export interface CircuitGate {

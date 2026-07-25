@@ -22,11 +22,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
-from cascaqit.problems import GraphProblemIR, IsingModelIR, QUBOProblemIR
+from cascaqit.problems import (
+    GraphProblemIR,
+    IsingModelIR,
+    MWISProblemIR,
+    QUBOProblemIR,
+)
 
 ProblemMode = Literal["digital", "hybrid", "analog"]
 ModeStatus = Literal["recommended", "comparable", "unsuitable"]
-ProblemKind = Literal["qubo", "graph", "ising"]
+ProblemKind = Literal["qubo", "graph", "mwis", "ising"]
 GeometrySource = Literal["business_native", "verified_embedding"]
 GeometryStatus = Literal["verified", "missing", "distorted"]
 TermKind = Literal[
@@ -196,7 +201,7 @@ class FinanceProblemDefinition:
     case_id: str
     title: str
     problem_kind: ProblemKind
-    problem: QUBOProblemIR | GraphProblemIR | IsingModelIR
+    problem: QUBOProblemIR | GraphProblemIR | MWISProblemIR | IsingModelIR
     business_variables: tuple[str, ...]
     auxiliary_variables: tuple[str, ...] = ()
     term_groups: tuple[FinanceTermGroup, ...] = ()

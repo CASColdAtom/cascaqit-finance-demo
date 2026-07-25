@@ -138,7 +138,7 @@ decode(case_input, definition, candidate)
 
 | 字段 | 含义 |
 |---|---|
-| `problem`、`problem_kind` | `QUBOProblemIR`、`GraphProblemIR` 或 `IsingModelIR` |
+| `problem`、`problem_kind` | `QUBOProblemIR`、`GraphProblemIR`、`MWISProblemIR` 或 `IsingModelIR` |
 | `business_variables` | 可直接解释和解码的业务变量 |
 | `auxiliary_variables` | slack 等编码变量 |
 | `term_groups` | 目标、局域冲突、全局约束、依赖和辅助罚项 |
@@ -178,7 +178,7 @@ Graph Problem 保留节点、边和几何来源，不伪造 QUBO 系数账本。
 
 证据至少包含 logical variable 到 site 的映射、坐标单位与缩放、blockade 阈值、期望 interaction、禁止 interaction、漏边和补边。仅使用 `deterministic_grid` 且未验证图保真时，Analog 和 Hybrid 不能被推荐。
 
-`GraphProblemIR` 和 `QUBOProblemIR` 都可以携带完整参考位置。QUBO 的 `positions` 经 `variable_positions` 和 canonical `layout_hints` 进入映射规划器，结果必须显示 `layout_policy="provided"`。未提供完整坐标时虽可生成确定性网格，但该网格不能通过金融层的 Analog/Hybrid 推荐门禁。
+`GraphProblemIR`、`MWISProblemIR` 和 `QUBOProblemIR` 都可以携带完整参考位置。QUBO 的 `positions` 经 `variable_positions` 和 canonical `layout_hints` 进入映射规划器，结果必须显示 `layout_policy="provided"`。未提供完整坐标时虽可生成确定性网格，但该网格不能通过金融层的 Analog/Hybrid 推荐门禁。
 
 ### 4.3 模式证据
 
@@ -258,17 +258,17 @@ Digital preparation
   +-> ClassicPricingPipeline -> price / Greeks / standard error
   |
   +-> RiskScenarioPipeline
-        -> 场景估值与相似度
-        -> 带二维位置的 Graph Problem
+        -> 九格产品重估与绝对 P&L 归一化
+        -> 带权重和二维位置的 MWIS Problem
         -> Analog QAA/AHS
-        -> representative scenarios
+        -> risk-prioritized independent scenarios
 ```
 
-价格和 Greeks 使用 Black-Scholes、二叉树或固定 seed Monte Carlo。Analog 只做风险情景压缩：节点表示市场冲击，边表示业务定义下的信息冗余，二维位置来自标准化后的风险因子空间。
+价格和 Greeks 使用 Black-Scholes、二叉树或固定 seed Monte Carlo。每个压力格点保存冲击后价格、P&L、Delta、Gamma、Vega 和归一化风险权重。Analog 只做风险情景选择：节点表示市场冲击，权重来自当前产品的绝对 P&L，边表示上下左右相邻情景的信息冗余。
 
-当前 `3 x 3` 图对所有产品都固定不变，只验证了 Analog 执行链，尚未体现产品对场景重要性的影响。目标设计应先用当前产品重估全部情景，再根据损失、Greeks 变化或覆盖贡献构造图；在现有无权 `GraphProblemIR` 下先做 MIS，需权重时再使用可完整 AHS 表达的 QUBO/Ising，不能在页面层伪造权重。
+`MWISProblemIR` 的权重按 `0.05 + 0.95 x |P&L| / max|P&L|` 计算。正权重下限保留基准格点，最大权重固定为 1；四类产品因此产生不同的权重分布和 Problem hash。编译器把权重映射到局域失谐，把固定网格边映射到 Rydberg interaction，Analog 路径没有 Digital residual。
 
-页面明确分开展示经典价格与 Analog 情景选择，并提供价格与 Greeks、情景损失热图、冗余图、原子阵列、Rabi/Detuning/Phase、counts、覆盖率和冲突违反。
+页面明确分开展示经典价格与 Analog 情景选择。P&L 热图悬停信息包含压力价格、风险权重和 Greeks；量子视图继续显示原子阵列、Rabi/Detuning/Phase、counts、覆盖率和冲突违反。
 
 ## 6. 执行与结果
 
@@ -329,12 +329,9 @@ result = executor.run(
 
 连续 COBYLA、多起点和独立重复运行已经接入 Digital、Hybrid 和 Analog。现存 19 个预设按推荐配置各运行 3 次，57 个量子候选全部通过业务复核。四个无法稳定通过的压力预设保持删除；后续只有在约束保持 mixer 等量子策略能够稳定产生可行候选时才恢复。
 
-### P1：让 Analog 场景与产品输入联动
+### 已完成：Analog 场景与产品重估联动
 
-1. 从衍生品定价结果生成风险场景特征和相似度。
-2. 验证风险图与原子 interaction graph 一致。
-3. 增加情景覆盖、冗余违反和经典选择基准。
-4. 保持价格链与量子情景链在类型、接口和页面中分离。
+九格情景的价格、P&L 和 Greeks 由同一领域入口生成，绝对 P&L 归一化后写入 `MWISProblemIR`。编译测试逐节点核对 MWIS 权重与 AHS 局域失谐 addressing，并确认 Analog 没有 Digital residual。价格链与量子情景链继续在类型、接口和页面中分离。
 
 ### P2：界面与报告收口
 
