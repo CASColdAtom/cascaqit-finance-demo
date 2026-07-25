@@ -20,7 +20,7 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 | 变分执行 | Digital 支持 QAOA `p=1~3`、离散搜索和连续优化；Hybrid/Analog 支持一层预设参数或连续优化；连续优化支持 1～3 个起点 |
 | 执行配置 | 后端目录提供 shots、seed、层数、搜索、预算、起点数和重复次数；API 与 UI 共用同一配置 |
 | 重复统计 | 每次重新分析、编译、优化和采样；只统计量子候选可行率、目标分布、95% Student-t 置信区间、评估次数和耗时 |
-| 结果与审计 | 保留量子候选、经典基线、实际展示来源、counts、参数历史、四段 hash、Target、Backend、seed、shots 和执行边界 |
+| 结果与审计 | 保留量子候选、经典基线、实际展示来源、counts、参数历史和四段 hash；摘要显示 mode、seed、shots、耗时，结构化载荷保留完整执行事实 |
 | 前端 | 中英文切换、五个结果视图、业务原生图、Digital 线路、D-A-D、原子阵列、合并波形、counts 和响应式布局 |
 | 交付 | Python wheel 内置 React 静态资源；Windows 可重定位 Python、离线依赖闭包、BAT/PS1 入口和 smoke test 已有构建脚本 |
 

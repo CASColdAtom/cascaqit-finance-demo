@@ -320,9 +320,8 @@ export function AuditView({ run, mode }: { run: RunPayload | null; mode: Mode })
   ];
   return (
     <div className="view-stack audit-view">
-      <div className="audit-boundary"><ShieldCheck size={22} /><div><strong>{t("localSimulationEvidence")}</strong><span>{t("executionBoundary")}</span></div><span className="verified-mark">{t("verified")}</span></div>
       <div className="audit-grid">
-        <section className="audit-section"><span className="section-kicker">EXECUTION CONTEXT</span><dl><div><dt>Mode</dt><dd>{audit.mode.toUpperCase()}</dd></div><div><dt>Backend</dt><dd>{audit.backend}</dd></div><div><dt>Target</dt><dd>{audit.targetId}</dd></div><div><dt>Seed</dt><dd>{audit.seed}</dd></div><div><dt>Shots</dt><dd>{audit.shots}</dd></div><div><dt>Wall time</dt><dd>{audit.wallTimeSeconds.toFixed(3)}s</dd></div></dl></section>
+        <section className="audit-section"><span className="section-kicker">EXECUTION CONTEXT</span><dl><div><dt>Mode</dt><dd>{audit.mode.toUpperCase()}</dd></div><div><dt>Seed</dt><dd>{audit.seed}</dd></div><div><dt>Shots</dt><dd>{audit.shots}</dd></div><div><dt>Wall time</dt><dd>{audit.wallTimeSeconds.toFixed(3)}s</dd></div></dl></section>
         <section className="audit-section"><span className="section-kicker">SOURCE HASH CHAIN</span><div className="hash-chain">{rows.map(([label, value], index) => <div key={label}><span>{String(index + 1).padStart(2, "0")}</span><small>{label}</small><code>{value}</code></div>)}</div></section>
       </div>
       <section className="audit-json-section"><div className="subsection-head"><div><span className="section-kicker"><FileJson size={14} /> MACHINE EVIDENCE</span><h3>{t("structuredAudit")}</h3></div></div><pre>{JSON.stringify(audit, null, 2)}</pre></section>

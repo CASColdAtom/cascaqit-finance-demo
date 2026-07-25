@@ -180,7 +180,7 @@ H 门把每个量子位放入均匀叠加。cost 演化把 QUBO 的 Z/ZZ 项编�
 - mixer 使用 `RX`；
 - `M` 表示测量。
 
-页面中的 `U1`、`U2`、`RX1` 是 QAOA 逻辑层摘要，不是新的通用门名称。客户询问具体执行了什么门时，应切换到“通用门”视图，以 H、RZ、CX、RX 和测量为准。
+页面只展示 `H`、`U1`、`U2`、`RX1` 和 `M` 组成的 QAOA 逻辑层摘要；`U1`、`U2`、`RX1` 不是新的通用门名称。底层 `Circuit` 仍包含 H、RZ、CX、RX 和测量，但客户界面不展开这层分解。
 
 Demo 支持两类参数搜索。离散搜索比较预设点、一层二维网格或固定 seed 采样点，最多评估 24 个点；连续搜索使用有界 COBYLA，可配置 1～3 个起点和每起点 4～24 次目标评估。参数图保留每次实际评估的完整参数与目标值。连续优化仍是局部无梯度搜索，不能据此声称找到了全局最优参数或全局最优业务方案。
 
@@ -314,7 +314,7 @@ risk_weight * x.T @ normalized_covariance @ x / K^2
 
 协方差矩阵会形成稠密、带正负符号的两两耦合，行业和防御要求又是全局约束。这些结构不等同于少量局域排斥边，所以 Digital QAOA 能更直接地保留完整问题。
 
-演示时先看风险收益散点和入选资产，再进入 Problem 映射看协方差如何变成 ZZ 项，最后看通用门线路和 counts。可以强调“同一份市场输入经过建模、编译、采样和业务复核”，不要说“量子算法已经优于经典投资组合优化”。
+演示时先看风险收益散点和入选资产，再进入 Problem 映射看协方差如何变成 ZZ 项，最后看 QAOA 逻辑层和 counts。可以强调“同一份市场输入经过建模、编译、采样和业务复核”，不要说“量子算法已经优于经典投资组合优化”。
 
 当前限制是等权重选择，不做连续仓位优化；市场数据全部为合成数据，也没有交易成本、换手率、税费或监管规则。
 
@@ -414,7 +414,7 @@ Delta、Gamma 和 Vega 由中心有限差分计算。Monte Carlo 路径服从风
 
 ### 量子实验
 
-Digital 页面显示通用门线路、QAOA 逻辑层、参数点目标值和 counts。启用多次独立运行后，页面先显示可行率、目标区间、每次 seed、评估次数和代表运行，再展示代表运行的线路与 counts。
+Digital 页面显示 QAOA 逻辑层、参数点目标值和 counts。启用多次独立运行后，页面先显示可行率、目标区间、每次 seed、评估次数和代表运行，再展示代表运行的逻辑层与 counts。
 
 Hybrid 页面显示 D-A-D block、原子排列、控制波形、Digital residual、参数历史和末端 counts。Analog 中段与前后数字块在同一次模拟状态中连续执行，不是三个互不相关的图片。
 
@@ -424,7 +424,7 @@ Analog 页面不显示数字线路，只显示原子阵列、AHS 控制和 count
 
 ### 审计证据
 
-Problem、analysis、compile 和 execution hash 把一次运行的主要阶段串起来。页面还显示 Target、Backend、seed、shots、耗时以及是否访问硬件、云端和网络。
+Problem、analysis、compile 和 execution hash 把一次运行的主要阶段串起来。执行上下文摘要显示 mode、seed、shots 和耗时；Target、Backend、硬件、云端和网络字段保留在结构化审计载荷中。
 
 这些字段的价值类似软件供应链和可观测性：客户可以确认当前页面来自哪一次输入、哪种模式和哪次执行，避免把旧 counts 或旧波形混入新参数结果。
 
@@ -493,7 +493,7 @@ Digital、Hybrid 和 Analog 共用问题 hash、逻辑变量顺序、Hamiltonian
 - 收益是负能量项，协方差风险是二次项；
 - 持仓、行业和防御资产约束如何成为罚项；
 - 稠密协方差和全局约束为什么选择 Digital；
-- 通用门线路来自实际 QAOA 编译。
+- QAOA 逻辑层来自实际编译结果，不是页面动画。
 
 不要花时间逐个解释全部门。客户理解 H、cost、mixer、measurement 四段就足够。
 
@@ -524,13 +524,13 @@ Digital、Hybrid 和 Analog 共用问题 hash、逻辑变量顺序、Hamiltonian
 
 ### 5. 审计收尾，3 分钟
 
-展示 hash、Backend、seed、shots 和无硬件/云端访问字段。最后说明真实客户试点还需要接入业务数据、选择有价值的问题规模、建立经典基准，并在真实 Target 和校准数据上重新验证。
+展示四段 hash、mode、seed、shots 和耗时；需要技术核查时再展开结构化审计载荷。最后说明真实客户试点还需要接入业务数据、选择有价值的问题规模、建立经典基准，并在真实 Target 和校准数据上重新验证。
 
 ## 客户常见问题
 
 ### 这是在真实量子计算机上运行吗？
 
-不是。当前使用 CASCAQit `LocalBackend` 本地模拟执行生成的 Digital、Analog 和 Hybrid 原生程序。页面审计字段明确记录 `hardware_execution=false`、`cloud_execution=false` 和 `network_accessed=false`。
+不是。当前使用 CASCAQit `LocalBackend` 本地模拟执行生成的 Digital、Analog 和 Hybrid 原生程序。完整结构化审计载荷记录 `hardware_execution=false`、`cloud_execution=false` 和 `network_accessed=false`。
 
 ### 既然有经典枚举，为什么还需要量子实验？
 

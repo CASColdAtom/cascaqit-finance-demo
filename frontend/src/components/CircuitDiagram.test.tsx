@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { QuantumPayload } from "../types";
 import { I18nProvider } from "../i18n";
@@ -43,36 +43,16 @@ function payload(qubitCount: number): QuantumPayload {
 }
 
 describe("CircuitDiagram", () => {
-  it("grows with the number of logical qubits", () => {
-    const { rerender } = render(
-      <I18nProvider initialLanguage="zh">
-        <CircuitDiagram quantum={payload(2)} />
-      </I18nProvider>,
-    );
-    const small = screen.getByRole("img", { name: /参数化通用门线路/ });
-    expect(small.getAttribute("height")).toBe("260");
-
-    rerender(
-      <I18nProvider initialLanguage="zh">
-        <CircuitDiagram quantum={payload(12)} />
-      </I18nProvider>,
-    );
-
-    expect(
-      screen.getByRole("img", { name: /参数化通用门线路/ }).getAttribute("height"),
-    ).toBe("548");
-  });
-
-  it("switches to the QAOA logical layer representation", () => {
+  it("shows only the QAOA logical layer representation", () => {
     render(
       <I18nProvider initialLanguage="zh">
         <CircuitDiagram quantum={payload(4)} />
       </I18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "逻辑层" }));
-
-    expect(screen.getByRole("img", { name: "digital 逻辑层" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "digital QAOA 逻辑层" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "通用门" })).toBeNull();
+    expect(document.querySelector(".circuit-svg")).toBeNull();
     expect(screen.getByText("U1")).toBeTruthy();
     expect(screen.getByText("RX1")).toBeTruthy();
   });

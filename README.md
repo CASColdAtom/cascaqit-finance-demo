@@ -61,9 +61,9 @@ React 工作台使用三栏布局：场景导航、参数控制和结果工作�
 - Problem 映射：Canonical Problem、Hamiltonian、模式判断、资源估算和 term mapping。
 - 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史、counts 和独立重复运行统计。
 - 模式证据：完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。
-- 审计证据：Problem、analysis、compile、execution hash，以及 Target、Backend、seed、shots 和执行边界。
+- 审计证据：Problem、analysis、compile、execution hash，以及 mode、seed、shots 和耗时；完整 Target、Backend 和执行边界保留在结构化审计载荷中。
 
-Digital 线路可以切换通用门和 QAOA 逻辑层，线路高度随 qubit 数变化。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
+Digital 只展示 QAOA 逻辑层。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual 逻辑层。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
 
 同一业务输入下，各执行模式的结果分别缓存。只有场景、输入、mode、shots、seed、QAOA 层数、搜索方式、评估预算、优化起点数和重复次数完全一致时才会恢复旧结果；修改任一字段后，旧的 counts、线路、波形和审计证据不会混入当前页面。
 
@@ -128,6 +128,6 @@ npm audit --audit-level=moderate
 curl http://127.0.0.1:8000/api/health
 ```
 
-浏览器验收覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`。每种视口检查页面级横向溢出、控件重叠、canvas 非空、线路高度、原子比例、波形和 counts。
+浏览器验收覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`。每种视口检查页面级横向溢出、控件重叠、canvas 非空、逻辑层、原子比例、波形和 counts。
 
 设计说明见[文档索引](docs/README.md)。

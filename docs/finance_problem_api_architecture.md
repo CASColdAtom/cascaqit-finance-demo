@@ -315,7 +315,7 @@ result = executor.run(
 
 三种实验视图遵循固定规则：
 
-- Digital：通用门线路和 QAOA 逻辑层可切换，线路高度随 qubit 数变化，counts 位于线路下方。
+- Digital：客户界面只展示 QAOA 逻辑层，底层 `Circuit` 仍由编译器生成并保留在 API 结果中；counts 位于逻辑层下方。
 - Analog：原子阵列与合并波形并列，坐标轴等比例，counts 位于下方，不显示数字线路。
 - Hybrid：同时展示 D-A-D、完整 Analog 业务组、Digital residual、业务边到 interaction 的映射和末端 counts。
 
