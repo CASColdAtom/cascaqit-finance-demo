@@ -45,6 +45,7 @@
 | P11 | 后端执行异常直接成为裸 500 | 中 | API 异常映射 |
 | P12 | UTF-8、LF-only BAT 被 cmd.exe 错误解析 | 阻断 | INSTALL.bat / RUN.bat / VERIFY.bat |
 | P13 | 直接运行 PS1 被默认 PowerShell 执行策略阻止 | 阻断 | BAT 入口与 Windows 使用说明 |
+| P14 | runtime 解压受 PowerShell 归档缺陷和默认长路径限制阻断 | 阻断 | `install.ps1` |
 
 ---
 
@@ -970,3 +971,35 @@ Finance Demo：0.1.1
 - PS1：UTF-8 BOM、CRLF，检查通过。
 
 当前构建机为 macOS，无法替代 Windows `cmd.exe` 和 PowerShell 5.1 实机执行。新包仍需在 Windows 10/11 x64 上从全新目录解压，并依次运行 `VERIFY.bat`、`INSTALL.bat`、`RUN.bat` 完成最终验收。
+
+---
+
+## 附录 D：P14 - runtime 解压与长路径失败
+
+### 两次实机故障
+
+第一版安装器使用 Windows PowerShell 5.1 的 `Expand-Archive`。runtime ZIP 含 302 个显式目录项，归档模块清理时重复删除已经不存在的 `python\DLLs\`，安装在解压阶段终止。
+
+改用 .NET `ZipFile.ExtractToDirectory` 后，安装器仍在包内创建 `runtime\python-extract-<guid>` 临时目录。用户目录与该临时层叠加后，pip 的 `found_candidates.cpython-311.pyc` 路径超过 Windows 默认 260 字符限制，.NET 返回 `DirectoryNotFoundException`。
+
+### 当前修复
+
+runtime 归档本身只有一个顶层 `python` 目录。安装器现在：
+
+1. 删除已失效或不完整的 `runtime\python`；
+2. 使用 .NET `ZipFile` 直接解压到 `runtime`；
+3. 立即执行 `runtime\python\python.exe`，校验 CPython 3.11.9 x64；
+4. 解压或校验失败时删除不完整的 `runtime\python`；
+5. 不再创建包内 GUID 临时目录，也不再移动解压后的目录。
+
+在本次用户路径中，已知最深文件的最终路径约 214 个字符；旧临时目录会把它增加到约 269 个字符。直接解压去掉了这段额外路径。用户仍应把离线包解压到较短目录，例如 `D:\CQFinance`，避免更长的企业目录或重复嵌套目录再次触发系统长路径限制。
+
+### 修复包
+
+```text
+文件：cascaqit-finance-demo-windows-x64-py311.zip
+大小：94600625 bytes
+SHA256：4deb45cdd37b07034512aec89d5f7402152ebbdff8382fecff738bbbd593198a
+```
+
+构建侧已经完成 41 项 manifest、ZIP 结构、29 个 Windows wheel 依赖闭包、PowerShell 编码、134 项 Python 测试、20 项 React 测试、Ruff 和 TypeScript 检查。最终 Windows 安装、启动和场景运行仍以修复包的实机重试结果为准。

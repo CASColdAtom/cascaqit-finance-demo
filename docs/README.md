@@ -15,6 +15,7 @@
 - [Problem 映射旧前端热修复报告](process/problem_mapping_stale_frontend_hotfix_report.md)：记录旧响应字段兜底、入口禁缓存和升级后强制刷新边界。
 - [量子实验与审计界面收敛报告](process/quantum_audit_interface_convergence_report.md)：记录 QAOA 逻辑层与执行上下文摘要的展示范围。
 - [Windows 离线包重建报告](process/windows_offline_bundle_rebuild_report.md)：记录当前源码离线包、依赖闭包、完整性检查、Python 3.9 构建兼容修复和待完成的 Windows 实机验收。
+- [Windows runtime 解压热修复报告](process/windows_runtime_extraction_hotfix_report.md)：记录 PowerShell 5.1 归档缺陷、临时目录触发的长路径失败和当前修复包校验结果。
 - [运行时依赖兼容性报告](process/runtime_dependency_compatibility_report.md)：记录 Python 3.9 收集修复、CASCAQit 最低版本和离线包重建边界。
 - [当前实现复盘与迭代优先级](process/current_implementation_review_and_iteration_priorities.md)：汇总七场景链路、默认与全预设执行结果、关键缺口和后续顺序。
 - [v0.1.1 发布验收报告](process/v0_1_1_release_report.md)：记录功能冻结范围、发布门禁、安装后烟雾验证和已知边界。

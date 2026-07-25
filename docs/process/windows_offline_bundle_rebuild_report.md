@@ -24,8 +24,8 @@ ZIP 已作为 `v0.1.1` 的 Windows 离线资产发布：
 | Finance Demo | `0.1.1` |
 | wheel 数 | 29 |
 | manifest 文件数 | 41 |
-| ZIP 大小 | `94,600,307` 字节 |
-| ZIP SHA256 | `c458c26d4fa48e3c8aee6e6b2f25d86e970613401078cf620e0c5d6adf54dc12` |
+| ZIP 大小 | `94,600,625` 字节 |
+| ZIP SHA256 | `4deb45cdd37b07034512aec89d5f7402152ebbdff8382fecff738bbbd593198a` |
 
 wheelhouse 包含 Windows x64 NumPy、SciPy、Bokeh、FastAPI、Uvicorn、Colorama 及完整传递依赖。安装时使用 `--no-index` 和本地 wheelhouse，不访问 Python 包索引。
 
@@ -42,6 +42,8 @@ Finance Demo wheel 已确认包含：
 
 构建器现在先在所有 Python 版本检查归档成员，只允许目标目录内的普通文件和目录，拒绝绝对路径、`..`、符号链接、硬链接和设备文件。较新 Python 在预校验后继续使用标准 `data_filter`，Python 3.9 使用兼容解包。单元测试覆盖正常 runtime 文件、绝对路径和目录穿越。
 
+Windows PowerShell 5.1 的 `Expand-Archive` 在处理 runtime ZIP 的显式目录项时发生重复清理错误。改用 .NET `ZipFile` 后，包内 GUID 临时目录又使 pip 深层路径超过默认 `MAX_PATH`。当前安装器直接把归档顶层 `python` 解压到 `runtime`，不再创建包内临时目录，也不再移动解压后的目录；失败时删除不完整的 `runtime\python`。详细记录见 [Windows runtime 解压热修复报告](windows_runtime_extraction_hotfix_report.md)。
+
 ## 已完成检查
 
 - Windows 条件依赖按目标 marker 审计，`colorama` 已进入闭包。
@@ -53,6 +55,7 @@ Finance Demo wheel 已确认包含：
 - PowerShell 模板为 UTF-8 BOM + CRLF。
 - Demo wheel 不包含 source map，静态资源与当前生产构建一致。
 - ZIP 压缩结构检查通过，GitHub 服务端摘要与本地 SHA256 一致。
+- 发布包的 `install.ps1` 使用 .NET `ZipFile` 直接解压到 `runtime`，不存在 `Expand-Archive`、包内 GUID 临时目录或 `Move-Item`。
 - Python 全量测试 134 项通过，React 20 项测试通过。
 - Ruff、TypeScript、生产构建和 npm 依赖审计通过。
 
