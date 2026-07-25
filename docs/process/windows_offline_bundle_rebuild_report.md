@@ -1,4 +1,4 @@
-# Windows 离线包重建报告
+# Windows 离线包构建与发布报告
 
 ## 结果
 
@@ -8,9 +8,11 @@
 offline/cascaqit-finance-demo-windows-x64-py311.zip
 ```
 
-`offline/` 不进入 Git。该文件是本机交付制品，不是 GitHub Release。构建使用本地 CASCAQit 源码；SDK 尚未形成公开 Python 分发包，因此当前结果不能替代公开安装链。
+ZIP 已作为 `v0.1.1` 的 Windows 离线资产发布：
 
-该 ZIP 生成于 Problem 映射入口禁缓存修改之前。包内已经包含旧响应字段兜底，但不包含本次新增的 `Cache-Control: no-store` 中间件；下次 Windows 交付前需要重新构建并重做实机验收。
+<https://github.com/CASColdAtom/cascaqit-finance-demo/releases/download/v0.1.1/cascaqit-finance-demo-windows-x64-py311.zip>
+
+`offline/` 仍不进入 Git。发布资产包含可重定位 Python runtime、全部 Windows wheel 和安装脚本；目标机器不需要联网、管理员权限、系统 Python 或 Node.js。构建使用 Finance Demo `v0.1.1` 对应运行代码和 CASCAQit 提交 `44fad22`。
 
 ## 制品内容
 
@@ -22,8 +24,8 @@ offline/cascaqit-finance-demo-windows-x64-py311.zip
 | Finance Demo | `0.1.1` |
 | wheel 数 | 29 |
 | manifest 文件数 | 41 |
-| ZIP 大小 | 约 90 MB |
-| ZIP SHA256 | `e4b73dbb78565c57eea8a911445fa30f18514749c6f98ac08576539d13ef1514` |
+| ZIP 大小 | `94,600,307` 字节 |
+| ZIP SHA256 | `c458c26d4fa48e3c8aee6e6b2f25d86e970613401078cf620e0c5d6adf54dc12` |
 
 wheelhouse 包含 Windows x64 NumPy、SciPy、Bokeh、FastAPI、Uvicorn、Colorama 及完整传递依赖。安装时使用 `--no-index` 和本地 wheelhouse，不访问 Python 包索引。
 
@@ -31,8 +33,8 @@ Finance Demo wheel 已确认包含：
 
 - `scipy>=1.13,<2` 运行时依赖；
 - React 静态入口；
-- `Views-C4OLICMT.js` Problem 映射组件；
-- `index-kgOKk-O-.js` 应用入口。
+- `Views-JNJ1LIwg.js` Problem 映射组件；
+- `index--wVDl_FB.js` 应用入口。
 
 ## 构建修复
 
@@ -50,7 +52,9 @@ Finance Demo wheel 已确认包含：
 - BAT 为 ASCII + CRLF，并使用进程级 `ExecutionPolicy Bypass` 调用 PowerShell。
 - PowerShell 模板为 UTF-8 BOM + CRLF。
 - Demo wheel 不包含 source map，静态资源与当前生产构建一致。
-- Python 全量测试 123 项通过，Ruff 检查通过。
+- ZIP 压缩结构检查通过，GitHub 服务端摘要与本地 SHA256 一致。
+- Python 全量测试 134 项通过，React 20 项测试通过。
+- Ruff、TypeScript、生产构建和 npm 依赖审计通过。
 
 ## 尚未完成
 
@@ -63,4 +67,4 @@ macOS 不能证明 BAT、PowerShell、Windows DLL 加载和本地浏览器启动
 5. 运行投资组合连续优化、Hybrid 交易结算和 Analog 衍生品情景，检查线路、原子、波形、counts 和 Problem 映射。
 6. 移动整个目录后再次运行，验证可重定位性和重复安装。
 
-CASCAQit 本地 `main` 还领先 GitHub 远端，公开 Python 索引也没有对应分发包。推送 SDK、建立发行制品和调整 Demo 的公开安装说明属于发布动作，不能由本次本机构建结果代替。
+CASCAQit 本地 `main` 仍领先 GitHub 远端，公开 Python 索引也没有对应分发包。本离线包已经包含本次验证使用的精确 wheel，可以独立安装，但不能替代 CASCAQit 源码和公开 Python 分发的后续发布。
