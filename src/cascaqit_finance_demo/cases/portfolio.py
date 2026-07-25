@@ -176,6 +176,10 @@ class PortfolioCase:
                 * normalized_covariance[index, index]
                 / (count * count)
                 - (1.0 - case_input.risk_weight) * returns[index] / count,
+                contribution_id=f"market:risk-return:{variable}",
+                group_id="market",
+                source_rule="risk_return_objective",
+                role="objective",
             )
         for left in range(len(asset_variables)):
             for right in range(left + 1, len(asset_variables)):
@@ -186,6 +190,13 @@ class PortfolioCase:
                     * case_input.risk_weight
                     * normalized_covariance[left, right]
                     / (count * count),
+                    contribution_id=(
+                        "market:covariance:"
+                        f"{asset_variables[left]}:{asset_variables[right]}"
+                    ),
+                    group_id="market",
+                    source_rule="pairwise_covariance_risk",
+                    role="objective",
                 )
 
         # ``sum(x_i) = K`` 是固定持仓数约束。罚项尺度以无约束目标的系数上界
@@ -196,6 +207,9 @@ class PortfolioCase:
             dict.fromkeys(asset_variables, 1.0),
             rhs=float(count),
             penalty=base_penalty,
+            contribution_id_prefix="constraint:cardinality",
+            group_id="constraints",
+            source_rule="fixed_holding_count",
         )
 
         by_sector: dict[str, list[str]] = {}
@@ -220,6 +234,9 @@ class PortfolioCase:
                 coefficients,
                 rhs=float(case_input.sector_cap),
                 penalty=base_penalty * 1.2,
+                contribution_id_prefix=f"constraint:sector-cap:{sector}",
+                group_id="constraints",
+                source_rule="sector_concentration_cap",
             )
 
         if case_input.minimum_defensive > 0:
@@ -235,6 +252,9 @@ class PortfolioCase:
                 coefficients,
                 rhs=float(case_input.minimum_defensive),
                 penalty=base_penalty * 1.3,
+                contribution_id_prefix="constraint:defensive-floor",
+                group_id="constraints",
+                source_rule="minimum_defensive_holding",
             )
 
         return builder.build(

@@ -12,9 +12,15 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any
 
 from cascaqit import QUBOProblemIR
+
+from cascaqit_finance_demo.domain.problem_api import (
+    CoefficientRole,
+    FinanceCoefficientContribution,
+)
 
 
 def bounded_binary_weights(max_value: int) -> tuple[int, ...]:
@@ -54,6 +60,8 @@ class QuboBuilder:
         self._linear: dict[str, float] = {}
         self._quadratic: dict[tuple[str, str], float] = {}
         self._offset = 0.0
+        self._contributions: list[FinanceCoefficientContribution] = []
+        self._contribution_ids: set[str] = set()
         for variable in variables:
             self.add_variable(variable)
 
@@ -78,6 +86,11 @@ class QuboBuilder:
         return self._offset
 
     @property
+    def contributions(self) -> tuple[FinanceCoefficientContribution, ...]:
+        """返回按建模发生顺序排列的不可变逐系数来源账本。"""
+        return tuple(self._contributions)
+
+    @property
     def absolute_coefficient_sum(self) -> float:
         """返回目标系数绝对值上界，用于把硬约束罚项放到目标收益之上。"""
         return sum(abs(value) for value in self._linear.values()) + sum(
@@ -90,22 +103,68 @@ class QuboBuilder:
             raise ValueError("variable names must be non-empty trimmed strings.")
         self._variables[name] = None
 
-    def add_linear(self, variable: str, coefficient: float) -> None:
+    def add_linear(
+        self,
+        variable: str,
+        coefficient: float,
+        *,
+        contribution_id: str,
+        group_id: str,
+        source_rule: str,
+        role: CoefficientRole,
+    ) -> None:
         """累加变量的一次系数，并拒绝无穷或非数值系数。"""
         self.add_variable(variable)
         value = _finite(coefficient, "coefficient")
         self._linear[variable] = self._linear.get(variable, 0.0) + value
+        self._record_contribution(
+            contribution_id=contribution_id,
+            group_id=group_id,
+            source_rule=source_rule,
+            term_kind="linear",
+            targets=(variable,),
+            coefficient=value,
+            role=role,
+        )
 
-    def add_quadratic(self, left: str, right: str, coefficient: float) -> None:
+    def add_quadratic(
+        self,
+        left: str,
+        right: str,
+        coefficient: float,
+        *,
+        contribution_id: str,
+        group_id: str,
+        source_rule: str,
+        role: CoefficientRole,
+    ) -> None:
         """累加规范变量对的二次系数；同变量乘积按二元恒等式转为线性项。"""
         self.add_variable(left)
         self.add_variable(right)
+        value = _finite(coefficient, "coefficient")
         if left == right:
-            self.add_linear(left, coefficient)
+            self._linear[left] = self._linear.get(left, 0.0) + value
+            self._record_contribution(
+                contribution_id=contribution_id,
+                group_id=group_id,
+                source_rule=source_rule,
+                term_kind="linear",
+                targets=(left,),
+                coefficient=value,
+                role=role,
+            )
             return
         key = tuple(sorted((left, right)))
-        value = _finite(coefficient, "coefficient")
         self._quadratic[key] = self._quadratic.get(key, 0.0) + value
+        self._record_contribution(
+            contribution_id=contribution_id,
+            group_id=group_id,
+            source_rule=source_rule,
+            term_kind="quadratic",
+            targets=key,
+            coefficient=value,
+            role=role,
+        )
 
     def add_squared_equality(
         self,
@@ -113,6 +172,10 @@ class QuboBuilder:
         *,
         rhs: float,
         penalty: float,
+        contribution_id_prefix: str,
+        group_id: str,
+        source_rule: str,
+        role: CoefficientRole = "constraint",
     ) -> None:
         """加入二元变量等式罚项 ``P * (sum(a_i*x_i) - rhs)^2``。
 
@@ -141,6 +204,10 @@ class QuboBuilder:
             self.add_linear(
                 variable,
                 penalty_value * (weight * weight - 2.0 * rhs_value * weight),
+                contribution_id=f"{contribution_id_prefix}:linear:{variable}",
+                group_id=group_id,
+                source_rule=source_rule,
+                role=role,
             )
         for index, (left, left_weight) in enumerate(items):
             for right, right_weight in items[index + 1 :]:
@@ -148,8 +215,24 @@ class QuboBuilder:
                     left,
                     right,
                     2.0 * penalty_value * left_weight * right_weight,
+                    contribution_id=(
+                        f"{contribution_id_prefix}:quadratic:{left}:{right}"
+                    ),
+                    group_id=group_id,
+                    source_rule=source_rule,
+                    role=role,
                 )
-        self._offset += penalty_value * rhs_value * rhs_value
+        offset = penalty_value * rhs_value * rhs_value
+        self._offset += offset
+        self._record_contribution(
+            contribution_id=f"{contribution_id_prefix}:offset",
+            group_id=group_id,
+            source_rule=source_rule,
+            term_kind="offset",
+            targets=(),
+            coefficient=offset,
+            role=role,
+        )
 
     def build(
         self,
@@ -158,14 +241,44 @@ class QuboBuilder:
         metadata: Mapping[str, Any] | None = None,
     ) -> QUBOProblemIR:
         """移除数值噪声项并构造不可变的 CASCAQit QUBO Problem IR。"""
+        resolved_metadata = {} if metadata is None else dict(metadata)
+        resolved_metadata["coefficient_contributions"] = [
+            asdict(item) for item in self._contributions
+        ]
         return QUBOProblemIR.from_terms(
             problem_id=problem_id,
             variables=self.variables,
             linear_terms=_without_zeros(self._linear),
             quadratic_terms=_without_zeros(self._quadratic),
             offset=self._offset,
-            metadata={} if metadata is None else dict(metadata),
+            metadata=resolved_metadata,
         )
+
+    def _record_contribution(
+        self,
+        *,
+        contribution_id: str,
+        group_id: str,
+        source_rule: str,
+        term_kind: str,
+        targets: tuple[str, ...],
+        coefficient: float,
+        role: CoefficientRole,
+    ) -> None:
+        """登记一条来源记录，并在重复 ID 破坏审计唯一性时立即失败。"""
+        if contribution_id in self._contribution_ids:
+            raise ValueError("contribution_id must be unique within one QUBO.")
+        contribution = FinanceCoefficientContribution(
+            contribution_id=contribution_id,
+            group_id=group_id,
+            source_rule=source_rule,
+            term_kind=term_kind,  # type: ignore[arg-type]
+            targets=targets,
+            coefficient=coefficient,
+            role=role,
+        )
+        self._contributions.append(contribution)
+        self._contribution_ids.add(contribution_id)
 
 
 def _finite(value: float, field: str) -> float:

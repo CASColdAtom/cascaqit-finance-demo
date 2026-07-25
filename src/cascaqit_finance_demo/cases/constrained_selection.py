@@ -26,6 +26,7 @@ from cascaqit_finance_demo.domain.models import CaseIssue, ConstraintCheck
 from cascaqit_finance_demo.domain.problem_api import (
     FinanceProblemDefinition,
     FinanceTermGroup,
+    coefficient_contributions_from_problem,
 )
 from cascaqit_finance_demo.domain.qubo_builder import (
     QuboBuilder,
@@ -180,10 +181,16 @@ class ConstrainedSelectionCase:
         values = self._normalize(tuple(item.value for item in case_input.items))
         costs = self._normalize(tuple(item.cost for item in case_input.items))
         # ``x_i = 1`` 时只累加该候选的一次系数；低成本、高价值候选更容易降低能量。
-        for variable, value, cost in zip(variables, values, costs):
+        for item, variable, value, cost in zip(
+            case_input.items, variables, values, costs
+        ):
             builder.add_linear(
                 variable,
                 case_input.cost_weight * cost - case_input.value_weight * value,
+                contribution_id=f"objective:{item.item_id}",
+                group_id="objective",
+                source_rule="value_cost_objective",
+                role="objective",
             )
 
         objective_bound = builder.absolute_coefficient_sum
@@ -194,6 +201,9 @@ class ConstrainedSelectionCase:
                 dict.fromkeys(variables, 1.0),
                 rhs=float(case_input.selected_count),
                 penalty=penalty,
+                contribution_id_prefix="constraint:selected-count",
+                group_id="constraints",
+                source_rule="fixed_selection_count",
             )
 
         by_group: dict[str, list[str]] = {}
@@ -205,6 +215,9 @@ class ConstrainedSelectionCase:
                 dict.fromkeys(by_group.get(group, ()), 1.0),
                 rhs=float(required),
                 penalty=penalty * 1.1,
+                contribution_id_prefix=f"constraint:group-exact:{group}",
+                group_id="constraints",
+                source_rule="group_exact_count",
             )
         if case_input.group_cap is not None:
             for group, group_variables in sorted(by_group.items()):
@@ -220,6 +233,9 @@ class ConstrainedSelectionCase:
                     coefficients,
                     rhs=float(case_input.group_cap),
                     penalty=penalty * 1.15,
+                    contribution_id_prefix=f"constraint:group-cap:{group}",
+                    group_id="constraints",
+                    source_rule="group_concentration_cap",
                 )
 
         units = {
@@ -237,6 +253,9 @@ class ConstrainedSelectionCase:
                 coefficients,
                 rhs=float(case_input.maximum_units),
                 penalty=penalty * 1.2,
+                contribution_id_prefix="constraint:maximum-units",
+                group_id="constraints",
+                source_rule="maximum_resource_units",
             )
         if case_input.minimum_units is not None:
             # 资源下限：``used - slack = minimum_units``。负号表示超过下限的余量。
@@ -250,14 +269,42 @@ class ConstrainedSelectionCase:
                 coefficients,
                 rhs=float(case_input.minimum_units),
                 penalty=penalty * 1.2,
+                contribution_id_prefix="constraint:minimum-units",
+                group_id="constraints",
+                source_rule="minimum_resource_units",
             )
         for left, right in case_input.conflicts:
             # 只有冲突双方同时入选时，乘积 ``x_left*x_right`` 才为 1。
-            builder.add_quadratic(by_id[left], by_id[right], penalty * 1.25)
+            normalized_pair = tuple(sorted((left, right)))
+            builder.add_quadratic(
+                by_id[left],
+                by_id[right],
+                penalty * 1.25,
+                contribution_id=f"conflict:{normalized_pair[0]}:{normalized_pair[1]}",
+                group_id="conflicts",
+                source_rule="selection_pairwise_conflict",
+                role="constraint",
+            )
         for child, parent in case_input.dependencies:
             # 展开 ``P*x_child*(1-x_parent)``：选择 child 且未选择 parent 时受罚。
-            builder.add_linear(by_id[child], penalty * 1.1)
-            builder.add_quadratic(by_id[child], by_id[parent], -penalty * 1.1)
+            rule_prefix = f"dependency:{child}:{parent}"
+            builder.add_linear(
+                by_id[child],
+                penalty * 1.1,
+                contribution_id=f"{rule_prefix}:linear",
+                group_id="dependencies",
+                source_rule="selection_prerequisite",
+                role="constraint",
+            )
+            builder.add_quadratic(
+                by_id[child],
+                by_id[parent],
+                -penalty * 1.1,
+                contribution_id=f"{rule_prefix}:quadratic",
+                group_id="dependencies",
+                source_rule="selection_prerequisite",
+                role="constraint",
+            )
 
         return builder.build(
             problem_id=f"finance.{self.case_id}",
@@ -310,6 +357,7 @@ class ConstrainedSelectionCase:
                 ),
                 FinanceTermGroup("slack", "辅助变量", "auxiliary_penalty", auxiliary),
             ),
+            coefficient_contributions=coefficient_contributions_from_problem(problem),
         )
 
     def decode(

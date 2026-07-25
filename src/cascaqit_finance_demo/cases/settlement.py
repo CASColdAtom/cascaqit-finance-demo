@@ -222,23 +222,50 @@ class SettlementCase:
         )
         builder = QuboBuilder(variables)
         values = self._business_values(case_input)
-        for variable, value in zip(variables, values):
-            builder.add_linear(variable, -value)
+        for item, variable, value in zip(case_input.instructions, variables, values):
+            builder.add_linear(
+                variable,
+                -value,
+                contribution_id=f"value:{item.trade_id}",
+                group_id="value",
+                source_rule="settlement_value",
+                role="objective",
+            )
 
         # 单条硬约束违规的代价必须高于选中全部交易可能获得的目标收益，
         # 否则优化器可能通过主动违规换取更低能量。
         objective_bound = builder.absolute_coefficient_sum
         base_penalty = (objective_bound + 1.0) * case_input.penalty_multiplier
         for left_id, right_id in self._conflict_pairs(case_input):
-            builder.add_quadratic(by_id[left_id], by_id[right_id], base_penalty)
+            builder.add_quadratic(
+                by_id[left_id],
+                by_id[right_id],
+                base_penalty,
+                contribution_id=f"conflict:{left_id}:{right_id}",
+                group_id="conflicts",
+                source_rule="settlement_pairwise_conflict",
+                role="constraint",
+            )
         for item in case_input.instructions:
             for required_id in item.requires:
                 # P*x_i*(1-x_j) 只在选择交易 i 却未选择前置交易 j 时产生罚能。
-                builder.add_linear(by_id[item.trade_id], base_penalty * 1.1)
+                rule_prefix = f"dependency:{item.trade_id}:{required_id}"
+                builder.add_linear(
+                    by_id[item.trade_id],
+                    base_penalty * 1.1,
+                    contribution_id=f"{rule_prefix}:linear",
+                    group_id="dependencies",
+                    source_rule="trade_prerequisite",
+                    role="constraint",
+                )
                 builder.add_quadratic(
                     by_id[item.trade_id],
                     by_id[required_id],
                     -base_penalty * 1.1,
+                    contribution_id=f"{rule_prefix}:quadratic",
+                    group_id="dependencies",
+                    source_rule="trade_prerequisite",
+                    role="constraint",
                 )
 
         limits = {
@@ -259,6 +286,9 @@ class SettlementCase:
                 coefficients,
                 rhs=float(capacity),
                 penalty=base_penalty * 1.2,
+                contribution_id_prefix=f"liquidity:{currency}",
+                group_id="liquidity",
+                source_rule="currency_liquidity_limit",
             )
 
         batch_slack = self._batch_slack_weights(case_input)
@@ -272,6 +302,9 @@ class SettlementCase:
                 batch_coefficients,
                 rhs=float(case_input.batch_cap),
                 penalty=base_penalty * 1.3,
+                contribution_id_prefix="liquidity:batch-cap",
+                group_id="liquidity",
+                source_rule="settlement_batch_cap",
             )
 
         return builder.build(

@@ -11,6 +11,7 @@ from cascaqit.exceptions import CapabilityError
 
 from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.domain.problem_api import (
+    FinanceCoefficientContribution,
     FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
@@ -40,6 +41,47 @@ def test_default_scenario_mode_matrix(case_id: str, expected_mode: str) -> None:
     analysis = ScenarioExecutor().analyze(scenario, scenario.default_input())
 
     assert analysis.mode_decision.recommended_mode == expected_mode
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        "portfolio",
+        "settlement",
+        "fraud_routing",
+        "collateral",
+        "liquidity",
+        "credit_limits",
+    ],
+)
+def test_qubo_scenarios_publish_balanced_coefficient_ledger(case_id: str) -> None:
+    """验证六个 QUBO 场景都声明唯一、完整且已通过守恒校验的系数来源。"""
+    scenario = PROBLEM_SCENARIOS[case_id]
+
+    definition = scenario.build_definition(scenario.default_input())
+
+    contributions = definition.coefficient_contributions
+    assert contributions
+    assert len({item.contribution_id for item in contributions}) == len(contributions)
+    assert {item.group_id for item in contributions} <= {
+        group.group_id for group in definition.term_groups
+    }
+
+
+def test_problem_definition_rejects_tampered_coefficient_ledger() -> None:
+    """验证账本系数被篡改后不能进入分析阶段或前端展示。"""
+    scenario = PROBLEM_SCENARIOS["settlement"]
+    definition = scenario.build_definition(scenario.default_input())
+    first, *remaining = definition.coefficient_contributions
+
+    with pytest.raises(ValueError, match="does not conserve QUBO terms"):
+        replace(
+            definition,
+            coefficient_contributions=(
+                replace(first, coefficient=first.coefficient + 0.5),
+                *remaining,
+            ),
+        )
 
 
 def test_portfolio_recommends_digital_even_when_hybrid_compiles() -> None:
@@ -229,10 +271,42 @@ def _definition(
         business_variables=variables,
         term_groups=(
             FinanceTermGroup(
+                "objective",
+                "业务价值",
+                "objective",
+                variables=variables,
+            ),
+            FinanceTermGroup(
                 "conflict",
                 "业务冲突",
                 "pairwise_conflict",
                 pairs=pairs,
+            ),
+        ),
+        coefficient_contributions=(
+            *(
+                FinanceCoefficientContribution(
+                    contribution_id=f"objective:{variable}",
+                    group_id="objective",
+                    source_rule="business_value",
+                    term_kind="linear",
+                    targets=(variable,),
+                    coefficient=-1.0,
+                    role="objective",
+                )
+                for variable in variables
+            ),
+            *(
+                FinanceCoefficientContribution(
+                    contribution_id=f"conflict:{left}:{right}",
+                    group_id="conflict",
+                    source_rule="pairwise_conflict",
+                    term_kind="quadratic",
+                    targets=(left, right),
+                    coefficient=2.0,
+                    role="constraint",
+                )
+                for left, right in pairs
             ),
         ),
         analog_candidate_group_ids=("conflict",),

@@ -45,6 +45,14 @@ const analysis: AnalysisPayload = {
     variables: ["asset_00"],
     matrix: { variables: ["asset_00"], cells: [] },
     termGroups: [],
+    coefficientLedger: {
+      applicability: "qubo",
+      balanced: true,
+      hamiltonianBalanced: true,
+      contributionCount: 0,
+      canonicalTermCount: 0,
+      rows: [],
+    },
   },
   resource: {
     logical_variables: 1,

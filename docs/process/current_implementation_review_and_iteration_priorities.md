@@ -4,7 +4,7 @@
 
 ## 结论
 
-Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/Analog 编译、本地执行、业务解码到 React 可视化和 HTML 报告的完整链路。七个默认场景和全部 21 个标准预设都能按推荐模式得到 `best_observed` 可行候选，不依赖经典基线补齐演示结果。
+Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/Analog 编译、本地执行、业务解码到 React 可视化和 HTML 报告的完整链路。六个 QUBO 场景还提供逐系数来源账本，可从业务规则追到 Canonical QUBO、逻辑 Hamiltonian 和当前 Analog/Digital 分配。七个默认场景和全部 21 个标准预设都能按推荐模式得到 `best_observed` 可行候选，不依赖经典基线补齐演示结果。
 
 “日终压力”和“行业集中压降”在当前浅层 QAOA 与固定参数下返回不可行候选。增加到 256 shots、切换多个 seed、提高到 `p=3` 或进行 8 点网格扫描均未解决，因此这两个预设已从标准演示删除。经典基线仍用于审计和自定义输入失败诊断，但不会作为标准预设的量子结果展示；恢复更严格预设前，应先改进参数优化或约束感知 Ansatz。
 
@@ -15,6 +15,7 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 | 业务建模 | 七个场景、21 个合成预设；目标、冲突、依赖、容量、分组和 slack 进入 QUBO 或图 Problem；解码后按原始规则复核 |
 | 模式选择 | Digital、Hybrid、Analog 分别检查编译可行性和业务适配；无可执行模式时返回稳定能力错误 |
 | Hybrid 证据 | 交易结算与反欺诈各有 3/3 core 冲突覆盖；使用 `provided` 参考布局；漏边、补边和异常 Analog 二体项均为 0 |
+| 系数证据 | 六个 QUBO 场景记录目标与罚项的原始贡献；校验 QUBO 聚合、QUBO 到 Ising 变换及 Analog/Digital 分配守恒；Graph 场景不伪造 QUBO 账本 |
 | Analog 场景 | 衍生品 `3 x 3` 风险图完整编译为 QAA/AHS；经典定价与量子情景选择分离 |
 | 变分执行 | Digital 支持 QAOA `p=1~3`、预设、网格和固定 seed 采样；Hybrid/Analog 使用受限预设点 |
 | 执行配置 | 后端目录提供场景推荐配置；API 省略字段时使用同一配置；UI 标出推荐或自定义状态 |
@@ -39,7 +40,7 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 ## 本阶段验证
 
 - 21 个标准预设逐一执行：`21 passed, 0 failed`，全部展示 `best_observed`。
-- Python 全量测试：`100 passed`。
+- Python 全量测试：`110 passed`。
 - Ruff：`src`、`tests`、`scripts` 全部通过。
 - React：TypeScript 检查通过，`16 tests passed`，生产构建通过。
 - Python wheel：构建通过，内置静态资源已同步。
@@ -51,10 +52,9 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ### P0
 
-1. **补齐 coefficient-level term ledger。** 当前能证明完整业务 pair 是否进入 Analog，但同一聚合 QUBO term 中每条目标或罚项贡献还不能逐系数追踪。需要贯通“业务规则 -> coefficient contribution -> Canonical term -> Analog/Digital implementation”。
-2. **提高严格约束下的量子候选可行率。** 接入 CASCAQit 已有的连续优化、多起点和 repeated runs，按统一评估预算选择层数与参数；必要时增加保持可行子空间的 mixer。更严格的压力预设只有在采样候选本身通过验收后才能恢复，不能以经典回退通过。
-3. **重建 Windows 离线包。** 仓库忽略目录中的旧 ZIP 仍包含 CASCAQit `1.0.2a1`，而当前 Demo 要求 `>=1.0.7a0,<1.0.8`。需重新生成 wheelhouse，并在干净 Windows 10/11 x64 上执行 `VERIFY.bat`、`INSTALL.bat`、`RUN.bat` 和真实场景 smoke。
-4. **打通可安装发布链。** CASCAQit 本地分支领先远端且没有可供普通用户安装的对应分发包；在 SDK 推送和发布完成前，GitHub 用户无法只靠公开依赖安装 Demo。
+1. **提高严格约束下的量子候选可行率。** 接入 CASCAQit 已有的连续优化、多起点和 repeated runs，按统一评估预算选择层数与参数；必要时增加保持可行子空间的 mixer。更严格的压力预设只有在采样候选本身通过验收后才能恢复，不能以经典回退通过。
+2. **重建 Windows 离线包。** 仓库忽略目录中的旧 ZIP 仍包含 CASCAQit `1.0.2a1`，而当前 Demo 要求 `>=1.0.7a0,<1.0.8`。需重新生成 wheelhouse，并在干净 Windows 10/11 x64 上执行 `VERIFY.bat`、`INSTALL.bat`、`RUN.bat` 和真实场景 smoke。
+3. **打通可安装发布链。** CASCAQit 本地分支领先远端且没有可供普通用户安装的对应分发包；在 SDK 推送和发布完成前，GitHub 用户无法只靠公开依赖安装 Demo。
 
 ### P1
 
@@ -72,4 +72,4 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ## 下一阶段建议
 
-下一阶段只做两件事：先建立逐系数业务证据账本，再把 CASCAQit 已实现的连续优化、多起点和 repeated runs 接入 Demo，形成严格约束下的统计验收。完成后再决定是否恢复压力预设，然后重建 Windows 包和公开发布；衍生品风险图联动放在后续阶段，避免同时改动建模证据、优化协议和业务可视化。
+下一阶段把 CASCAQit 已实现的连续优化、多起点和 repeated runs 接入 Demo，形成严格约束下的统计验收。完成后再决定是否恢复压力预设；无法稳定产生量子可行候选的预设继续保持删除，不回退到经典结果。随后重建 Windows 包和公开发布，衍生品风险图联动放在后续阶段。

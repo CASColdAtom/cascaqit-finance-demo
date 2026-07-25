@@ -107,6 +107,52 @@ def test_analysis_recommends_digital_after_fraud_conflicts_disappear() -> None:
     assert payload["scenario"]["values"]["entity_cap"] == 2
 
 
+def test_analysis_exposes_balanced_business_to_canonical_coefficient_ledger() -> None:
+    """验证分析接口公开业务规则到 Canonical 项的逐系数账本。"""
+    response = client.post(
+        "/api/scenarios/settlement/analyze",
+        json={"preset": "base", "values": {}},
+    )
+
+    assert response.status_code == 200
+    ledger = response.json()["analysis"]["problem"]["coefficientLedger"]
+    assert ledger["applicability"] == "qubo"
+    assert ledger["balanced"] is True
+    assert ledger["hamiltonianBalanced"] is True
+    assert ledger["contributionCount"] == len(ledger["rows"])
+    conflict = next(
+        row
+        for row in ledger["rows"]
+        if row["sourceRule"] == "settlement_pairwise_conflict"
+    )
+    assert conflict["canonicalTermId"].startswith("quadratic.")
+    assert {item["operator"] for item in conflict["hamiltonianTerms"]} == {"z", "zz"}
+    for item in conflict["hamiltonianTerms"]:
+        expected_effect = (
+            conflict["contributionCoefficient"] / 4.0
+            if item["operator"] == "zz"
+            else -conflict["contributionCoefficient"] / 4.0
+        )
+        assert item["contributionEffect"] == pytest.approx(expected_effect)
+    assert all(
+        item["implementation"] == "pending_mode_allocation"
+        for item in conflict["hamiltonianTerms"]
+    )
+
+    graph_ledger = client.post(
+        "/api/scenarios/derivatives/analyze",
+        json={"preset": "european_call", "values": {}},
+    ).json()["analysis"]["problem"]["coefficientLedger"]
+    assert graph_ledger == {
+        "applicability": "not_applicable_graph",
+        "balanced": True,
+        "hamiltonianBalanced": True,
+        "contributionCount": 0,
+        "canonicalTermCount": 0,
+        "rows": [],
+    }
+
+
 def test_analysis_exposes_business_native_visual_contract_for_every_scenario() -> None:
     """验证七个场景在执行前都提供符合各自业务语义的可视化模型。"""
     expected = {
@@ -197,6 +243,24 @@ def test_hybrid_and_analog_expose_atoms_waveforms_and_real_term_mapping() -> Non
         )
         assert quantum["termMapping"]
         assert sum(item["count"] for item in quantum["counts"]) == 8
+        if case_id == "settlement":
+            ledger = response.json()["run"]["analysis"]["problem"][
+                "coefficientLedger"
+            ]
+            conflict = next(
+                row
+                for row in ledger["rows"]
+                if row["sourceRule"] == "settlement_pairwise_conflict"
+            )
+            assert conflict["conserved"] is True
+            assert all(
+                item["implementation"] != "pending_mode_allocation"
+                for item in conflict["hamiltonianTerms"]
+            )
+            assert any(
+                abs(item["analog"] or 0.0) > 0.0
+                for item in conflict["hamiltonianTerms"]
+            )
 
 
 def test_run_maps_capability_error_to_stable_422(

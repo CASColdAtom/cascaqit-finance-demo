@@ -108,7 +108,7 @@ FastAPI 使用线程池执行本地模拟，避免阻塞异步请求循环。当
 
 `FinanceModeAdvisor` 不再读取场景预填的 `preferred_mode`。Analog 与 Hybrid 必须使用 `provided` 布局，完整覆盖声明的 core group，且实际物理 interaction 图不能漏边或补边；进入 Analog 的二体 Hamiltonian 项也必须能回到业务 pair。API 返回 covered group、missing contribution、unexpected term、unexpected interaction、geometry source/status 和 layout policy。
 
-默认交易结算和反欺诈均为 `3/3` core contribution 覆盖，衍生品风险图为 `12/12`；三者均为 0 漏项、0 异常二体项、0 补边。分组缺边和物理补边已有负向测试。尚未实现的是 coefficient-level term ledger，即把同一聚合 QUBO term 内的目标和多组罚项系数分别展开给用户查看。
+默认交易结算和反欺诈均为 `3/3` core contribution 覆盖，衍生品风险图为 `12/12`；三者均为 0 漏项、0 异常二体项、0 补边。分组缺边和物理补边已有负向测试。本报告完成时尚未实现逐系数账本，该项已在后续阶段补齐，见[逐系数业务证据账本实现报告](coefficient_ledger_implementation_report.md)。
 
 ## Digital QAOA 参数搜索
 

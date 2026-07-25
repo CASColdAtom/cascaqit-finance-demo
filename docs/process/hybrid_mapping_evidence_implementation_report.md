@@ -32,4 +32,4 @@
 
 ## 保留项
 
-当前 contribution 标识证明业务 pair 是否完整进入映射，但还没有拆解同一聚合 QUBO term 内各业务规则的系数来源。下一步应在 QUBO Builder 增加 coefficient-level ledger，并将业务规则、系数贡献、Canonical term 和最终 Analog/Digital implementation 串成一条可展开的证据链。
+本报告完成时，contribution 标识只能证明业务 pair 是否完整进入映射。逐系数来源已在后续阶段补齐，当前实现见[逐系数业务证据账本实现报告](coefficient_ledger_implementation_report.md)。

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, replace
-from math import sqrt
+from math import isclose, sqrt
 from typing import Any
 
 from cascaqit_finance_demo.cases.constrained_selection import SelectionInput
@@ -14,8 +14,46 @@ from cascaqit_finance_demo.domain.models import (
     SettlementInput,
 )
 
+_SOURCE_RULE_LABELS = {
+    "risk_return_objective": "风险收益目标",
+    "pairwise_covariance_risk": "协方差风险",
+    "fixed_holding_count": "固定持仓数",
+    "sector_concentration_cap": "行业集中度上限",
+    "minimum_defensive_holding": "防御资产下限",
+    "settlement_value": "结算价值",
+    "settlement_pairwise_conflict": "交易两两冲突",
+    "trade_prerequisite": "交易前置依赖",
+    "currency_liquidity_limit": "币种流动性上限",
+    "settlement_batch_cap": "结算批次上限",
+    "investigation_value": "调查任务价值",
+    "fixed_investigator_slots": "固定调查席位",
+    "shared_entity_parallel_conflict": "共享实体并行冲突",
+    "value_cost_objective": "价值成本目标",
+    "fixed_selection_count": "固定选择数量",
+    "group_exact_count": "分组精确数量",
+    "group_concentration_cap": "分组集中度上限",
+    "maximum_resource_units": "资源单位上限",
+    "minimum_resource_units": "资源单位下限",
+    "selection_pairwise_conflict": "候选项两两冲突",
+    "selection_prerequisite": "候选项前置依赖",
+}
+_IMPLEMENTATION_LABELS = {
+    "pending_mode_allocation": "待执行模式分配",
+    "digital_gate": "数字量子门",
+    "analog_interaction": "原子相互作用",
+    "analog_detuning_local": "局域失谐",
+    "analog_detuning_global": "全局失谐",
+    "hybrid_split": "模拟与数字共同承担",
+}
 
-def analysis_payload(case_id: str, case_input: Any, analysis: Any) -> dict[str, Any]:
+
+def analysis_payload(
+    case_id: str,
+    case_input: Any,
+    analysis: Any,
+    *,
+    term_mapping: tuple[Any, ...] = (),
+) -> dict[str, Any]:
     """输出编译器分析事实，同时避免泄漏 Bokeh 或 Python 专用对象。"""
     problem = analysis.definition.problem
     mapping = analysis.problem_analysis.mapping_plan
@@ -32,6 +70,11 @@ def analysis_payload(case_id: str, case_input: Any, analysis: Any) -> dict[str, 
             "variables": list(variables),
             "matrix": {"variables": list(variables), "cells": cells},
             "termGroups": [asdict(group) for group in analysis.definition.term_groups],
+            "coefficientLedger": _coefficient_ledger_payload(
+                analysis.definition,
+                analysis.problem_analysis,
+                term_mapping=term_mapping,
+            ),
         },
         "resource": dict(mapping.resource_estimate),
         "layout": [
@@ -80,13 +123,188 @@ def analysis_payload(case_id: str, case_input: Any, analysis: Any) -> dict[str, 
 
 def execution_payload(case_id: str, case_input: Any, result: Any) -> dict[str, Any]:
     """将一次真实执行整理为业务、量子实验和审计三个视图的数据。"""
-    analysis = analysis_payload(case_id, case_input, result.analysis)
+    analysis = analysis_payload(
+        case_id,
+        case_input,
+        result.analysis,
+        term_mapping=tuple(result.execution.context.term_mapping),
+    )
     return {
         "analysis": analysis,
         "business": _business_payload(case_id, case_input, result),
         "quantum": _quantum_payload(result),
         "audit": _audit_payload(result),
     }
+
+
+def _coefficient_ledger_payload(
+    definition: Any,
+    problem_analysis: Any,
+    *,
+    term_mapping: tuple[Any, ...],
+) -> dict[str, Any]:
+    """连接业务贡献、Canonical QUBO 项和实际 Hamiltonian 实现。
+
+    CASCAQit 在 QUBO 转 Ising Hamiltonian 时，一个二次项会同时影响两个局域场
+    和一个耦合项。这里不靠变量名猜测，而是使用编译器公开的
+    ``source_term_ids`` 建立多对多关系；执行后再用 ``term_mapping`` 补齐当前
+    模式的 Analog/Digital 系数分配。
+    """
+    contributions = tuple(definition.coefficient_contributions)
+    if not contributions:
+        return {
+            "applicability": "not_applicable_graph"
+            if definition.problem_kind == "graph"
+            else "not_declared",
+            "balanced": definition.problem_kind != "qubo",
+            "hamiltonianBalanced": definition.problem_kind != "qubo",
+            "contributionCount": 0,
+            "canonicalTermCount": 0,
+            "rows": [],
+        }
+
+    canonical = problem_analysis.canonical_problem
+    canonical_coefficients = {"offset": float(canonical.offset)}
+    canonical_coefficients.update(
+        {item.term_id: float(item.coefficient) for item in canonical.linear_terms}
+    )
+    canonical_coefficients.update(
+        {item.term_id: float(item.coefficient) for item in canonical.quadratic_terms}
+    )
+    contribution_totals: dict[str, float] = {}
+    for item in contributions:
+        contribution_totals[item.canonical_term_id] = (
+            contribution_totals.get(item.canonical_term_id, 0.0) + item.coefficient
+        )
+
+    mapping_by_logical_id = {
+        item.logical_term_id: item for item in term_mapping
+    }
+    logical_by_source: dict[str, list[Any]] = {}
+    for logical_term in problem_analysis.logical_hamiltonian.terms:
+        for source_term_id in logical_term.source_term_ids:
+            logical_by_source.setdefault(source_term_id, []).append(logical_term)
+    group_labels = {group.group_id: group.label for group in definition.term_groups}
+
+    rows = []
+    hamiltonian_effect_totals: dict[str, float] = {}
+    for item in contributions:
+        canonical_coefficient = canonical_coefficients.get(item.canonical_term_id, 0.0)
+        conserved = isclose(
+            contribution_totals[item.canonical_term_id],
+            canonical_coefficient,
+            rel_tol=1e-10,
+            abs_tol=1e-10,
+        )
+        hamiltonian_terms = []
+        for logical_term in logical_by_source.get(item.canonical_term_id, ()):
+            mapped = mapping_by_logical_id.get(logical_term.term_id)
+            contribution_effect = _qubo_contribution_hamiltonian_effect(
+                term_kind=item.term_kind,
+                coefficient=item.coefficient,
+                operator=logical_term.operator,
+            )
+            canonical_term_effect = _qubo_contribution_hamiltonian_effect(
+                term_kind=item.term_kind,
+                coefficient=canonical_coefficient,
+                operator=logical_term.operator,
+            )
+            hamiltonian_effect_totals[logical_term.term_id] = (
+                hamiltonian_effect_totals.get(logical_term.term_id, 0.0)
+                + contribution_effect
+            )
+            implementation = (
+                "pending_mode_allocation" if mapped is None else mapped.implementation
+            )
+            hamiltonian_terms.append(
+                {
+                    "termId": logical_term.term_id,
+                    "operator": logical_term.operator,
+                    "targets": list(logical_term.targets),
+                    "contributionEffect": contribution_effect,
+                    "canonicalTermEffect": canonical_term_effect,
+                    "logical": float(logical_term.coefficient),
+                    "analog": (
+                        None if mapped is None else float(mapped.analog_coefficient)
+                    ),
+                    "digital": (
+                        None if mapped is None else float(mapped.digital_coefficient)
+                    ),
+                    "implementation": implementation,
+                    "implementationLabel": _IMPLEMENTATION_LABELS.get(
+                        implementation, implementation
+                    ),
+                    "allocationConserved": mapped is None
+                    or isclose(
+                        mapped.analog_coefficient + mapped.digital_coefficient,
+                        mapped.logical_coefficient,
+                        rel_tol=1e-10,
+                        abs_tol=1e-10,
+                    ),
+                }
+            )
+        rows.append(
+            {
+                "contributionId": item.contribution_id,
+                "groupId": item.group_id,
+                "groupLabel": group_labels[item.group_id],
+                "sourceRule": item.source_rule,
+                "sourceRuleLabel": _SOURCE_RULE_LABELS.get(
+                    item.source_rule, item.source_rule
+                ),
+                "role": item.role,
+                "termKind": item.term_kind,
+                "targets": list(item.targets),
+                "contributionCoefficient": item.coefficient,
+                "canonicalTermId": item.canonical_term_id,
+                "canonicalCoefficient": canonical_coefficient,
+                "hamiltonianTerms": hamiltonian_terms,
+                "conserved": conserved,
+            }
+        )
+    logical_coefficients = {
+        item.term_id: float(item.coefficient)
+        for item in problem_analysis.logical_hamiltonian.terms
+    }
+    hamiltonian_balanced = all(
+        isclose(
+            hamiltonian_effect_totals.get(term_id, 0.0),
+            coefficient,
+            rel_tol=1e-10,
+            abs_tol=1e-10,
+        )
+        for term_id, coefficient in logical_coefficients.items()
+    ) and all(
+        nested["allocationConserved"]
+        for row in rows
+        for nested in row["hamiltonianTerms"]
+    )
+    return {
+        "applicability": "qubo",
+        "balanced": all(row["conserved"] for row in rows),
+        "hamiltonianBalanced": hamiltonian_balanced,
+        "contributionCount": len(rows),
+        "canonicalTermCount": len(contribution_totals),
+        "rows": rows,
+    }
+
+
+def _qubo_contribution_hamiltonian_effect(
+    *, term_kind: str, coefficient: float, operator: str
+) -> float:
+    """计算一条 QUBO 系数对 Ising Hamiltonian 项的精确增量。
+
+    CASCAQit 使用 ``x=(1-Z)/2``：线性项 ``a*x`` 对局域场贡献 ``-a/2``；
+    二次项 ``b*x_i*x_j`` 对两个局域场各贡献 ``-b/4``，对 ``ZZ`` 耦合贡献
+    ``b/4``。常数偏移不会进入物理 Hamiltonian。
+    """
+    if term_kind == "linear" and operator == "z":
+        return -coefficient / 2.0
+    if term_kind == "quadratic" and operator == "z":
+        return -coefficient / 4.0
+    if term_kind == "quadratic" and operator == "zz":
+        return coefficient / 4.0
+    return 0.0
 
 
 def _input_rows(case_id: str, case_input: Any) -> list[dict[str, str]]:

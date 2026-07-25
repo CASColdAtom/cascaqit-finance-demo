@@ -165,6 +165,40 @@ export interface AnalysisPayload {
       variables: string[];
       pairs: string[][];
     }>;
+    coefficientLedger: {
+      applicability: "qubo" | "not_applicable_graph" | "not_declared";
+      balanced: boolean;
+      hamiltonianBalanced: boolean;
+      contributionCount: number;
+      canonicalTermCount: number;
+      rows: Array<{
+        contributionId: string;
+        groupId: string;
+        groupLabel: string;
+        sourceRule: string;
+        sourceRuleLabel: string;
+        role: "objective" | "constraint" | "auxiliary";
+        termKind: "offset" | "linear" | "quadratic";
+        targets: string[];
+        contributionCoefficient: number;
+        canonicalTermId: string;
+        canonicalCoefficient: number;
+        hamiltonianTerms: Array<{
+          termId: string;
+          operator: string;
+          targets: string[];
+          contributionEffect: number;
+          canonicalTermEffect: number;
+          logical: number;
+          analog: number | null;
+          digital: number | null;
+          implementation: string;
+          implementationLabel: string;
+          allocationConserved: boolean;
+        }>;
+        conserved: boolean;
+      }>;
+    };
   };
   resource: Record<string, number | string | boolean>;
   layout: AtomPoint[];

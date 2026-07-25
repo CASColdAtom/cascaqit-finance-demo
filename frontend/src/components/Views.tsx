@@ -170,6 +170,7 @@ export function ScenarioView({ analysis, run }: { analysis: AnalysisPayload; run
 export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run: RunPayload | null }) {
   const { t, tx } = useI18n();
   const resource = analysis.resource;
+  const ledger = analysis.problem.coefficientLedger;
   return (
     <div className="view-stack">
       <div className="mapping-readout">
@@ -200,20 +201,49 @@ export function MappingView({ analysis, run }: { analysis: AnalysisPayload; run:
           );
         })}
       </section>
-      <div className="split-layout mapping-split">
-        <section className="data-section chart-section">
-          <div className="subsection-head"><div><span className="section-kicker"><Cpu size={14} /> HAMILTONIAN</span><h3>{t("graphMatrix")}</h3></div></div>
-          <MatrixHeatmap variables={analysis.problem.matrix.variables} cells={analysis.problem.matrix.cells} />
-        </section>
-        <section className="data-section">
-          <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> TERM ASSIGNMENT</span><h3>{t("termAssignment")}</h3></div></div>
-          {run ? (
-            <div className="table-wrap term-table-wrap"><table className="data-table compact-table"><thead><tr><th>{t("operator")}</th><th>{t("variable")}</th><th>{t("logical")}</th><th>Analog</th><th>Digital</th><th>{t("implementation")}</th></tr></thead><tbody>{run.quantum.termMapping.map((term, index) => <tr key={`${term.operator}-${index}`}><td className="mono">{term.operator.toUpperCase()}</td><td>{term.targets.map((target) => compactId(tx(target), 12)).join(" · ")}</td><td>{term.logical.toPrecision(4)}</td><td>{term.analog.toPrecision(4)}</td><td>{term.digital.toPrecision(4)}</td><td>{tx(term.implementation)}</td></tr>)}</tbody></table></div>
-          ) : (
-            <div className="term-groups">{analysis.problem.termGroups.map((group) => <div key={group.group_id}><span>{tx(group.kind)}</span><strong>{tx(group.label)}</strong><small>{group.variables.length} {t("variables")} · {group.pairs.length} {t("pairs")}</small></div>)}</div>
-          )}
-        </section>
-      </div>
+      <section className="data-section chart-section">
+        <div className="subsection-head"><div><span className="section-kicker"><Cpu size={14} /> HAMILTONIAN</span><h3>{t("graphMatrix")}</h3></div></div>
+        <MatrixHeatmap variables={analysis.problem.matrix.variables} cells={analysis.problem.matrix.cells} />
+      </section>
+      <section className="data-section">
+        <div className="subsection-head">
+          <div>
+            <span className="section-kicker"><GitBranch size={14} /> PROVENANCE</span>
+            <h3>{ledger.applicability === "qubo" ? t("coefficientLedger") : t("termAssignment")}</h3>
+            {ledger.applicability === "qubo" ? <p className="subsection-note">{run ? t("ledgerExecutedNote") : t("ledgerAnalysisNote")}</p> : null}
+          </div>
+          {ledger.applicability === "qubo" ? <span className="data-chip">{ledger.contributionCount} {t("contributions")} · {ledger.balanced && ledger.hamiltonianBalanced ? t("conserved") : t("notConserved")}</span> : null}
+        </div>
+        {ledger.applicability === "qubo" ? (
+          <div className="table-wrap coefficient-ledger-wrap">
+            <table className="data-table compact-table coefficient-ledger-table">
+              <thead><tr><th>{t("businessRule")}</th><th>{t("contributionId")}</th><th>{t("sourceCoefficient")}</th><th>{t("canonicalTerm")}</th><th>{t("canonicalCoefficient")}</th><th>{t("hamiltonianImplementation")}</th><th>{t("conservation")}</th></tr></thead>
+              <tbody>
+                {ledger.rows.map((row) => (
+                  <tr key={row.contributionId}>
+                    <td className="ledger-rule"><strong>{tx(row.groupLabel)}</strong><span>{tx(row.sourceRuleLabel)}</span></td>
+                    <td className="mono ledger-id">{row.contributionId}</td>
+                    <td className="mono">{row.contributionCoefficient.toPrecision(5)}</td>
+                    <td><strong className="mono">{row.canonicalTermId}</strong><small className="ledger-targets">{row.targets.map((target) => compactId(tx(target), 18)).join(" · ") || t("constantOffset")}</small></td>
+                    <td className="mono">{row.canonicalCoefficient.toPrecision(5)}</td>
+                    <td className="ledger-hamiltonian">
+                      {row.hamiltonianTerms.length ? row.hamiltonianTerms.map((term) => (
+                        <div key={term.termId}>
+                          <strong className="mono">{term.operator.toUpperCase()} · {term.targets.map((target) => compactId(tx(target), 14)).join(" · ")}</strong>
+                          <small className="mono">Δ {term.contributionEffect.toPrecision(4)} · LΣ {term.logical.toPrecision(4)} · A {term.analog === null ? "--" : term.analog.toPrecision(4)} · D {term.digital === null ? "--" : term.digital.toPrecision(4)} · {tx(term.implementationLabel)}</small>
+                        </div>
+                      )) : <span className="ledger-offset">{t("noPhysicalTerm")}</span>}
+                    </td>
+                    <td><span className={row.conserved ? "ledger-conserved" : "ledger-broken"}>{row.conserved ? <Check size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />}{row.conserved ? t("conserved") : t("notConserved")}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="term-groups">{analysis.problem.termGroups.map((group) => <div key={group.group_id}><span>{tx(group.kind)}</span><strong>{tx(group.label)}</strong><small>{group.variables.length} {t("variables")} · {group.pairs.length} {t("pairs")}</small></div>)}</div>
+        )}
+      </section>
     </div>
   );
 }

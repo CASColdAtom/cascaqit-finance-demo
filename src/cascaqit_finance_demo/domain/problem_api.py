@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Protocol
@@ -34,6 +36,97 @@ TermKind = Literal[
     "dependency",
     "auxiliary_penalty",
 ]
+CoefficientTermKind = Literal["offset", "linear", "quadratic"]
+CoefficientRole = Literal["objective", "constraint", "auxiliary"]
+
+
+@dataclass(frozen=True)
+class FinanceCoefficientContribution:
+    """一条业务规则对某个规范 QUBO 系数的原始贡献。
+
+    多条业务规则可以落到同一个 ``canonical_term_id``。账本保留每条原始贡献，
+    最终 QUBO 则保存聚合后的系数；两者必须逐项守恒。平方罚项会被拆成常数、
+    线性和二次贡献，因此界面能够解释展开后的每一个实际系数。
+    """
+
+    contribution_id: str
+    group_id: str
+    source_rule: str
+    term_kind: CoefficientTermKind
+    targets: tuple[str, ...]
+    coefficient: float
+    role: CoefficientRole
+
+    def __post_init__(self) -> None:
+        """校验标识、目标数量和数值，并规范无向二次项的变量顺序。"""
+        for field_name in ("contribution_id", "group_id", "source_rule"):
+            value = getattr(self, field_name)
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or value != value.strip()
+            ):
+                raise ValueError(f"{field_name} must be a non-empty trimmed string.")
+        if self.term_kind not in {"offset", "linear", "quadratic"}:
+            raise ValueError("term_kind must be offset, linear, or quadratic.")
+        if self.role not in {"objective", "constraint", "auxiliary"}:
+            raise ValueError("role must be objective, constraint, or auxiliary.")
+        targets = tuple(self.targets)
+        expected_size = {"offset": 0, "linear": 1, "quadratic": 2}[self.term_kind]
+        if len(targets) != expected_size:
+            raise ValueError(
+                f"{self.term_kind} contributions require {expected_size} targets."
+            )
+        if any(
+            not isinstance(target, str)
+            or not target.strip()
+            or target != target.strip()
+            for target in targets
+        ):
+            raise ValueError("contribution targets must be non-empty trimmed strings.")
+        if self.term_kind == "quadratic":
+            if targets[0] == targets[1]:
+                raise ValueError("quadratic contribution targets must be distinct.")
+            targets = tuple(sorted(targets))
+        coefficient = float(self.coefficient)
+        if not math.isfinite(coefficient):
+            raise ValueError("contribution coefficient must be finite.")
+        object.__setattr__(self, "targets", targets)
+        object.__setattr__(self, "coefficient", coefficient)
+
+    @property
+    def canonical_term_id(self) -> str:
+        """返回与 CASCAQit Canonical QUBO 项一致的稳定标识。"""
+        if self.term_kind == "offset":
+            return "offset"
+        return ".".join((self.term_kind, *self.targets))
+
+    @classmethod
+    def from_mapping(
+        cls, data: Mapping[str, object]
+    ) -> FinanceCoefficientContribution:
+        """从 Problem metadata 的 JSON 兼容字典恢复不可变贡献对象。"""
+        return cls(
+            contribution_id=str(data["contribution_id"]),
+            group_id=str(data["group_id"]),
+            source_rule=str(data["source_rule"]),
+            term_kind=str(data["term_kind"]),  # type: ignore[arg-type]
+            targets=tuple(str(item) for item in data.get("targets", ())),
+            coefficient=float(data["coefficient"]),
+            role=str(data["role"]),  # type: ignore[arg-type]
+        )
+
+
+def coefficient_contributions_from_problem(
+    problem: QUBOProblemIR,
+) -> tuple[FinanceCoefficientContribution, ...]:
+    """读取由 ``QuboBuilder`` 写入 Problem metadata 的逐系数来源账本。"""
+    raw = problem.metadata.get("coefficient_contributions", ())
+    if not isinstance(raw, (list, tuple)):
+        raise ValueError("coefficient_contributions metadata must be a sequence.")
+    if any(not isinstance(item, Mapping) for item in raw):
+        raise ValueError("each coefficient contribution must be a mapping.")
+    return tuple(FinanceCoefficientContribution.from_mapping(item) for item in raw)
 
 
 @dataclass(frozen=True)
@@ -107,9 +200,50 @@ class FinanceProblemDefinition:
     business_variables: tuple[str, ...]
     auxiliary_variables: tuple[str, ...] = ()
     term_groups: tuple[FinanceTermGroup, ...] = ()
+    coefficient_contributions: tuple[FinanceCoefficientContribution, ...] = ()
     analog_candidate_group_ids: tuple[str, ...] = ()
     geometry_evidence: FinanceGeometryEvidence | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """核对账本引用和 QUBO 系数守恒，阻止错误来源进入编译与展示层。"""
+        object.__setattr__(self, "business_variables", tuple(self.business_variables))
+        object.__setattr__(self, "auxiliary_variables", tuple(self.auxiliary_variables))
+        object.__setattr__(self, "term_groups", tuple(self.term_groups))
+        object.__setattr__(
+            self, "coefficient_contributions", tuple(self.coefficient_contributions)
+        )
+        object.__setattr__(
+            self, "analog_candidate_group_ids", tuple(self.analog_candidate_group_ids)
+        )
+        group_ids = tuple(group.group_id for group in self.term_groups)
+        if len(group_ids) != len(set(group_ids)):
+            raise ValueError("term group IDs must be unique.")
+        contribution_ids = tuple(
+            item.contribution_id for item in self.coefficient_contributions
+        )
+        if len(contribution_ids) != len(set(contribution_ids)):
+            raise ValueError("coefficient contribution IDs must be unique.")
+        unknown_groups = sorted(
+            {
+                item.group_id
+                for item in self.coefficient_contributions
+                if item.group_id not in set(group_ids)
+            }
+        )
+        if unknown_groups:
+            raise ValueError(
+                "coefficient contributions reference unknown groups: "
+                + ", ".join(unknown_groups)
+            )
+        if isinstance(self.problem, QUBOProblemIR):
+            if not self.coefficient_contributions:
+                raise ValueError(
+                    "QUBO finance definitions require a coefficient ledger."
+                )
+            _require_qubo_ledger_conservation(
+                self.problem, self.coefficient_contributions
+            )
 
     @property
     def analog_business_pairs(self) -> tuple[tuple[str, str], ...]:
@@ -128,6 +262,49 @@ class FinanceProblemDefinition:
         candidates = set(self.analog_candidate_group_ids)
         return tuple(
             group for group in self.term_groups if group.group_id in candidates
+        )
+
+
+def _require_qubo_ledger_conservation(
+    problem: QUBOProblemIR,
+    contributions: tuple[FinanceCoefficientContribution, ...],
+) -> None:
+    """逐项比较贡献聚合值与最终 QUBO，包含被多条规则共同影响的系数。"""
+    expected = {"offset": float(problem.offset)}
+    expected.update(
+        {f"linear.{variable}": float(value) for variable, value in problem.linear_terms}
+    )
+    expected.update(
+        {
+            f"quadratic.{left}.{right}": float(value)
+            for left, right, value in problem.quadratic_terms
+        }
+    )
+    actual: dict[str, float] = {}
+    for item in contributions:
+        if any(target not in problem.variables for target in item.targets):
+            raise ValueError(
+                f"coefficient contribution {item.contribution_id!r} references "
+                "an unknown QUBO variable."
+            )
+        actual[item.canonical_term_id] = (
+            actual.get(item.canonical_term_id, 0.0) + item.coefficient
+        )
+    all_terms = set(expected) | set(actual)
+    mismatched = [
+        term_id
+        for term_id in sorted(all_terms)
+        if not math.isclose(
+            actual.get(term_id, 0.0),
+            expected.get(term_id, 0.0),
+            rel_tol=1e-10,
+            abs_tol=1e-10,
+        )
+    ]
+    if mismatched:
+        raise ValueError(
+            "coefficient ledger does not conserve QUBO terms: "
+            + ", ".join(mismatched)
         )
 
 

@@ -172,8 +172,15 @@ class FraudRoutingCase:
         builder = QuboBuilder(variables)
         values = self.business_values(case_input)
         # 最小化负价值等价于最大化所选告警的综合调查价值。
-        for variable, value in zip(variables, values):
-            builder.add_linear(variable, -value)
+        for alert, variable, value in zip(case_input.alerts, variables, values):
+            builder.add_linear(
+                variable,
+                -value,
+                contribution_id=f"value:{alert.alert_id}",
+                group_id="value",
+                source_rule="investigation_value",
+                role="objective",
+            )
 
         objective_bound = builder.absolute_coefficient_sum
         penalty = (objective_bound + 1.0) * case_input.penalty_multiplier
@@ -182,11 +189,22 @@ class FraudRoutingCase:
             dict.fromkeys(variables, 1.0),
             rhs=float(case_input.investigator_slots),
             penalty=penalty,
+            contribution_id_prefix="capacity:investigator-slots",
+            group_id="capacity",
+            source_rule="fixed_investigator_slots",
         )
         by_id = dict(zip((alert.alert_id for alert in case_input.alerts), variables))
         for left, right in self._conflict_pairs(case_input):
             # 两个同实体变量同时为 1 时才产生罚能，对单独选择任一告警无影响。
-            builder.add_quadratic(by_id[left], by_id[right], penalty * 1.1)
+            builder.add_quadratic(
+                by_id[left],
+                by_id[right],
+                penalty * 1.1,
+                contribution_id=f"conflict:{left}:{right}",
+                group_id="conflicts",
+                source_rule="shared_entity_parallel_conflict",
+                role="constraint",
+            )
         return builder.build(
             problem_id="finance.fraud_routing",
             metadata={

@@ -31,6 +31,7 @@ from cascaqit_finance_demo.domain.problem_api import (
     FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
+    coefficient_contributions_from_problem,
 )
 
 
@@ -141,6 +142,7 @@ class PortfolioScenario:
                 ),
                 FinanceTermGroup("slack", "辅助罚项", "auxiliary_penalty", auxiliary),
             ),
+            coefficient_contributions=coefficient_contributions_from_problem(problem),
         )
 
     def decode(
@@ -218,6 +220,7 @@ class SettlementScenario:
                     "slack", "额度辅助变量", "auxiliary_penalty", auxiliary
                 ),
             ),
+            coefficient_contributions=coefficient_contributions_from_problem(problem),
             analog_candidate_group_ids=("conflicts",) if conflict_pairs else (),
             geometry_evidence=geometry,
         )
@@ -292,6 +295,7 @@ class FraudRoutingScenario:
                     "slack", "席位辅助变量", "auxiliary_penalty", auxiliary
                 ),
             ),
+            coefficient_contributions=coefficient_contributions_from_problem(problem),
             analog_candidate_group_ids=("conflicts",) if conflict_pairs else (),
             geometry_evidence=geometry,
             metadata={"decision_scope": "investigation routing only"},

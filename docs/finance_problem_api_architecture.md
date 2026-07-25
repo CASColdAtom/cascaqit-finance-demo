@@ -142,11 +142,12 @@ decode(case_input, definition, candidate)
 | `business_variables` | 可直接解释和解码的业务变量 |
 | `auxiliary_variables` | slack 等编码变量 |
 | `term_groups` | 目标、局域冲突、全局约束、依赖和辅助罚项 |
+| `coefficient_contributions` | 每条业务规则展开到 QUBO 系数的原始贡献 |
 | `analog_candidate_group_ids` | 允许 Analog 承担的完整 `core` 分组 |
 | `geometry_evidence` | 坐标来源、变换、期望边、禁用边和图保真检查 |
 | `metadata` | 业务边界与结果解释信息 |
 
-当前实现按 `group_id:left:right` 生成 Analog core contribution 标识，逐条报告 declared、covered 和 missing。后续若要解释同一 QUBO term 内部聚合的多个业务系数，还需要增加 coefficient-level term ledger：
+QUBO 场景必须提供逐系数账本。每条记录包含：
 
 ```text
 contribution_id
@@ -154,11 +155,19 @@ group_id
 source_rule
 targets
 coefficient
-role: core | supporting
-normalized_term_ids
+role: objective | constraint | auxiliary
+term_kind: offset | linear | quadratic
 ```
 
-该 ledger 属于后续增强，不是当前完整覆盖门禁的前提。当前门禁已经要求 core pair 全覆盖、物理 interaction 图无漏边和补边、Analog 二体项都有业务依据；无法归因的 term 只能执行 Digital 对照。
+`QuboBuilder` 在加入目标、冲突、依赖和平方罚项时记录原始贡献。平方等式会展开成 offset、linear 和 quadratic 记录，不只保留约束摘要。同一 Canonical term 可以接收多条贡献，聚合值必须与最终 `QUBOProblemIR` 逐项一致；缺少账本、重复 `contribution_id`、未知 `group_id` 或系数不守恒都会在分析前失败。
+
+编译后使用 CASCAQit 的 `source_term_ids` 连接 Canonical QUBO 与 Ising Hamiltonian。页面分别显示本条业务贡献造成的 Hamiltonian 增量、该 Hamiltonian 项的聚合逻辑系数，以及当前模式的 Analog/Digital 分配。后端同时检查：
+
+- contribution 聚合值等于 Canonical QUBO 系数；
+- 按 `x=(1-Z)/2` 变换后的 contribution 增量之和等于逻辑 Hamiltonian 系数；
+- 执行时 `analog_coefficient + digital_coefficient = logical_coefficient`。
+
+Graph Problem 保留节点、边和几何来源，不伪造 QUBO 系数账本。Analog core coverage 仍独立检查 pair 全覆盖、物理 interaction 图无漏边和补边，以及 Analog 二体项都有业务依据。
 
 ### 4.2 几何证据
 
@@ -314,13 +323,12 @@ result = executor.run(
 
 已完成：移除 `preferred_mode`，QUBO 接入完整参考坐标，交易结算和反欺诈使用 verified embedding，Hybrid 按完整 core group 裁决，并公开 missing、unexpected term、补边和几何状态。自动测试覆盖完整覆盖、缺边、补边和 Hybrid -> Digital 退化。
 
-### P0：补齐业务系数证据和优化质量
+### P0：提高优化质量并完成统计验收
 
-1. 在 QUBO 建模过程中记录每次目标或罚项展开产生的系数 contribution。
-2. 将 contribution 聚合值与 Canonical linear/quadratic term 逐项核对。
-3. 在界面展开“业务规则 -> contribution -> Hamiltonian term -> Analog/Digital implementation”。
-4. 增加多起点、连续优化或约束感知参数策略；只有量子候选本身通过业务复核后，才重新增加更严格的压力预设。
-5. 使用 repeated runs 和置信区间验收执行配置，不能只依据单次固定 seed 结果。
+逐系数业务证据账本、Canonical 守恒核对和 Analog/Digital 实现展开已经完成。下一步：
+
+1. 增加多起点、连续优化或约束感知参数策略；只有量子候选本身通过业务复核后，才重新增加更严格的压力预设。
+2. 使用 repeated runs 和置信区间验收执行配置，不能只依据单次固定 seed 结果。
 
 ### P1：让 Analog 场景与产品输入联动
 

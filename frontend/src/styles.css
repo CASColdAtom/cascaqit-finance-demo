@@ -1167,6 +1167,77 @@ code,
   padding: 8px 7px;
 }
 
+.coefficient-ledger-wrap {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.coefficient-ledger-table {
+  min-width: 1240px;
+}
+
+.coefficient-ledger-table thead {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: var(--surface);
+}
+
+.coefficient-ledger-table th:nth-child(1) {
+  min-width: 170px;
+}
+
+.coefficient-ledger-table th:nth-child(2),
+.coefficient-ledger-table th:nth-child(4) {
+  min-width: 220px;
+}
+
+.coefficient-ledger-table th:nth-child(6) {
+  min-width: 330px;
+}
+
+.ledger-rule,
+.ledger-hamiltonian,
+.ledger-hamiltonian > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ledger-rule span,
+.ledger-targets,
+.ledger-hamiltonian small,
+.ledger-offset {
+  color: var(--dim);
+  font-size: 0.58rem;
+  line-height: 1.4;
+}
+
+.ledger-id {
+  max-width: 260px;
+  color: var(--muted);
+}
+
+.ledger-hamiltonian > div + div {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.ledger-conserved,
+.ledger-broken {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.ledger-conserved {
+  color: var(--green);
+}
+
+.ledger-broken {
+  color: var(--red);
+}
+
 .analysis-placeholder,
 .empty-run,
 .analysis-loading,
