@@ -39,7 +39,7 @@ Demo 已接通 CASCAQit 连续参数优化、多起点和独立重复运行。Di
 
 ## 验证与限制
 
-- Python 全量测试：120 项通过。
+- Python 全量测试：123 项通过；其中 3 项来自后续 Windows runtime 安全解包回归测试。
 - React：18 项通过，TypeScript 检查和生产构建通过。
 - Ruff：`src`、`tests`、`scripts` 通过。
 - 旧分析响应缺少新证据字段时，Problem 映射使用空数组和旧 term group 展示，不再因读取 `.length` 白屏。

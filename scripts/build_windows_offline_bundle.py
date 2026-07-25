@@ -18,7 +18,7 @@ import tempfile
 import urllib.request
 from email.message import Message
 from email.parser import BytesParser
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from zipfile import ZipFile
 
 from packaging.requirements import Requirement
@@ -248,6 +248,37 @@ def _download_file(url: str, destination: Path) -> None:
         shutil.copyfileobj(response, output)
 
 
+def _extract_runtime_archive(archive: tarfile.TarFile, destination: Path) -> None:
+    """安全解压 runtime，并兼容没有 ``tarfile.data_filter`` 的 Python 3.9。
+
+    构建脚本需要在项目支持的最低 Python 版本运行。Python 3.9 没有标准
+    ``data`` filter，因此先验证全部成员：只允许归档内的普通文件和目录，拒绝
+    绝对路径、目录穿越、符号链接、硬链接和设备文件。目标目录由构建器新建，
+    验证后一次性解压不会经过归档内创建的链接。
+    """
+
+    if hasattr(tarfile, "data_filter"):
+        archive.extractall(destination, filter="data")
+        return
+
+    destination_root = destination.resolve()
+    for member in archive.getmembers():
+        relative = PurePosixPath(member.name)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise RuntimeError(f"Python runtime 归档包含越界路径：{member.name}")
+        if not (member.isfile() or member.isdir()):
+            raise RuntimeError(f"Python runtime 归档包含不安全成员：{member.name}")
+        target = (destination / Path(*relative.parts)).resolve()
+        try:
+            target.relative_to(destination_root)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Python runtime 归档成员越过目标目录：{member.name}"
+            ) from exc
+
+    archive.extractall(destination)
+
+
 def _prepare_python_runtime(destination: Path) -> None:
     """下载、验签并转为 PowerShell 可直接解压的 Windows Python runtime。"""
 
@@ -265,10 +296,10 @@ def _prepare_python_runtime(destination: Path) -> None:
                 f"期望 {PYTHON_RUNTIME_SOURCE_SHA256}，实际 {actual_sha256}"
             )
 
-        # data 过滤器拒绝绝对路径、目录穿越和危险链接，避免上游归档在构建机
-        # 写出临时目录。归档中的顶层 python 目录会原样进入最终 ZIP。
+        # 归档中的顶层 python 目录会原样进入最终 ZIP；兼容层在 Python 3.9
+        # 主动执行与标准 data filter 等价的路径和成员类型检查。
         with tarfile.open(source_archive, mode="r:gz") as archive:
-            archive.extractall(extracted_root, filter="data")
+            _extract_runtime_archive(archive, extracted_root)
         python_executable = extracted_root / "python" / "python.exe"
         if not python_executable.is_file():
             raise RuntimeError("可重定位 Python 归档缺少 python/python.exe")

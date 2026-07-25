@@ -1,6 +1,6 @@
 # CASCAQit Finance Demo Windows 离线包问题与修复指南
 
-> 本文是旧离线包的故障复盘，文中的 `1.0.2a0`、`1.0.2a1` 和制品哈希只对应当时的测试包，不是当前安装要求。当前 Demo 依赖 `cascaqit>=1.0.7a0,<1.0.8`；交付前应按[运行时依赖兼容性报告](process/runtime_dependency_compatibility_report.md)重新构建并完成 Windows 实机验收。
+> 本文是旧离线包的故障复盘，文中的 `1.0.2a0`、`1.0.2a1` 和制品哈希只对应当时的测试包，不是当前安装要求。当前源码离线包已经重建，结果见[Windows 离线包重建报告](process/windows_offline_bundle_rebuild_report.md)；Windows 实机验收仍未完成。
 
 ## 1. 文档目的
 

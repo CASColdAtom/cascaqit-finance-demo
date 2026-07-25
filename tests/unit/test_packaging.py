@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import tarfile
+from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -11,6 +13,7 @@ from scripts.build_windows_offline_bundle import (
     PYTHON_RUNTIME_ZIP_NAME,
     _audit_windows_dependency_closure,
     _copy_windows_template,
+    _extract_runtime_archive,
 )
 
 from cascaqit_finance_demo.api.app import FRONTEND_DIST, HOST, PORT
@@ -158,3 +161,43 @@ def test_windows_template_copy_rejects_non_ascii_batch(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="必须只包含 ASCII"):
         _copy_windows_template(source, tmp_path / "invalid-output.bat")
+
+
+def test_python39_runtime_extraction_accepts_regular_files(tmp_path: Path) -> None:
+    """验证最低 Python 版本的兼容路径可以安全解压 runtime 普通文件。"""
+
+    source = tmp_path / "runtime.tar"
+    payload = b"portable-python"
+    with tarfile.open(source, mode="w") as archive:
+        member = tarfile.TarInfo("python/python.exe")
+        member.size = len(payload)
+        archive.addfile(member, BytesIO(payload))
+
+    destination = tmp_path / "runtime"
+    destination.mkdir()
+    with tarfile.open(source, mode="r") as archive:
+        _extract_runtime_archive(archive, destination)
+
+    assert (destination / "python" / "python.exe").read_bytes() == payload
+
+
+@pytest.mark.parametrize("member_name", ["../outside.txt", "/absolute.txt"])
+def test_python39_runtime_extraction_rejects_out_of_tree_paths(
+    tmp_path: Path,
+    member_name: str,
+) -> None:
+    """验证旧版 tarfile 兼容路径也会拒绝绝对路径和目录穿越。"""
+
+    source = tmp_path / "unsafe.tar"
+    with tarfile.open(source, mode="w") as archive:
+        member = tarfile.TarInfo(member_name)
+        member.size = 1
+        archive.addfile(member, BytesIO(b"x"))
+
+    destination = tmp_path / "runtime"
+    destination.mkdir()
+    with (
+        tarfile.open(source, mode="r") as archive,
+        pytest.raises(RuntimeError, match="越界路径"),
+    ):
+        _extract_runtime_archive(archive, destination)

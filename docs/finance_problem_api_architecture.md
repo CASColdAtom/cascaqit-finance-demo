@@ -344,7 +344,7 @@ result = executor.run(
 
 ### 交付优先项
 
-当前离线包仍包含旧 CASCAQit wheel。发布下一份客户包前，需要使用公开可安装的 CASCAQit 版本重建 Windows wheelhouse，并在干净 Windows 10/11 x64 环境执行校验、安装、启动和真实场景 smoke test。
+当前源码已重建 Windows wheelhouse 和可重定位 Python 离线包。发布客户包前仍需完成两项门禁：CASCAQit 当前能力形成公开可安装版本；在干净 Windows 10/11 x64 环境执行校验、安装、启动和真实场景 smoke test。
 
 ## 9. 验收边界
 

@@ -41,7 +41,7 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 ## 本阶段验证
 
 - 19 个标准预设各执行 3 次：`57 passed, 0 failed`，成功来源均为量子 `business_candidate`。
-- Python 全量测试：`120 passed`。
+- Python 全量测试：`123 passed`。
 - Ruff：`src`、`tests`、`scripts` 全部通过。
 - React：TypeScript 检查通过，`18 tests passed`，生产构建通过。
 - Python wheel：构建通过，内置静态资源已同步。
@@ -53,8 +53,8 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ### P0
 
-1. **重建 Windows 离线包。** 仓库忽略目录中的旧 ZIP 仍包含过时 CASCAQit wheel。需用当前公开可安装版本重建 wheelhouse，并在干净 Windows 10/11 x64 上执行 `VERIFY.bat`、`INSTALL.bat`、`RUN.bat` 和真实场景 smoke。
-2. **打通可安装发布链。** Demo 依赖的 CASCAQit 能力必须先形成公开分发包，否则 GitHub 用户无法只靠公开依赖安装。
+1. **完成 Windows 实机验收。** 当前源码离线包已重建并通过主机侧依赖闭包、runtime、manifest 和 wheel 内容审计；仍需在干净 Windows 10/11 x64 上执行 `VERIFY.bat`、`INSTALL.bat`、`RUN.bat` 和真实场景 smoke。
+2. **打通可安装发布链。** Demo 依赖的 CASCAQit 能力尚未形成公开分发包，GitHub 用户仍无法只靠公开依赖安装。
 
 ### P1
 
@@ -72,4 +72,4 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ## 下一阶段建议
 
-下一阶段先重建 Windows 离线包并打通公开安装链。完成交付闭环后，让衍生品风险图读取实际产品重估结果，再把金融映射证据写入标准 HTML 报告。被删除的严格预设继续保持删除，直到约束保持量子策略能够稳定产生可行候选。
+下一阶段先在 Windows 实机验收新离线包，并完成 CASCAQit 公开安装链。完成交付闭环后，让衍生品风险图读取实际产品重估结果，再把金融映射证据写入标准 HTML 报告。被删除的严格预设继续保持删除，直到约束保持量子策略能够稳定产生可行候选。
