@@ -1,17 +1,45 @@
 {
-  "molecule": "H2",
-  "geometryLabel": "平衡键长基准",
-  "bondLengthAngstrom": 0.735,
-  "charge": 0,
-  "multiplicity": 1,
-  "basis": "STO-3G",
   "activeSpace": "2 electrons / 2 orbitals",
-  "mapping": "two-qubit reduced parity benchmark",
   "atoms": [
-    {"id": "H1", "element": "H", "x": 24, "y": 50, "z": 0},
-    {"id": "H2", "element": "H", "x": 76, "y": 50, "z": 0}
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "element": "H",
+      "id": "H1",
+      "x": 25.0,
+      "y": 50.0,
+      "z": 0.0
+    },
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        0.735
+      ],
+      "element": "H",
+      "id": "H2",
+      "x": 75.0,
+      "y": 50.0,
+      "z": 0.0
+    }
   ],
+  "basis": "STO-3G",
   "bonds": [
-    {"source": "H1", "target": "H2", "order": 1, "lengthAngstrom": 0.735}
-  ]
+    {
+      "lengthAngstrom": 0.735,
+      "order": 1,
+      "source": "H1",
+      "target": "H2"
+    }
+  ],
+  "charge": 0,
+  "datasetKey": "h2_sto3g_0735",
+  "geometryLabel": "equilibrium bond reference",
+  "mapping": "symmetry-conserving Bravyi-Kitaev with two-qubit tapering",
+  "molecule": "H2",
+  "multiplicity": 1,
+  "referenceHartreeFockBitstring": "11"
 }

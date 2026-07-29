@@ -1,0 +1,63 @@
+{
+  "activeSpace": "2 electrons / 3 orbitals",
+  "atoms": [
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "element": "O",
+      "id": "O1",
+      "x": 50.0,
+      "y": 35.0,
+      "z": 0.0
+    },
+    {
+      "coordinatesAngstrom": [
+        0.7575,
+        0.0,
+        0.5871
+      ],
+      "element": "H",
+      "id": "H2",
+      "x": 24.0,
+      "y": 72.0,
+      "z": 0.0
+    },
+    {
+      "coordinatesAngstrom": [
+        -0.7575,
+        0.0,
+        0.5871
+      ],
+      "element": "H",
+      "id": "H3",
+      "x": 76.0,
+      "y": 72.0,
+      "z": 0.0
+    }
+  ],
+  "basis": "STO-3G",
+  "bonds": [
+    {
+      "lengthAngstrom": 0.958380227258472,
+      "order": 1,
+      "source": "O1",
+      "target": "H2"
+    },
+    {
+      "lengthAngstrom": 0.958380227258472,
+      "order": 1,
+      "source": "O1",
+      "target": "H3"
+    }
+  ],
+  "charge": 0,
+  "datasetKey": "h2o_sto3g_equilibrium",
+  "geometryLabel": "0.9584 angstrom / 104.45 degree reference",
+  "mapping": "symmetry-conserving Bravyi-Kitaev with two-qubit tapering",
+  "molecule": "H2O",
+  "multiplicity": 1,
+  "referenceHartreeFockBitstring": "1111"
+}

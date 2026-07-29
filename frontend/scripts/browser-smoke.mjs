@@ -299,9 +299,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     undefined,
     { timeout: 60_000 },
   );
-  const resultText = await page.locator(".biomed-metric-band").innerText();
-  if (!resultText.includes("ABSOLUTE ERROR") || !resultText.includes("mHa")) {
-    throw new Error(`${name}: H2 result evidence is incomplete`);
+  const resultText = await page.locator(".biomed-view").innerText();
+  if (!resultText.includes("ABSOLUTE ERROR") || !resultText.includes("≤ 1.6 MHA")) {
+    throw new Error(`${name}: H2 result evidence is incomplete: ${resultText}`);
   }
   result.h2Run = await assertLayout(page, `${name}/h2-run`);
 
@@ -312,6 +312,45 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     throw new Error(`${name}: quantum view contains no painted canvas`);
   }
   result.quantumView = quantum;
+
+  await page.locator(".preset-field select").selectOption("lih_active_space");
+  await waitForAnalysis(page);
+  if ((await page.getByLabel("分子与几何").inputValue()) !== "lih_sto3g_1600") {
+    throw new Error(`${name}: LiH preset did not resolve its packaged dataset`);
+  }
+  await page.locator(".run-button").click();
+  await page.getByText("LiH / VQE OBJECTIVE").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const lihText = await page.locator(".biomed-view").innerText();
+  if (!lihText.includes("ERROR REPORTED")) {
+    throw new Error(`${name}: LiH must report error without an accuracy claim`);
+  }
+  result.lihRun = await assertLayout(page, `${name}/lih-run`);
+
+  await page.locator(".preset-field select").selectOption("h2o_minimal");
+  await waitForAnalysis(page);
+  if ((await page.getByLabel("分子与几何").inputValue()) !== "h2o_sto3g_equilibrium") {
+    throw new Error(`${name}: H2O preset did not resolve its packaged dataset`);
+  }
+  await page.getByLabel("测量模型").selectOption("readout_demo");
+  await waitForAnalysis(page);
+  await page.locator(".run-button").click();
+  await page.getByText("H2O / VQE OBJECTIVE").waitFor({ timeout: 60_000 });
+  await page.getByText("READOUT-NOISE QWC", { exact: true }).first().waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  result.h2oNoiseRun = await assertLayout(page, `${name}/h2o-noise-run`);
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await page.getByText("READOUT NOISE", { exact: true }).first().waitFor({ timeout: 20_000 });
+  await waitForPaintedCanvas(page, ".view-stage canvas");
+  result.h2oNoiseQuantum = await assertLayout(page, `${name}/h2o-noise-quantum`);
 
   await page.screenshot({
     path: path.join(outputDir, `biomedicine-${name}.png`),

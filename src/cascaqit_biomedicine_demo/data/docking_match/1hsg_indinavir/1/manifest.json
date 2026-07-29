@@ -36,6 +36,10 @@
     {"path": "domain.json", "sha256": "d485f347cd68a207c3ed9e9f0167028f0fd4db2db3f7c4dec1379063e0f96ca7"},
     {"path": "reference.json", "sha256": "1d773f5741d06180d6c9a55f3bf20b93a785ceae1af2ac4edb5d8c6064341e41"}
   ],
+  "allowed_claims": [
+    "Demonstrate discrete ligand-feature to pocket-feature matching with audited QUBO constraints.",
+    "Compare the quantum-observed candidate, complete-enumeration optimum, and co-crystal-derived reference as separate results."
+  ],
   "limitations": [
     "Only the minimal derived feature model is packaged; the source mmCIF is identified by checksum but is not bundled.",
     "The fixture supports a fixed educational matching problem, not arbitrary ligand docking.",

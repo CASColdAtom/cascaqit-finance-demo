@@ -1,0 +1,45 @@
+{
+  "activeSpace": "2 electrons / 2 orbitals",
+  "atoms": [
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "element": "H",
+      "id": "H1",
+      "x": 25.0,
+      "y": 50.0,
+      "z": 0.0
+    },
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        1.5
+      ],
+      "element": "H",
+      "id": "H2",
+      "x": 75.0,
+      "y": 50.0,
+      "z": 0.0
+    }
+  ],
+  "basis": "STO-3G",
+  "bonds": [
+    {
+      "lengthAngstrom": 1.5,
+      "order": 1,
+      "source": "H1",
+      "target": "H2"
+    }
+  ],
+  "charge": 0,
+  "datasetKey": "h2_sto3g_1500",
+  "geometryLabel": "stretched bond reference",
+  "mapping": "symmetry-conserving Bravyi-Kitaev with two-qubit tapering",
+  "molecule": "H2",
+  "multiplicity": 1,
+  "referenceHartreeFockBitstring": "11"
+}

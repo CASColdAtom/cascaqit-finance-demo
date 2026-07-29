@@ -12,6 +12,10 @@ from typing import Any
 
 from cascaqit.algorithms import QAOA, OptimizerConfig
 
+from cascaqit_biomedicine_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
+)
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.pauli_vqe import hash_payload
 from cascaqit_biomedicine_demo.problem_model import (
@@ -296,6 +300,8 @@ def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, 
             "manifestHash": fixture.manifest_hash,
             "sourceKind": fixture.manifest["source"]["kind"],
             "license": fixture.manifest["source"]["license"],
+            "licenseCheckedAt": fixture.manifest["source"]["license_checked_at"],
+            "allowedClaims": fixture.manifest["allowed_claims"],
             "limitations": fixture.manifest["limitations"],
         },
         "problem": {
@@ -492,10 +498,23 @@ def run_peptide_landscape(
             "datasetId": fixture.manifest["dataset_id"],
             "datasetVersion": fixture.manifest["version"],
             "manifestHash": fixture.manifest_hash,
+            "domainInputHash": hash_payload(
+                {
+                    "preset": preset,
+                    "values": resolved,
+                    "manifestHash": fixture.manifest_hash,
+                }
+            ),
             "problemHash": definition.problem.stable_hash(),
             "hamiltonianHash": qaoa.hamiltonian.stable_hash(),
             "analysisHash": analysis["analysisHash"],
             "ansatzHash": result.ansatz.stable_hash(),
+            "compileHash": result.ansatz.stable_hash(),
+            "backend": local_backend_context(
+                execution_family="problem_qaoa",
+                mode="digital",
+                simulation_method="state_vector",
+            ),
             "executionHash": result.stable_hash(),
             "seed": seed,
             "shots": shots,
@@ -504,8 +523,32 @@ def run_peptide_landscape(
             "networkAccessed": False,
             "wallTimeSeconds": time.perf_counter() - started,
             "optimalityClaim": "not_claimed",
+            "claimBoundary": "finite_2d_coarse_grained_landscape",
         },
     }
+    finalize_stable_audit(
+        payload["audit"],
+        configuration={
+            "preset": preset,
+            "values": resolved,
+            "problemHash": definition.problem.stable_hash(),
+            "hamiltonianHash": qaoa.hamiltonian.stable_hash(),
+            "ansatzHash": result.ansatz.stable_hash(),
+            "layers": layers,
+            "shots": shots,
+            "seed": seed,
+            "optimizer": {
+                "method": "COBYLA",
+                "parameterBudget": parameter_budget,
+                "starts": optimizer_starts,
+            },
+        },
+        outcome={
+            "domain": payload["domain"],
+            "counts": payload["quantum"]["counts"],
+            "parameterHistory": payload["quantum"]["parameterHistory"],
+        },
+    )
     payload["audit"]["resultHash"] = hash_payload(payload)
     return payload
 

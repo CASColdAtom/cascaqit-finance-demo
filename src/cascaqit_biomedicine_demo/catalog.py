@@ -131,24 +131,46 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "电子结构",
         "小分子活性空间基态能量估计",
         "PAULI HAMILTONIAN / DIGITAL VQE",
-        "从可审计的 H2 活性空间 Hamiltonian 出发，执行 VQE 并比较精确基态能量。",
+        (
+            "从可审计的 H2、LiH 或 H2O 活性空间 Hamiltonian 出发，"
+            "执行 VQE 并比较精确基态能量。"
+        ),
         "atom",
         "emerald",
-        (("h2_equilibrium", "H2 / 0.735 Å"),),
+        (
+            ("h2_bond_scan", "H2 键长扫描"),
+            ("lih_active_space", "LiH 活性空间"),
+            ("h2o_minimal", "H2O 最小活性空间"),
+        ),
         (
             _select(
-                "dataset", "分子与几何", (("h2_sto3g_0735", "H2 / STO-3G / 0.735 Å"),)
+                "dataset",
+                "分子与几何",
+                (
+                    ("h2_sto3g_0500", "H2 / 0.500 Å"),
+                    ("h2_sto3g_0735", "H2 / 0.735 Å"),
+                    ("h2_sto3g_1500", "H2 / 1.500 Å"),
+                    ("lih_sto3g_1600", "LiH / 1.600 Å / 2e-3o"),
+                    (
+                        "h2o_sto3g_equilibrium",
+                        "H2O / 0.958 Å / 104.45° / 2e-3o",
+                    ),
+                ),
             ),
-            _select("active_space", "活性空间", (("2e_2o", "2e / 2o"),)),
+            _select(
+                "noise_model",
+                "测量模型",
+                (("ideal", "理想 QWC"), ("readout_demo", "读出噪声对照")),
+            ),
         ),
-        {"dataset": "h2_sto3g_0735", "active_space": "2e_2o"},
+        {"dataset": "h2_sto3g_0735", "noise_model": "ideal"},
         "digital",
         "pauli_vqe",
         "ground_state_energy",
         "electronic-structure",
         ("analysis", "vqe", "qwc_measurement", "exact_reference", "audit"),
         "available",
-        _VQE_PROFILE,
+        {**_VQE_PROFILE, "maxLayers": 2},
     ),
     "docking_match": BiomedicineScenarioSpec(
         "docking_match",
@@ -186,7 +208,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "audit",
         ),
         "available",
-        {**_QAOA_PROFILE, "shots": 128, "seed": 7},
+        {**_QAOA_PROFILE, "shots": 128, "seed": 8},
     ),
     "active_center": BiomedicineScenarioSpec(
         "active_center",
@@ -254,7 +276,13 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "peptide-landscape",
         ("analysis", "digital_qaoa", "classic_landscape", "audit"),
         "available",
-        {**_QAOA_PROFILE, "shots": 256, "seed": 7, "parameterBudget": 24},
+        {
+            **_QAOA_PROFILE,
+            "shots": 512,
+            "seed": 7,
+            "parameterBudget": 40,
+            "optimizerStarts": 2,
+        },
     ),
 }
 

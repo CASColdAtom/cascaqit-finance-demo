@@ -15,6 +15,10 @@ from cascaqit.algorithms.measurement import (
     build_pauli_measurement_plan,
 )
 
+from cascaqit_biomedicine_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
+)
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.pauli_vqe import (
     build_pauli_hamiltonian,
@@ -173,6 +177,8 @@ def _analysis(preset: str, values: dict[str, float]) -> dict[str, Any]:
             "manifestHash": fixture.manifest_hash,
             "sourceKind": fixture.manifest["source"]["kind"],
             "license": fixture.manifest["source"]["license"],
+            "licenseCheckedAt": fixture.manifest["source"]["license_checked_at"],
+            "allowedClaims": fixture.manifest["allowed_claims"],
             "limitations": fixture.manifest["limitations"],
         },
         "problem": {
@@ -362,6 +368,7 @@ def run_active_center(
                 "shotsPerGroup": shots,
                 "totalMeasurementShots": sampled.total_shots,
                 "evaluations": len(result.evaluations),
+                "noiseModel": "ideal",
             },
             "circuit": {
                 "qubits": list(circuit["qubits"]),
@@ -386,9 +393,13 @@ def run_active_center(
                         "shots": item.shots,
                         "counts": dict(item.counts),
                         "termExpectations": dict(item.term_expectations),
+                        "termStandardErrors": dict(item.term_standard_errors),
+                        "executionEvidence": item.execution_evidence.to_dict(),
                     }
                     for item in sampled.group_results
                 ],
+                "noisyGroups": [],
+                "noiseModelHash": None,
             },
             "termination": result_dict["termination"],
             "ansatz": result_dict["ansatz"],
@@ -409,11 +420,24 @@ def run_active_center(
             "datasetId": fixture.manifest["dataset_id"],
             "datasetVersion": fixture.manifest["version"],
             "manifestHash": fixture.manifest_hash,
+            "domainInputHash": hash_payload(
+                {
+                    "preset": preset,
+                    "values": resolved,
+                    "manifestHash": fixture.manifest_hash,
+                }
+            ),
             "hamiltonianHash": hamiltonian_hash,
             "referenceHamiltonianHash": hamiltonian_hash,
             "analysisHash": analysis["analysisHash"],
             "ansatzHash": result.ansatz.stable_hash(),
+            "compileHash": result.ansatz.stable_hash(),
             "measurementPlanHash": sampled.plan.plan_hash,
+            "backend": local_backend_context(
+                execution_family="pauli_vqe",
+                mode="digital",
+                simulation_method="state_vector",
+            ),
             "executionHash": result.stable_hash(),
             "seed": seed,
             "shotsPerGroup": shots,
@@ -421,9 +445,36 @@ def run_active_center(
             "cloudExecution": False,
             "networkAccessed": False,
             "wallTimeSeconds": time.perf_counter() - started,
+            "optimalityClaim": "not_claimed",
             "claimBoundary": "effective_spin_model_only",
         },
     }
+    finalize_stable_audit(
+        payload["audit"],
+        configuration={
+            "preset": preset,
+            "values": resolved,
+            "hamiltonianHash": hamiltonian_hash,
+            "ansatzHash": result.ansatz.stable_hash(),
+            "measurementPlanHash": sampled.plan.plan_hash,
+            "layers": layers,
+            "shotsPerGroup": shots,
+            "seed": seed,
+            "optimizer": {
+                "method": "COBYLA",
+                "parameterBudget": parameter_budget,
+                "starts": optimizer_starts,
+            },
+        },
+        outcome={
+            "domain": payload["domain"],
+            "finalCounts": payload["quantum"]["counts"],
+            "groupCounts": [
+                item["counts"] for item in payload["quantum"]["measurement"]["groups"]
+            ],
+            "parameterHistory": payload["quantum"]["parameterHistory"],
+        },
+    )
     payload["audit"]["resultHash"] = hash_payload(payload)
     return payload
 

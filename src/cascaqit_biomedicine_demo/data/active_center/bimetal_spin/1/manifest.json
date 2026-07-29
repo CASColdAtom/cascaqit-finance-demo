@@ -4,7 +4,8 @@
   "source": {
     "kind": "project_generated_effective_model",
     "uri": null,
-    "license": "project_generated"
+    "license": "project_generated",
+    "license_checked_at": "2026-07-30"
   },
   "generation": {
     "tool": "cascaqit-biomedicine fixture curation",
@@ -29,6 +30,10 @@
   "reference": {
     "method": "exact diagonalization of the request-resolved packaged Pauli Hamiltonian"
   },
+  "allowed_claims": [
+    "Compare CASCAQit VQE with exact diagonalization of the same effective spin Hamiltonian.",
+    "Explain exchange coupling, local fields, Pauli observables, and spin-correlation measurements."
+  ],
   "limitations": [
     "This is a two-spin low-energy effective model, not a full metal-enzyme electronic-structure calculation.",
     "Model context nodes are not electronic orbitals and are not a neutral-atom hardware layout.",

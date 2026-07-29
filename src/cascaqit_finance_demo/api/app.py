@@ -37,6 +37,7 @@ from cascaqit_biomedicine_demo.docking import (
 )
 from cascaqit_biomedicine_demo.electronic_structure import (
     analyze_electronic_structure,
+    electronic_values,
     run_electronic_structure,
 )
 from cascaqit_biomedicine_demo.peptide_landscape import (
@@ -253,7 +254,12 @@ def _biomedicine_request(
             status_code=422,
             detail=f"unknown control values: {', '.join(sorted(unknown))}",
         )
-    if case_id == "docking_match":
+    if case_id == "electronic_structure":
+        try:
+            values = electronic_values(preset, request.values)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    elif case_id == "docking_match":
         try:
             values = docking_values(preset, request.values)
         except ValueError as exc:
@@ -287,16 +293,19 @@ def analyze_domain_scenario(
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     preset, values = _biomedicine_request(case_id, request)
-    if case_id == "electronic_structure":
-        analysis = analyze_electronic_structure()
-    elif case_id == "docking_match":
-        analysis = analyze_docking_match(preset, values)
-    elif case_id == "active_center":
-        analysis = analyze_active_center(preset, values)
-    elif case_id == "peptide_landscape":
-        analysis = analyze_peptide_landscape(preset, values)
-    else:
-        analysis = preview_analysis(case_id)
+    try:
+        if case_id == "electronic_structure":
+            analysis = analyze_electronic_structure(preset, values)
+        elif case_id == "docking_match":
+            analysis = analyze_docking_match(preset, values)
+        elif case_id == "active_center":
+            analysis = analyze_active_center(preset, values)
+        elif case_id == "peptide_landscape":
+            analysis = analyze_peptide_landscape(preset, values)
+        else:
+            analysis = preview_analysis(case_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
     scenario["values"] = values
     return {"scenario": scenario, "preset": preset, "analysis": analysis}
@@ -430,6 +439,8 @@ async def run_domain_scenario(
         else:
             run = await run_in_threadpool(
                 run_electronic_structure,
+                preset=preset,
+                values=values,
                 shots=shots,
                 seed=seed,
                 layers=layers,

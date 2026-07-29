@@ -28,7 +28,6 @@ from packaging.version import Version
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SDK_ROOT = ROOT.parent / "cascaqit-new" / "CASCAQit"
 TEMPLATE_ROOT = ROOT / "packaging" / "windows"
-FRONTEND_DIST = ROOT / "frontend" / "dist"
 PACKAGE_STATIC = ROOT / "src" / "cascaqit_finance_demo" / "static"
 BUNDLE_NAME = "cascaqit-finance-demo-windows-x64-py311"
 PYTHON_VERSION = "3.11.9"
@@ -105,11 +104,13 @@ def _copy_windows_template(template: Path, destination: Path) -> None:
 
 
 def _sync_frontend() -> None:
-    """构建 React 并同步到 Python 包内，使 wheel 可独立提供完整页面。"""
+    """Build React directly into the package and validate release assets."""
 
     _run(["npm", "run", "build"], cwd=ROOT / "frontend")
-    _reset_directory(PACKAGE_STATIC)
-    shutil.copytree(FRONTEND_DIST, PACKAGE_STATIC, dirs_exist_ok=True)
+    if not (PACKAGE_STATIC / "index.html").is_file():
+        raise RuntimeError("前端构建未生成包内 static/index.html")
+    if list(PACKAGE_STATIC.rglob("*.map")):
+        raise RuntimeError("客户发布包不得包含前端 source map")
 
 
 def _build_local_wheels(sdk_root: Path, build_root: Path) -> tuple[Path, Path]:

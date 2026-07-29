@@ -1,11 +1,62 @@
 {
+  "constant": -0.332404251323881,
   "hamiltonian_id": "electronic.h2.sto3g.0735",
-  "constant": -1.052373245772859,
-  "logical_order": ["q0", "q1"],
+  "logical_order": [
+    "q0",
+    "q1"
+  ],
   "terms": [
-    {"term_id": "z0", "operator": "Z(q0)", "coefficient": 0.39793742484318045, "factors": [["q0", "Z"]]},
-    {"term_id": "z1", "operator": "Z(q1)", "coefficient": -0.39793742484318045, "factors": [["q1", "Z"]]},
-    {"term_id": "zz", "operator": "Z(q0) Z(q1)", "coefficient": -0.01128010425623538, "factors": [["q0", "Z"], ["q1", "Z"]]},
-    {"term_id": "xx", "operator": "X(q0) X(q1)", "coefficient": 0.18093119978423156, "factors": [["q0", "X"], ["q1", "X"]]}
+    {
+      "coefficient": 0.180931199784231,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) X(q1)",
+      "term_id": "pauli.x0.x1"
+    },
+    {
+      "coefficient": 0.397937424843179,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0)",
+      "term_id": "pauli.z0"
+    },
+    {
+      "coefficient": 0.0112801042562349,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1)",
+      "term_id": "pauli.z0.z1"
+    },
+    {
+      "coefficient": 0.397937424843179,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1)",
+      "term_id": "pauli.z1"
+    }
   ]
 }

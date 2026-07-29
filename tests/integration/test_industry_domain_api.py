@@ -1,7 +1,12 @@
 """Unified industry-domain API integration tests."""
 
+from __future__ import annotations
+
+import shutil
+
 from fastapi.testclient import TestClient
 
+from cascaqit_biomedicine_demo import fixtures
 from cascaqit_finance_demo.api.app import app
 
 client = TestClient(app)
@@ -28,7 +33,7 @@ def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
 def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     response = client.post(
         "/api/domains/biomedicine/scenarios/electronic_structure/analyze",
-        json={"preset": "h2_equilibrium", "values": {}},
+        json={"preset": "h2_bond_scan", "values": {}},
     )
     assert response.status_code == 200
     payload = response.json()
@@ -36,6 +41,66 @@ def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     assert payload["analysis"]["problem"]["type"] == "pauli_hamiltonian"
     assert payload["analysis"]["domain"]["molecule"] == "H2"
     assert payload["analysis"]["resource"]["measurementGroups"] == 2
+    assert len(payload["scenario"]["presets"]) == 3
+    assert len(payload["analysis"]["domain"]["bondScanReference"]) == 3
+
+
+def test_h2o_api_returns_separate_ideal_and_noisy_measurement_evidence() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/electronic_structure/run",
+        json={
+            "preset": "h2o_minimal",
+            "values": {"noise_model": "readout_demo"},
+            "mode": "digital",
+            "algorithm": "vqe",
+            "shots": 32,
+            "seed": 7,
+            "layers": 1,
+            "parameter_budget": 40,
+            "optimizer_starts": 2,
+        },
+    )
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["domain"]["molecule"] == "H2O"
+    assert run["domain"]["withinChemicalAccuracy"] is None
+    assert run["quantum"]["measurement"]["groups"]
+    assert run["quantum"]["measurement"]["noisyGroups"]
+    assert run["audit"]["noiseModelHash"]
+
+
+def test_electronic_structure_rejects_unsupported_mode_with_422() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/electronic_structure/run",
+        json={"preset": "h2_bond_scan", "mode": "analog"},
+    )
+    assert response.status_code == 422
+    assert "Digital VQE" in response.json()["detail"]
+
+
+def test_corrupted_electronic_fixture_returns_422_without_local_path(
+    tmp_path, monkeypatch
+) -> None:
+    copied_data = tmp_path / "data"
+    shutil.copytree(fixtures.DATA_ROOT, copied_data)
+    pauli = (
+        copied_data
+        / "electronic_structure"
+        / "h2_sto3g"
+        / "1"
+        / "pauli.json"
+    )
+    pauli.write_text(pauli.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    monkeypatch.setattr(fixtures, "DATA_ROOT", copied_data)
+
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/electronic_structure/analyze",
+        json={"preset": "h2_bond_scan", "values": {}},
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail == "fixture checksum mismatch: pauli.json"
+    assert str(tmp_path) not in detail
 
 
 def test_docking_analysis_exposes_hybrid_gate_and_offline_source() -> None:

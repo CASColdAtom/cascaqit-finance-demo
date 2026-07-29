@@ -2,6 +2,8 @@
 
 - [生物医药量子实验台 PRD](biomedicine_demo_prd.md)：定义四个正式场景、用户流程、数据要求、展示边界和发布条件。
 - [生物医药量子实验台架构设计](biomedicine_demo_architecture.md)：说明 Pauli/VQE 与组合优化两条执行链、数据 manifest、API、前端、审计和测试结构。
+- [生物医药客户演示手册](biomedicine_customer_demo_guide.md)：说明金融与生物医药如何共用工作台、四场景讲解顺序、可解释结论和禁止外推内容。
+- [生物医药数据来源清单](biomedicine_data_source_inventory.md)：登记 8 组 fixture 的来源、许可证、生成工具、checksum、允许说法和离线发布检查。
 - [客户演示技术讲解手册](customer_demo_technical_guide.md)：面向金融和量子计算初学者，解释业务建模、QUBO、Digital/Hybrid/Analog 原理、七个场景、页面解读、演示话术和当前限制。
 - [逐场景讲解与页面解读](scenario_presentation_guide.md)：逐项说明七个场景的业务问题、输入、输出、建模、算法选择、页面元素，并结合实际运行截图讲解固定配置结果。
 - [金融 Demo 架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
@@ -14,6 +16,7 @@
 - [生物医药第二阶段实现报告](process/biomedicine_phase_2_docking_report.md)：记录 1HSG 离线派生数据、构象匹配 QUBO、Hybrid 门禁、三类结果分离、固定 seed 校准和浏览器验收。
 - [生物医药第三阶段实现报告](process/biomedicine_phase_3_active_center_report.md)：记录双金属有效自旋 fixture、Digital VQE、QWC 观测量、精确对角化、固定 seed 校准和三视口验收。
 - [生物医药第四阶段实现报告](process/biomedicine_phase_4_peptide_landscape_report.md)：记录二维自回避构象库、one-hot QUBO、Digital QAOA、完整经典能景和四场景联调验收。
+- [生物医药第五阶段发布验收报告](process/biomedicine_phase_5_release_report.md)：记录 12 个预设的固定 seed 校准、数据来源复核、浏览器与打包门禁、CASCAQit 版本验证和 Windows 实机验收限制。
 - [前后端分离金融工作台实现报告](process/problem_api_workbench_implementation_report.md)：记录 FastAPI + React 结构、七场景执行、状态隔离、自动验证和人工验收缺口。
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。

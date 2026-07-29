@@ -110,12 +110,21 @@ function EdgeTable({ edges }: { edges: BiomedicineStructureEdge[] }) {
   );
 }
 
-function BoundaryList({ values }: { values: string[] }) {
+function BoundaryList({ values, allowed = false }: { values: string[]; allowed?: boolean }) {
   return (
-    <div className="boundary-list">
+    <div className={`boundary-list ${allowed ? "allowed-list" : ""}`}>
       {values.map((value) => (
-        <span key={value}><CircleAlert size={14} aria-hidden="true" />{value}</span>
+        <span key={value}>{allowed ? <CheckCircle2 size={14} aria-hidden="true" /> : <CircleAlert size={14} aria-hidden="true" />}{value}</span>
       ))}
+    </div>
+  );
+}
+
+function InterpretationBoundary({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  return (
+    <div className="interpretation-boundary">
+      <div><small>SUPPORTED INTERPRETATION</small><BoundaryList values={analysis.dataset.allowedClaims ?? []} allowed /></div>
+      <div><small>LIMITATIONS</small><BoundaryList values={analysis.dataset.limitations} /></div>
     </div>
   );
 }
@@ -137,7 +146,7 @@ export function BiomedicineResultView({
           </div>
           <StructureDiagram analysis={analysis} />
         </section>
-        <BoundaryList values={analysis.dataset.limitations} />
+        <InterpretationBoundary analysis={analysis} />
       </div>
     );
   }
@@ -145,36 +154,58 @@ export function BiomedicineResultView({
   if (isActiveCenterRun(run)) return <ActiveCenterResultView analysis={analysis} run={run} />;
   if (isPeptideRun(run)) return <PeptideResultView analysis={analysis} run={run} />;
   const result = run.domain;
+  const accuracyApplies = result.withinChemicalAccuracy !== null;
+  const energyRows: Array<[string, number]> = [
+    ["Hartree-Fock", run.comparison.hartreeFockEnergy],
+    ["VQE objective", run.comparison.vqeExactEnergy],
+    ["Ideal QWC", run.comparison.vqeSampledEnergy],
+    ["Exact", run.comparison.exactGroundEnergy],
+  ];
+  if (run.comparison.vqeNoisySampledEnergy !== null) {
+    energyRows.splice(3, 0, ["Noisy QWC", run.comparison.vqeNoisySampledEnergy]);
+  }
   return (
     <div className="view-stack biomed-view">
       <div className="biomed-metric-band">
-        <div><small>VQE EXACT OBJECTIVE</small><strong>{result.exactOptimizedEnergy.toFixed(6)}</strong><span>Hartree</span></div>
-        <div><small>QWC CONFIRMATION</small><strong>{result.sampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.sampledStandardError.toFixed(4)}</span></div>
+        <div><small>{result.molecule} / VQE OBJECTIVE</small><strong>{result.exactOptimizedEnergy.toFixed(6)}</strong><span>Hartree</span></div>
+        <div><small>IDEAL QWC</small><strong>{result.sampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.sampledStandardError.toFixed(4)}</span></div>
+        {result.noisySampledConfirmationEnergy !== null ? <div><small>READOUT-NOISE QWC</small><strong>{result.noisySampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.noisySampledStandardError?.toFixed(4)}</span></div> : null}
         <div><small>EXACT REFERENCE</small><strong>{result.referenceEnergy.toFixed(6)}</strong><span>Hartree</span></div>
-        <div data-pass={result.withinChemicalAccuracy}><small>ABSOLUTE ERROR</small><strong>{(result.absoluteErrorHartree * 1000).toFixed(3)}</strong><span>mHa</span></div>
+        <div data-pass={result.withinChemicalAccuracy ?? undefined}><small>ABSOLUTE ERROR</small><strong>{(result.absoluteErrorHartree * 1000).toFixed(3)}</strong><span>{(result.relativeError * 100).toFixed(4)}%</span></div>
       </div>
       <section className="data-section energy-comparison">
         <div className="subsection-head">
           <div><span className="section-kicker"><Activity size={14} /> ENERGY EVIDENCE</span><h3>基态能量对照</h3></div>
-          <span className={`data-chip ${result.withinChemicalAccuracy ? "source-quantum" : "status-preview"}`}>
-            {result.withinChemicalAccuracy ? <CheckCircle2 size={13} /> : <CircleAlert size={13} />}
-            {result.withinChemicalAccuracy ? "≤ 1.6 mHa" : "> 1.6 mHa"}
+          <span className={`data-chip ${result.withinChemicalAccuracy === true ? "source-quantum" : accuracyApplies ? "status-preview" : ""}`}>
+            {result.withinChemicalAccuracy === true ? <CheckCircle2 size={13} /> : accuracyApplies ? <CircleAlert size={13} /> : null}
+            {accuracyApplies ? result.withinChemicalAccuracy ? "≤ 1.6 mHa" : "> 1.6 mHa" : "ERROR REPORTED"}
           </span>
         </div>
         <div className="energy-axis">
-          {[
-            ["Hartree-Fock", run.comparison.hartreeFockEnergy],
-            ["VQE", run.comparison.vqeExactEnergy],
-            ["Exact", run.comparison.exactGroundEnergy],
-          ].map(([label, value]) => (
-            <div key={label as string} style={{ "--energy-position": `${energyPosition(value as number, run)}%` } as React.CSSProperties}>
-              <i /><strong>{label}</strong><span>{(value as number).toFixed(6)} Ha</span>
+          {energyRows.map(([label, value]) => (
+            <div key={label} style={{ "--energy-position": `${energyPosition(value, run)}%` } as React.CSSProperties}>
+              <i /><strong>{label}</strong><span>{value.toFixed(6)} Ha</span>
             </div>
           ))}
         </div>
         <p className="subsection-note">{result.estimatorNote}</p>
       </section>
-      <BoundaryList values={analysis.dataset.limitations} />
+      {analysis.domain.bondScanReference?.length ? (
+        <section className="data-section bond-scan-reference">
+          <div className="subsection-head"><div><span className="section-kicker">H2 BOND SCAN / CLASSIC REFERENCE</span><h3>固定几何能量趋势</h3></div><span className="data-chip">3 POINTS</span></div>
+          <div className="bond-scan-points">
+            {analysis.domain.bondScanReference.map((point) => (
+              <div key={point.dataset} data-selected={point.selected}>
+                <small>{point.bondLengthAngstrom.toFixed(3)} Å</small>
+                <strong>{point.exactGroundEnergy.toFixed(6)}</strong>
+                <span>HF {point.hartreeFockEnergy.toFixed(6)} Ha</span>
+              </div>
+            ))}
+          </div>
+          <p className="subsection-note">三点均来自各自固化 Pauli Hamiltonian 的经典精确对角化；当前 VQE 只执行选中的几何点。</p>
+        </section>
+      ) : null}
+      <InterpretationBoundary analysis={analysis} />
     </div>
   );
 }
@@ -203,7 +234,7 @@ function PeptideResultView({ analysis, run }: { analysis: BiomedicineAnalysisPay
         </div>
         <p className="subsection-note">{run.domain.interpretation}</p>
       </section>
-      <BoundaryList values={analysis.dataset.limitations} />
+      <InterpretationBoundary analysis={analysis} />
     </div>
   );
 }
@@ -248,7 +279,7 @@ function ActiveCenterResultView({
           <p className="subsection-note">{result.interpretation}</p>
         </section>
       </div>
-      <BoundaryList values={analysis.dataset.limitations} />
+      <InterpretationBoundary analysis={analysis} />
     </div>
   );
 }
@@ -324,16 +355,22 @@ function DockingResultView({
         </div>
         <p className="subsection-note">{run.domain.interpretation}</p>
       </section>
-      <BoundaryList values={analysis.domain.limitations} />
+      <InterpretationBoundary analysis={analysis} />
     </div>
   );
 }
 
 function energyPosition(value: number, run: ElectronicStructureRunPayload) {
-  const values = [run.comparison.hartreeFockEnergy, run.comparison.exactGroundEnergy];
+  const values = [
+    run.comparison.hartreeFockEnergy,
+    run.comparison.exactGroundEnergy,
+    run.comparison.vqeExactEnergy,
+    run.comparison.vqeSampledEnergy,
+    ...(run.comparison.vqeNoisySampledEnergy === null ? [] : [run.comparison.vqeNoisySampledEnergy]),
+  ];
   const minimum = Math.min(...values) - 0.005;
   const maximum = Math.max(...values) + 0.005;
-  return ((value - minimum) / (maximum - minimum)) * 100;
+  return Math.max(0, Math.min(100, ((value - minimum) / (maximum - minimum)) * 100));
 }
 
 export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
@@ -438,6 +475,18 @@ export function BiomedicineQuantumView({
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>末端采样分布</h3></div></div><CountsChart counts={counts} /></section>
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>VQE 参数目标值</h3></div></div><ParameterChart history={history} /></section>
       </div>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker">QWC EXECUTION EVIDENCE</span><h3>理想与带噪测量组</h3></div><span className="data-chip">{(run.quantum.summary.noiseModel ?? "ideal").toUpperCase()}</span></div>
+        <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Model</th><th>Group</th><th>Basis</th><th>Shots</th><th>Top count</th></tr></thead><tbody>
+          {[
+            ...run.quantum.measurement.groups.map((group) => ({ ...group, model: "IDEAL" })),
+            ...(run.quantum.measurement.noisyGroups ?? []).map((group) => ({ ...group, model: "READOUT NOISE" })),
+          ].map((group) => {
+            const top = Object.entries(group.counts).sort((left, right) => right[1] - left[1])[0];
+            return <tr key={`${group.model}-${group.index}`}><td>{group.model}</td><td>{group.index + 1}</td><td className="mono">{Object.entries(group.basis).map(([qubit, basis]) => `${basis}(${qubit})`).join(" · ")}</td><td>{group.shots}</td><td className="mono">{top ? `${top[0]} / ${top[1]}` : "N/A"}</td></tr>;
+          })}
+        </tbody></table></div>
+      </section>
     </div>
   );
 }
@@ -499,31 +548,49 @@ export function BiomedicineAuditView({
     ? isDockingRun(run)
       ? [
           ["Manifest", run.audit.manifestHash],
+          ["Domain Input", run.audit.domainInputHash],
           ["Problem", run.audit.problemHash],
           ["Analysis", run.audit.analysisHash],
           ["Compile", run.audit.compileHash],
+          ["Backend", run.audit.backendHash],
+          ["Configuration", run.audit.configurationHash],
           ["Execution", run.audit.executionHash],
           ["Result", run.audit.resultHash],
+          ["Outcome", run.audit.outcomeHash],
           ["Presentation", run.audit.resultPresentationHash],
+          ["Report", run.audit.reportHash],
         ]
       : isPeptideRun(run)
         ? [
             ["Manifest", run.audit.manifestHash],
+            ["Domain Input", run.audit.domainInputHash],
             ["Problem", run.audit.problemHash],
             ["Hamiltonian", run.audit.hamiltonianHash],
             ["Analysis", run.audit.analysisHash],
             ["Ansatz", run.audit.ansatzHash],
+            ["Compile", run.audit.compileHash],
+            ["Backend", run.audit.backendHash],
+            ["Configuration", run.audit.configurationHash],
             ["Execution", run.audit.executionHash],
             ["Result", run.audit.resultHash],
+            ["Outcome", run.audit.outcomeHash],
+            ["Report", run.audit.reportHash],
           ]
         : [
           ["Manifest", run.audit.manifestHash],
+          ["Source Input", run.audit.sourceInputHash],
+          ["Domain Input", run.audit.domainInputHash],
           ["Hamiltonian", run.audit.hamiltonianHash],
           ["Analysis", run.audit.analysisHash],
           ["Ansatz", run.audit.ansatzHash],
+          ["Backend", run.audit.backendHash],
+          ["Noise Model", run.audit.noiseModelHash],
           ["Measurement", run.audit.measurementPlanHash],
+          ["Configuration", run.audit.configurationHash],
           ["Execution", run.audit.executionHash],
           ["Result", run.audit.resultHash],
+          ["Outcome", run.audit.outcomeHash],
+          ["Report", run.audit.reportHash],
         ]
     : [
         ["Manifest", analysis.dataset.manifestHash],
@@ -534,7 +601,7 @@ export function BiomedicineAuditView({
     <div className="view-stack biomed-view audit-view">
       <div className="audit-grid">
         <section className="audit-section"><span className="section-kicker">DATASET CONTEXT</span><dl><div><dt>Dataset</dt><dd>{analysis.dataset.id}</dd></div><div><dt>Version</dt><dd>{analysis.dataset.version}</dd></div><div><dt>Source</dt><dd>{analysis.dataset.sourceKind}</dd></div><div><dt>License</dt><dd>{analysis.dataset.license}</dd></div></dl></section>
-        <section className="audit-section"><span className="section-kicker">SOURCE HASH CHAIN</span><div className="hash-chain">{rows.map(([label, value], index) => <div key={label}><span>{String(index + 1).padStart(2, "0")}</span><small>{label}</small><code>{value}</code></div>)}</div></section>
+        <section className="audit-section"><span className="section-kicker">SOURCE HASH CHAIN</span><div className="hash-chain">{rows.filter((row) => typeof row[1] === "string" && row[1].length > 0).map(([label, value], index) => <div key={label}><span>{String(index + 1).padStart(2, "0")}</span><small>{label}</small><code>{value}</code></div>)}</div></section>
       </div>
       <section className="audit-json-section"><div className="subsection-head"><div><span className="section-kicker"><FileJson size={14} /> MACHINE EVIDENCE</span><h3>结构化审计载荷</h3></div></div><pre>{JSON.stringify(run?.audit ?? { dataset: analysis.dataset, analysisHash: analysis.analysisHash, execution: "not_run" }, null, 2)}</pre></section>
     </div>

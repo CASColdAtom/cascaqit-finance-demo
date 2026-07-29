@@ -256,7 +256,7 @@ export function ControlPanel(props: ControlPanelProps) {
             <label>
               <span>Seed</span>
               <select value={props.seed} onChange={(event) => props.onSeed(Number(event.target.value))}>
-                {[7, 19, 23, 41].map((value) => (
+                {[0, 1, 3, 5, 6, 7, 8, 19, 23, 41].map((value) => (
                   <option key={value}>{value}</option>
                 ))}
               </select>

@@ -293,7 +293,11 @@ export interface BiomedicineAnalysisPayload {
     license: string;
     sourceUri?: string;
     sourceChecksum?: string;
+    sourceInputHash?: string;
+    generationScriptHash?: string;
     licensePolicyUri?: string;
+    licenseCheckedAt?: string;
+    allowedClaims?: string[];
     limitations: string[];
   };
   problem: {
@@ -346,6 +350,9 @@ export interface BiomedicineAnalysisPayload {
   domain: {
     kind: string;
     modelLevel?: string;
+    datasetKey?: string;
+    preset?: string;
+    noiseModel?: string;
     molecule?: string;
     geometryLabel?: string;
     bondLengthAngstrom?: number;
@@ -354,6 +361,14 @@ export interface BiomedicineAnalysisPayload {
     basis?: string;
     activeSpace?: string;
     mapping?: string;
+    referenceHartreeFockBitstring?: string;
+    bondScanReference?: Array<{
+      dataset: string;
+      bondLengthAngstrom: number;
+      exactGroundEnergy: number;
+      hartreeFockEnergy: number;
+      selected: boolean;
+    }>;
     sequence?: string;
     conformations?: Array<{
       id: string;
@@ -610,13 +625,19 @@ export interface ElectronicStructureRunPayload {
   analysis: BiomedicineAnalysisPayload;
   domain: {
     kind: "ground_state_energy";
+    molecule: string;
+    datasetKey: string;
     exactOptimizedEnergy: number;
     sampledConfirmationEnergy: number;
     sampledStandardError: number;
+    noisySampledConfirmationEnergy: number | null;
+    noisySampledStandardError: number | null;
     referenceEnergy: number;
     absoluteErrorHartree: number;
-    chemicalAccuracyThresholdHartree: number;
-    withinChemicalAccuracy: boolean;
+    relativeError: number;
+    chemicalAccuracyThresholdHartree: number | null;
+    withinChemicalAccuracy: boolean | null;
+    accuracyClaim: "h2_equilibrium_benchmark" | "error_report_only";
     estimatorNote: string;
   };
   quantum: {
@@ -630,6 +651,7 @@ export interface ElectronicStructureRunPayload {
       shotsPerGroup: number;
       totalMeasurementShots: number;
       evaluations: number;
+      noiseModel?: "ideal" | "readout_demo";
     };
     circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
     counts: Record<string, number>;
@@ -637,6 +659,7 @@ export interface ElectronicStructureRunPayload {
       index: number;
       objective: number;
       parameters: Record<string, number>;
+      selected?: boolean;
     }>;
     measurement: {
       planHash: string;
@@ -645,7 +668,20 @@ export interface ElectronicStructureRunPayload {
         basis: Record<string, string>;
         shots: number;
         counts: Record<string, number>;
+        termExpectations?: Record<string, number>;
+        termStandardErrors?: Record<string, number>;
+        executionEvidence?: Record<string, unknown>;
       }>;
+      noisyGroups?: Array<{
+        index: number;
+        basis: Record<string, string>;
+        shots: number;
+        counts: Record<string, number>;
+        termExpectations?: Record<string, number>;
+        termStandardErrors?: Record<string, number>;
+        executionEvidence?: Record<string, unknown>;
+      }>;
+      noiseModelHash?: string | null;
     };
     termination: Record<string, string | number | boolean | null>;
     ansatz: Record<string, unknown>;
@@ -656,6 +692,7 @@ export interface ElectronicStructureRunPayload {
     exactGroundEnergy: number;
     vqeExactEnergy: number;
     vqeSampledEnergy: number;
+    vqeNoisySampledEnergy: number | null;
   };
   audit: {
     domainId: "biomedicine";
@@ -663,12 +700,21 @@ export interface ElectronicStructureRunPayload {
     datasetId: string;
     datasetVersion: string;
     manifestHash: string;
+    sourceInputHash?: string;
+    domainInputHash?: string;
     hamiltonianHash: string;
     analysisHash: string;
     ansatzHash: string;
+    compileHash?: string;
     measurementPlanHash: string;
+    backend?: Record<string, unknown>;
+    backendHash?: string;
+    configurationHash: string;
+    outcomeHash: string;
+    noiseModelHash?: string | null;
     executionHash: string;
     resultHash: string;
+    reportHash?: string;
     seed: number;
     shotsPerGroup: number;
     warmStartSource?: string;
@@ -676,6 +722,8 @@ export interface ElectronicStructureRunPayload {
     cloudExecution: false;
     networkAccessed: false;
     wallTimeSeconds: number;
+    optimalityClaim?: string;
+    claimBoundary?: string;
   };
 }
 
@@ -788,12 +836,18 @@ export interface DockingRunPayload {
     datasetId: string;
     datasetVersion: string;
     manifestHash: string;
+    domainInputHash: string;
     problemHash: string;
     analysisHash: string;
     compileHash: string;
     executionHash: string;
     resultHash: string;
     resultPresentationHash: string;
+    backend: Record<string, unknown>;
+    backendHash: string;
+    configurationHash: string;
+    outcomeHash: string;
+    reportHash: string;
     seed: number;
     shots: number;
     hardwareExecution: false;
@@ -801,6 +855,7 @@ export interface DockingRunPayload {
     networkAccessed: false;
     wallTimeSeconds: number;
     optimalityClaim: string;
+    claimBoundary: string;
   };
 }
 
@@ -860,12 +915,19 @@ export interface PeptideRunPayload {
     datasetId: string;
     datasetVersion: string;
     manifestHash: string;
+    domainInputHash: string;
     problemHash: string;
     hamiltonianHash: string;
     analysisHash: string;
     ansatzHash: string;
+    compileHash: string;
+    backend: Record<string, unknown>;
+    backendHash: string;
+    configurationHash: string;
+    outcomeHash: string;
     executionHash: string;
     resultHash: string;
+    reportHash: string;
     seed: number;
     shots: number;
     hardwareExecution: false;
@@ -873,6 +935,7 @@ export interface PeptideRunPayload {
     networkAccessed: false;
     wallTimeSeconds: number;
     optimalityClaim: string;
+    claimBoundary: string;
   };
 }
 

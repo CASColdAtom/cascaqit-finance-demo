@@ -1,0 +1,943 @@
+{
+  "schema": "biomedicine.release-calibration.v1",
+  "generatedAt": "2026-07-29T18:07:09.218029+00:00",
+  "product": "中科酷原行业量子实验台",
+  "executionBoundary": {
+    "backend": "CASCAQit LocalBackend",
+    "localSimulationOnly": true,
+    "hardwareExecution": false,
+    "networkRequired": false,
+    "quantumAdvantageClaimed": false
+  },
+  "environment": {
+    "python": "3.9.6",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "cascaqit": "local-source",
+    "demo": "local-source",
+    "scriptSha256": "4d7dc2ffd8eb20ebc1460a1e9ced1adc1872d3622a73f7a1f7df63ae5b516e99"
+  },
+  "fixedSeedPlan": {
+    "electronic_structure": {
+      "h2_bond_scan": [
+        1,
+        6,
+        7
+      ],
+      "lih_active_space": [
+        1,
+        6,
+        7
+      ],
+      "h2o_minimal": [
+        1,
+        6,
+        7
+      ]
+    },
+    "docking_match": {
+      "reference_pose": [
+        1,
+        6,
+        8
+      ],
+      "strict_geometry": [
+        1,
+        5,
+        8
+      ],
+      "pharmacophore_coverage": [
+        3,
+        6,
+        8
+      ]
+    },
+    "active_center": {
+      "antiferromagnetic": [
+        1,
+        6,
+        7
+      ],
+      "ligand_field": [
+        1,
+        6,
+        7
+      ],
+      "coupling_imbalance": [
+        1,
+        6,
+        7
+      ]
+    },
+    "peptide_landscape": {
+      "hydrophobic_core": [
+        0,
+        6,
+        7
+      ],
+      "charged_competition": [
+        1,
+        6,
+        7
+      ],
+      "contact_limited": [
+        0,
+        6,
+        7
+      ]
+    }
+  },
+  "acceptance": {
+    "analysisSecondsLessThan": 2,
+    "runSecondsLessThan": 30,
+    "h2ErrorHartreeAtMost": 0.0016,
+    "activeCenterErrorMeVLessThan": 0.02,
+    "dockingRequiresObservedFeasibleCandidate": true,
+    "peptideRequiresLowestOrSecondLowestCandidate": true
+  },
+  "summary": {
+    "scenarioCount": 4,
+    "presetCount": 12,
+    "runCount": 36,
+    "passedRunCount": 36,
+    "passed": true
+  },
+  "records": [
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2_bond_scan",
+      "seed": 1,
+      "analysisSeconds": 0.0042209160000000745,
+      "runSeconds": 0.4505355420000001,
+      "datasetId": "electronic.h2.sto3g.0735",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 4.730097871163963e-07,
+      "accuracyClaim": "h2_equilibrium_benchmark",
+      "passed": true,
+      "audit": {
+        "manifestHash": "18c31dd310947dee6e1e39129b9cc2ae8490cfb0227050227df281a14550ca48",
+        "domainInputHash": "e5867f0b92c9a6d5410d1a51834c33da68c1552c7ab0ac8dc9922ba7662d499d",
+        "analysisHash": "02443cf268d07f81b1a58a94e310e957f35e2e6ef6dab593ba1b457fc0c96528",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "808ffd128a69197deadb676cd21561d806926337c945a2e2a0a049f8bc8d4a07",
+        "outcomeHash": "ece44528150bf7871e220328d75e0b123d026b022aca03c0773bbabf4805212e",
+        "reportHash": "ef12d6a939463881d57d5d9b4541cbf5cc32c23a3d0467a427df74f79c9e8a64",
+        "executionHash": "b411a77424494efeb871f1a605a61aeb88b3e67006538ac734b017003232ec32",
+        "resultHash": "ecdfe9f509967b95865eed3d7d1ea0d19b7ebfe1e1e9ee31db1e798bf66f0990"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2_bond_scan",
+      "seed": 6,
+      "analysisSeconds": 0.0020320000000000338,
+      "runSeconds": 0.44413437499999997,
+      "datasetId": "electronic.h2.sto3g.0735",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 4.730097871163963e-07,
+      "accuracyClaim": "h2_equilibrium_benchmark",
+      "passed": true,
+      "audit": {
+        "manifestHash": "18c31dd310947dee6e1e39129b9cc2ae8490cfb0227050227df281a14550ca48",
+        "domainInputHash": "e5867f0b92c9a6d5410d1a51834c33da68c1552c7ab0ac8dc9922ba7662d499d",
+        "analysisHash": "02443cf268d07f81b1a58a94e310e957f35e2e6ef6dab593ba1b457fc0c96528",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "c9b6132835ccebdb1c349844760d5c76a831d9e016d9140ea4e6a10e653d5c57",
+        "outcomeHash": "0caea484ae9481936f2f19019fbb71e7576f5ba76af13c13884bee2678ee3a6b",
+        "reportHash": "54f0ace76aac005187e636de17074dc428b9139b525ec989befee177c9a3a363",
+        "executionHash": "b1eb02e25ce2bc451c12dfef9d5d703f476f6e702b2aec99956392b66d809348",
+        "resultHash": "5b65ddce806e1a7bfc7e63e1a9343fc8d9a81697388a328fb223410feac47235"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2_bond_scan",
+      "seed": 7,
+      "analysisSeconds": 0.0022758750000000383,
+      "runSeconds": 0.46608183299999983,
+      "datasetId": "electronic.h2.sto3g.0735",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 4.730097871163963e-07,
+      "accuracyClaim": "h2_equilibrium_benchmark",
+      "passed": true,
+      "audit": {
+        "manifestHash": "18c31dd310947dee6e1e39129b9cc2ae8490cfb0227050227df281a14550ca48",
+        "domainInputHash": "e5867f0b92c9a6d5410d1a51834c33da68c1552c7ab0ac8dc9922ba7662d499d",
+        "analysisHash": "02443cf268d07f81b1a58a94e310e957f35e2e6ef6dab593ba1b457fc0c96528",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "3f14a07bcf23e439e5bfdfbd804e5ca47bce16c11243ae43148820b5e0da6b61",
+        "outcomeHash": "3b0dd8bca6edf01fc6514a10dae5054ab9d767c40f6152d30dc49cda64b638fb",
+        "reportHash": "29eb3ad9c7dab9331428701789509445c688b793f9748670d2f4c0e340b5437c",
+        "executionHash": "e187acd0fa1fce42d7dc3c7ed098651f314e45c3170a8d625b15c9047316f832",
+        "resultHash": "a1fb8345e2b7146dce93e53a853831bcb4c183740215971904ccfd3f2b9eceda"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "lih_active_space",
+      "seed": 1,
+      "analysisSeconds": 0.013295832999999924,
+      "runSeconds": 1.177682125,
+      "datasetId": "electronic.lih.sto3g.1600.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.00023799480140418439,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "04b5dbc9eacec4db7c98f1dc13a6459da9938ccf0e7d596beb31e336e567faed",
+        "domainInputHash": "82ef633a4a20e00ac38c064516ef9bec5b29e14ea40ac1ca06ae5f38f947852f",
+        "analysisHash": "d21ad901ab81df14447e6682244c3d1b8249cccc823efe7458c12bdbf0f0e85e",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "d460928ca2b1b46deed417f472371d39c37d74926a9bb19e05d479a505ad2e81",
+        "outcomeHash": "4f07bc156d1e695e0fa9be2af002da2c3b10369a5545b62be476fe3e41957cd2",
+        "reportHash": "60cf0bac25bb84061f37e18540753b4fc1aa166246f2bffe69eeb8d1caeea003",
+        "executionHash": "24213d32b26cf11f516b2269fc191bd9a47241ed07df7946f64e334e7e0da8ac",
+        "resultHash": "796b7bf4762ed9fb559a45d4df328fb4e7b08828b266070c1de5689cec2556c4"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "lih_active_space",
+      "seed": 6,
+      "analysisSeconds": 0.00899904199999968,
+      "runSeconds": 1.1154133329999998,
+      "datasetId": "electronic.lih.sto3g.1600.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.00023799480140418439,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "04b5dbc9eacec4db7c98f1dc13a6459da9938ccf0e7d596beb31e336e567faed",
+        "domainInputHash": "82ef633a4a20e00ac38c064516ef9bec5b29e14ea40ac1ca06ae5f38f947852f",
+        "analysisHash": "d21ad901ab81df14447e6682244c3d1b8249cccc823efe7458c12bdbf0f0e85e",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "9bc309e39aa0e14c69b9d11d5fc6ee04db4574365beafcaa0906d5890255658f",
+        "outcomeHash": "21bcb5b0924898cbc20b80a2e9eda475b9200a7bbccd83d8da503187e018723f",
+        "reportHash": "4b936589223ec2cd99b88a37d9cee73eaacd1018b38c31b34b95d3d1b735b393",
+        "executionHash": "afb0a773c33962271de7fd19bf0cbb59da23f33faa28a2d83b53c6d58fd41e07",
+        "resultHash": "b1b1c6c0e3e20eec5ace44c4e41e335e9695ccb1bd59a7f8a74aa22bb077dfb8"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "lih_active_space",
+      "seed": 7,
+      "analysisSeconds": 0.009173791000000264,
+      "runSeconds": 1.1379472909999997,
+      "datasetId": "electronic.lih.sto3g.1600.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.00023799480140418439,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "04b5dbc9eacec4db7c98f1dc13a6459da9938ccf0e7d596beb31e336e567faed",
+        "domainInputHash": "82ef633a4a20e00ac38c064516ef9bec5b29e14ea40ac1ca06ae5f38f947852f",
+        "analysisHash": "d21ad901ab81df14447e6682244c3d1b8249cccc823efe7458c12bdbf0f0e85e",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "73fa8189deef7a12c5df1b197502e208134ad55b8061a1b4e4935d626317f120",
+        "outcomeHash": "3e4f5c9a0937448d8f617bc7ab3e3f510d9322dde25795aea94206c429622bc2",
+        "reportHash": "f19f5dbe5877385d4ca5a9b51e6f6415f9c6bdbe67a37765d36256675b6621dc",
+        "executionHash": "d85f341f76ac04b9407303534fb78dce0d53f24d23722ca43d7e3ad0330869da",
+        "resultHash": "eddb444c43ae45d721f07e4717e42293f5a088ca6c549612ab894142b6af2a20"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2o_minimal",
+      "seed": 1,
+      "analysisSeconds": 0.010158624999999866,
+      "runSeconds": 0.8185286669999998,
+      "datasetId": "electronic.h2o.sto3g.equilibrium.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.0011532796293067804,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "31264d364559da3e9f9174d1c5244e246693e55f8bb8d66325ce881715ad787d",
+        "domainInputHash": "c659e359d73f2fd1010214573fe25b26d154361c99a0a66f2f985114a55553ff",
+        "analysisHash": "2602784c0fe25e71fc8e9e9aee86ef2af82f9622f80d4e98ba30aff159a8da99",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "97b7da455f96ae17c2172954ad0d1f5051d13e6a601d3c22bc65b63929de4709",
+        "outcomeHash": "4bc961d5bd88b1164987554fa4e8be033a505e7a52e91149bacc5def2db02782",
+        "reportHash": "2dbc1af76c35df1b582aa759fae0f2d445d9707ecc02d499d581573c86dace37",
+        "executionHash": "340e75d19994dd6047f2f6669f36c8b5f3a7ed0b7cf50beeeb9a4567d0bbbd19",
+        "resultHash": "d0e5a2cb1c6a49a979ad1ac8ce3c0f5ac090b6bdee62f797a94eb3c1ec0b74f9"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2o_minimal",
+      "seed": 6,
+      "analysisSeconds": 0.005691125000000241,
+      "runSeconds": 0.820176333,
+      "datasetId": "electronic.h2o.sto3g.equilibrium.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.0011532796293067804,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "31264d364559da3e9f9174d1c5244e246693e55f8bb8d66325ce881715ad787d",
+        "domainInputHash": "c659e359d73f2fd1010214573fe25b26d154361c99a0a66f2f985114a55553ff",
+        "analysisHash": "2602784c0fe25e71fc8e9e9aee86ef2af82f9622f80d4e98ba30aff159a8da99",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "cd6e0f36a27ae1a81e0c7cfc761687ad9554928e277af3b1e543611a6f9177ed",
+        "outcomeHash": "c8c5ede91d533f1d1ff4e53245ec400f821c44a8cf8ff288086f54439beb6d01",
+        "reportHash": "d904fe569538d3e8e53d1c130253981d73d069062d5a18a427710c19fb48e050",
+        "executionHash": "ae00e5f138bd026e0e8a851b9abf0de28f7461d74acad719350266b792a524c7",
+        "resultHash": "341fbcd6d8385234daea0dfd9f932d905602d6c93e087fdc352c191eebaf7d28"
+      }
+    },
+    {
+      "scenario": "electronic_structure",
+      "preset": "h2o_minimal",
+      "seed": 7,
+      "analysisSeconds": 0.0057819580000000315,
+      "runSeconds": 0.8183376669999989,
+      "datasetId": "electronic.h2o.sto3g.equilibrium.active-2e-3o",
+      "hamiltonianHashMatchesFixture": true,
+      "absoluteErrorHartree": 0.0011532796293067804,
+      "accuracyClaim": "error_report_only",
+      "passed": true,
+      "audit": {
+        "manifestHash": "31264d364559da3e9f9174d1c5244e246693e55f8bb8d66325ce881715ad787d",
+        "domainInputHash": "c659e359d73f2fd1010214573fe25b26d154361c99a0a66f2f985114a55553ff",
+        "analysisHash": "2602784c0fe25e71fc8e9e9aee86ef2af82f9622f80d4e98ba30aff159a8da99",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "123f43e00405df76e06c1488e669db4629897f578e5f8fc8bc7e4e537ca978e1",
+        "outcomeHash": "2aa806a9de6a2da0e07f13d710af9240138f9343187084e63e1dea7d9d9857ed",
+        "reportHash": "ffd38d8ed635bf86cd0714efe355f9585b43849f9b990331913a3a441d24cb17",
+        "executionHash": "96281976b8d801fd8dc377e1ff8398451431830c60760082318ca80df8325f1e",
+        "resultHash": "f89260e9704c640590de37676e6619db62319e0ff7d14f9d66a48513faab1600"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "reference_pose",
+      "seed": 1,
+      "analysisSeconds": 0.016362250000000245,
+      "runSeconds": 2.5652768330000004,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "b2b5b4d4cfd745aa5693b82e8081f92a4e04521609f98db60803fadea06fb0c1",
+        "analysisHash": "5a8e1f6a6c6a370a71078fe9bcb8416b3bec00ea557535aeaa881af4ced71d4c",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "a5e2660ef1c383e49c4cd28a7d1b378fa85059fd60d3aad97c8da6be801a1a20",
+        "outcomeHash": "43a7159e1aabdc52bc6d17efe6402dcb4e35105523ceb04f45d122f72a21190b",
+        "reportHash": "e3ed7c7af06ef937781dee76c33c22b4a361532bafcf18aae27bb9ebf76d6d0e",
+        "executionHash": "e1a82d535924df869a6c581a4fd3435fb468e1ac4d080eb626735d11cfb30c27",
+        "resultHash": "c491f089ebeacaf20aa3dc6eb044cbb23d8fee62167cd05bcd0dbb51cbfaa1a9"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "reference_pose",
+      "seed": 6,
+      "analysisSeconds": 0.010635667000000737,
+      "runSeconds": 2.5596756669999987,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "b2b5b4d4cfd745aa5693b82e8081f92a4e04521609f98db60803fadea06fb0c1",
+        "analysisHash": "5a8e1f6a6c6a370a71078fe9bcb8416b3bec00ea557535aeaa881af4ced71d4c",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "cdcc69a1644b854703852e6b0b1387cd0b3a61db1f5e41996479d2440ad01ebd",
+        "outcomeHash": "06f456a851d1d121c760c0fcf3ead89282464f8c0c69a728c25cdc45aafec4af",
+        "reportHash": "e462bbb577fc31b1873e5e433d071511fa4fddc3eaab426c9eede3de8d7a36ea",
+        "executionHash": "0e131263407bf045805194b64b981ebec94413331a6988e4463984f03e5117b8",
+        "resultHash": "553f5c94da43d110ed91420604e38682dda2d7504c4d7906696db6e4e6eba551"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "reference_pose",
+      "seed": 8,
+      "analysisSeconds": 0.010898291000000171,
+      "runSeconds": 2.535242832999998,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "b2b5b4d4cfd745aa5693b82e8081f92a4e04521609f98db60803fadea06fb0c1",
+        "analysisHash": "5a8e1f6a6c6a370a71078fe9bcb8416b3bec00ea557535aeaa881af4ced71d4c",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "17b860de07bd1cb36759998990be6166423a779d08a3867de176fe81caa324d3",
+        "outcomeHash": "d1c8f62d0fcd809fdd1f823e56b939c832eda9b8d62ea51f15e766f386a0cf82",
+        "reportHash": "92fc717948fc090fbe8a9c8901789ef3e7bfb4567a03e6b8436b445bce0a8cd4",
+        "executionHash": "4e8b010be982cc4290de86d1896884800400c2c13f34971d1d7e7fac6fc2b2b3",
+        "resultHash": "cffbe3f4ac6684be30c351f7d5a2d1eb4bf05243d84098baf6e5ee373b4f6203"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "strict_geometry",
+      "seed": 1,
+      "analysisSeconds": 0.01075316700000073,
+      "runSeconds": 2.268456208,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 2,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "80f4f4e54d0807f4fab53d3c14d0d807fadf4a7af95190eb859bffc43e54119b",
+        "analysisHash": "864619e500adc93ff1bd0058d0210faddd7d76a22e39e2f2fa0ad81ed595f333",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "1aaba119086c2b79549d4875e4cb34efd2a20c874de6d1f21ef388eed038016c",
+        "outcomeHash": "9f3d802073aca89ae6a5dfa657bbfed55e82089788ab0944bcbd87e46ae1cf27",
+        "reportHash": "cf795d793bf8ba8fcefd6687d425d5e51e03872e73176a47f3b3083d98513854",
+        "executionHash": "f5252a3a5c4e38490503a4a42819fdfeea76c2610ff12054be28a5787b0dd03f",
+        "resultHash": "5fa655bf75c704de2564778e5f78dbb4d382f2be8cf4145ac81d75073a175daf"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "strict_geometry",
+      "seed": 5,
+      "analysisSeconds": 0.010836374999996679,
+      "runSeconds": 2.274340249999998,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "80f4f4e54d0807f4fab53d3c14d0d807fadf4a7af95190eb859bffc43e54119b",
+        "analysisHash": "864619e500adc93ff1bd0058d0210faddd7d76a22e39e2f2fa0ad81ed595f333",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "312189d993bc63366e2bb5f93af7e503d018ea26984de2056e546d6424a054f6",
+        "outcomeHash": "912f83c5179eb9e08f2d4f520219c0c9b6b5adb7edc9d532ef986e83453d22c2",
+        "reportHash": "9996639a16337476d9a159bef02eebab1a96e62deea742a3fab1e99d32c79beb",
+        "executionHash": "2a1abc8c928eae977731b1d4d24aefa75c32c26917866cec4766df24c083fd6a",
+        "resultHash": "1d4682a29d7475d5737ce934d67377bfd34e854c67fc65ab472c1e0fd5df02eb"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "strict_geometry",
+      "seed": 8,
+      "analysisSeconds": 0.0109636249999987,
+      "runSeconds": 2.2630095829999988,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "80f4f4e54d0807f4fab53d3c14d0d807fadf4a7af95190eb859bffc43e54119b",
+        "analysisHash": "864619e500adc93ff1bd0058d0210faddd7d76a22e39e2f2fa0ad81ed595f333",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "f6419b87cffacc14f8ea26331395e7563052910b4ed1e2357868cc0c945989ec",
+        "outcomeHash": "2a7d434534e5c0a741d634db0288e12fc1c411d3deadf086dd1df26a78ff5e33",
+        "reportHash": "02fb306bf5bb2da57299aaf90074e552d48870aaf4b5e207342f18b20ab56668",
+        "executionHash": "ed8d54f721ac63cd386e7fbafa6ae1c0e33ae831e720bca88e3a6e9b0acf9324",
+        "resultHash": "0aee67e3af4981b2c130e4b0f9abd7e9d407b177d8b9f513b53ca5440762efd6"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "pharmacophore_coverage",
+      "seed": 3,
+      "analysisSeconds": 0.010775917000000135,
+      "runSeconds": 2.601451334,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 2,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "979ed89d56cfe4d75f9c9b7bc83f3485b7330a11dc1d8b86fdc24ed12cebedbf",
+        "analysisHash": "ed75b1060cde86295e28c00162c9dca1df7e15b6e0ca8dc1907d19eb1ab4fe6d",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "69cd7e85c9e9ab8b5377841c8af843fbb896063f5ea023ec1c30d154c07a86bc",
+        "outcomeHash": "f2d800e9ae51272457ed36acee4f546fe55247e6f21f2a555d5e6021fb0656e8",
+        "reportHash": "10c33a81d47103ad58d3bda4e2de8e4c67201b6378d2d57126da26012efc2f37",
+        "executionHash": "d89a49a10e8da39486a3dc23bdc2010f3d7ee8199370b72f837f4f99124f4779",
+        "resultHash": "48c74de2a3e4d83a48488dc399821df07c2c30ca116ef21d26b5b95c359765e4"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "pharmacophore_coverage",
+      "seed": 6,
+      "analysisSeconds": 0.010498542000000555,
+      "runSeconds": 2.5777842910000004,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "979ed89d56cfe4d75f9c9b7bc83f3485b7330a11dc1d8b86fdc24ed12cebedbf",
+        "analysisHash": "ed75b1060cde86295e28c00162c9dca1df7e15b6e0ca8dc1907d19eb1ab4fe6d",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "103a985e79475355a91c951a6155ac39ac6f0c1d38a8cf53f70172dc745e0de1",
+        "outcomeHash": "6153284130bc949f7591dc64df50c4ba35c3c02b40281c86214d87c7f696a7a1",
+        "reportHash": "2fd6d71668f264dbf18bf2964fd9f0fad1394cb22732876426558fcca7fb8fcb",
+        "executionHash": "710520dcc978deb1f392eb462fe1cf3ee08ab52a07e3e26163df4ed2b61c6240",
+        "resultHash": "21a14b8200b9a829198710da68ed31cafaaf7177db111a8dae9d1b87ba20d134"
+      }
+    },
+    {
+      "scenario": "docking_match",
+      "preset": "pharmacophore_coverage",
+      "seed": 8,
+      "analysisSeconds": 0.010642250000000075,
+      "runSeconds": 2.5326344160000005,
+      "datasetId": "docking.1hsg.indinavir.discrete-match",
+      "quantumCandidateFeasible": true,
+      "observedFeasibleCount": 1,
+      "classicCandidateSeparated": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "aa3712fee8ff78f2c2f8a02decc80be2a42c3ff5d8f6f68cad26d89ac68fa5dd",
+        "domainInputHash": "979ed89d56cfe4d75f9c9b7bc83f3485b7330a11dc1d8b86fdc24ed12cebedbf",
+        "analysisHash": "ed75b1060cde86295e28c00162c9dca1df7e15b6e0ca8dc1907d19eb1ab4fe6d",
+        "backendHash": "1faa87525f29b8f4220b2715aef6cb9b2ef1b106cee8f7bef716e9f2100badb3",
+        "configurationHash": "f5932ccfae0db6d46fcbe8fb56ec8987cc38ff59b15ec1330e692106b76a8b13",
+        "outcomeHash": "bac7aceb01fc19e1b1a44067c8b08227ce83738df0bc6df0e1849759d089c755",
+        "reportHash": "ff54a029c1f7acb14dfe3fefe4d1ea1addd47e8bf40616f2f0377a63442cbb03",
+        "executionHash": "c7d9ec43eadb3b0d89cce3c446f413271a98ab318c1ecf75f3c008c2e1803412",
+        "resultHash": "86b65b668bb3cd05e17953212b9224fac8076729b2096b17c977fe497558a727"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "antiferromagnetic",
+      "seed": 1,
+      "analysisSeconds": 0.0030486670000016147,
+      "runSeconds": 0.25048133299999975,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 1.0758293511714534e-05,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "9a9dfce89623718a3fe13ce63e6178aa2f4c5c85a5257db8a01450fe54c03f3d",
+        "analysisHash": "6440f56389210124e50244bf818e05a6f930020e06798a5992989f82e1758ce8",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "32b82140d9eaf96ffca7297ba5f27828e894f8767844c17767ab21100acee9d4",
+        "outcomeHash": "af24620c3a74553e50a102c476fb4490eba3f993a595fab8dbb465e1625132ce",
+        "reportHash": "701665f03e82ba40b2dbf57ece63daf9ba0b1718abc4b0d40f18b64864153f5e",
+        "executionHash": "863e5f6bf55f1d60bbae4c4a85dc74ba95b314ecf176ab1e7972c89e8c155e03",
+        "resultHash": "d0ea21638c980a68fe98ce45cf59c135b984d8ae37b6a3753183307381764c70"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "antiferromagnetic",
+      "seed": 6,
+      "analysisSeconds": 0.0019437079999988782,
+      "runSeconds": 0.25112399999999724,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 4.479096640430669e-05,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "9a9dfce89623718a3fe13ce63e6178aa2f4c5c85a5257db8a01450fe54c03f3d",
+        "analysisHash": "6440f56389210124e50244bf818e05a6f930020e06798a5992989f82e1758ce8",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "d017b3161b30680422bf1af8f869ba05accd092236ee8b2db9e213a2bc419fd3",
+        "outcomeHash": "6503760cb0b376238bab2d4283e7b45a67eeb579db647d64ecb50a0ea7ba7f05",
+        "reportHash": "fd2278d40869a6bd6c71874d885e36644c2e16afb023f27848266e659cf17aeb",
+        "executionHash": "61e690b72db1597c889d26a16dd6bfe45e71fb5c97e13a860c3c2a58947ec240",
+        "resultHash": "54d229aa52301dcfd03028f9ccaf55c2d1e3d62454251cb3ac9fa7e9a16563af"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "antiferromagnetic",
+      "seed": 7,
+      "analysisSeconds": 0.002297416999997637,
+      "runSeconds": 0.2511592080000007,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 6.692888603554437e-06,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "9a9dfce89623718a3fe13ce63e6178aa2f4c5c85a5257db8a01450fe54c03f3d",
+        "analysisHash": "6440f56389210124e50244bf818e05a6f930020e06798a5992989f82e1758ce8",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "8f6c91ba5ee9e9f1d16e5860977d631046962c78147e7152290bd01662d26ef9",
+        "outcomeHash": "eccd88e616f1162ee4b8c831e3a864e985a56cb4fbf9131ef3da6aa82fc6931d",
+        "reportHash": "d9f94fec0d36c1fd93bef3e94d9b5f489d12ca284fc316cb1ec5003e3a0ad6ab",
+        "executionHash": "a3bbf0d647ccc896533f5cf2d94e121af1e593cdeec1be0abb200db71e3b5f40",
+        "resultHash": "92d70543c5ccdd64ac997d44a486f6713cff8a50fb3cdc4a3b65ab25c7f4f87c"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "ligand_field",
+      "seed": 1,
+      "analysisSeconds": 0.002001124999999604,
+      "runSeconds": 0.31273837499999857,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 5.181444292290394e-06,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "598bf79fa14453736cc0f86ce3f1ebf458ee6a6183a5315a1fb738362d0117a1",
+        "analysisHash": "390b325c8eeca0686c6f8aa65ea8e79bfc03792c077c693e76c1a0870ea5c4fc",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "9f416f1846cd5f706dc9173f01176048df8e451a227762bb36b12fc3f48bcca1",
+        "outcomeHash": "29d3ea1b6834900189a9f2292974e291314f55cc7c658080f13a4c8cd791dab4",
+        "reportHash": "d61f4c87589017e6eafda6dfe80671010d2dd31909dfb5b0d597a77ae41a9e0a",
+        "executionHash": "5f153d3d5f7d875eb2fabd81540c0cfb3364882b5008261c328b5bfcd98d2fb5",
+        "resultHash": "94737ec94f6e8935f56afecb109679093470af39da3456e42ad860880a08fb80"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "ligand_field",
+      "seed": 6,
+      "analysisSeconds": 0.0020703749999988474,
+      "runSeconds": 0.24935624999999817,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 4.269754043662033e-07,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "598bf79fa14453736cc0f86ce3f1ebf458ee6a6183a5315a1fb738362d0117a1",
+        "analysisHash": "390b325c8eeca0686c6f8aa65ea8e79bfc03792c077c693e76c1a0870ea5c4fc",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "2b835f733b9653b9ad11b8e21e3c71467487d1756c101f3b824aaedd9e765b67",
+        "outcomeHash": "772cbc4cfbe20755ffc4c2d0cc08a0dead9dd09a7c632b7f2ec7ec6537f49614",
+        "reportHash": "0ca9375a3af2e9726d50f98af4a312b3b4e7615f61139c03933cebd08356a197",
+        "executionHash": "dbfd17eaa4456e60c4e6525cd52acb3ae87d3dc17cb67165e369565266f19020",
+        "resultHash": "56bc839bb4319ec433b4fee0cecb1b56075c8843890dafa28efe8c2fc5e37985"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "ligand_field",
+      "seed": 7,
+      "analysisSeconds": 0.002039790999997848,
+      "runSeconds": 0.2467851670000023,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 7.519684435131069e-07,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "598bf79fa14453736cc0f86ce3f1ebf458ee6a6183a5315a1fb738362d0117a1",
+        "analysisHash": "390b325c8eeca0686c6f8aa65ea8e79bfc03792c077c693e76c1a0870ea5c4fc",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "662daf93d907d0017a35b600a736027076ef4c748e4077656828a6ce7379ca0c",
+        "outcomeHash": "49e402cb2c4bee12513643ef94027cdd29b365daebd28336aea2cc3458752e89",
+        "reportHash": "d7a81817359de72583f229596aa9417e440775981ec9a09bb701f23ca4b24099",
+        "executionHash": "7ff2c32c0679b16fa3b82e27c83d914180ae5b429c0248648171b54c55f6e8a7",
+        "resultHash": "c62f9caf072844ffff3d23b064b0fa830736b5e119daa57fc76be677e1db3cd4"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "coupling_imbalance",
+      "seed": 1,
+      "analysisSeconds": 0.002093375000001174,
+      "runSeconds": 0.26641666700000144,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 1.9746051395097552e-06,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "2d9c1d84052193f38cec6a5b50bb76b4504b005b7f8ef419272733aad3fdbd0f",
+        "analysisHash": "b66ce2109e9a84d85e123298b3febe1b982ad9ecbcb301aa3678388c6ac5dbf7",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "d5254f8f372efae7b559bcdd2e79f8533a08dd21b9c8042266357835f21bb465",
+        "outcomeHash": "1b304339f209e354c326406869ed32e440a47f43173c3ed7951743303a8996cd",
+        "reportHash": "5e574c9fcab5693c69af97399e36e7222d7af0569966f92e92712afa31972325",
+        "executionHash": "fb5ab2d0afc774d769a40b6d5600ffee6feddb81f6fb2b78342fff1ac5b7ea4d",
+        "resultHash": "e60b48cbd6502884b84c70778d4d957ced64304977ace5a2f3e22345c7dad4a1"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "coupling_imbalance",
+      "seed": 6,
+      "analysisSeconds": 0.0021050840000000903,
+      "runSeconds": 0.2502909159999973,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 7.833251930544627e-06,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "2d9c1d84052193f38cec6a5b50bb76b4504b005b7f8ef419272733aad3fdbd0f",
+        "analysisHash": "b66ce2109e9a84d85e123298b3febe1b982ad9ecbcb301aa3678388c6ac5dbf7",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "feb4b5340d17e0becd4314213b49ccff51f0560b52841de538cafaaf88b49ee0",
+        "outcomeHash": "2c47f9c9ec4c36f3dda3cebc39fa4c12e6248a5517ab8e60c374de9ca187502a",
+        "reportHash": "53da390fed64da3faa0eb5a82f9d5c16275fd7aaa2f37ff06a365c4869a9574d",
+        "executionHash": "e6583ac822657d60d5c2393e761fa20f68c44178d2a5abbf49b76ed94845a2d0",
+        "resultHash": "292b1957ed40312f889add0e2f5801b720d626b41e9b8c5d0c68f5d59126b535"
+      }
+    },
+    {
+      "scenario": "active_center",
+      "preset": "coupling_imbalance",
+      "seed": 7,
+      "analysisSeconds": 0.001967832999994812,
+      "runSeconds": 0.24819495799999913,
+      "datasetId": "active-center.bimetal-spin.effective-model",
+      "absoluteErrorMeV": 4.755868130978946e-06,
+      "hamiltonianIdentityVerified": true,
+      "passed": true,
+      "audit": {
+        "manifestHash": "cfe4680fc392398904c72f2a0800a00bfe00aec389f5a3dd2f1341bd8d5f789d",
+        "domainInputHash": "2d9c1d84052193f38cec6a5b50bb76b4504b005b7f8ef419272733aad3fdbd0f",
+        "analysisHash": "b66ce2109e9a84d85e123298b3febe1b982ad9ecbcb301aa3678388c6ac5dbf7",
+        "backendHash": "51478c2abbcaf890ee657761205c639f260868086e5680da9114fd9c314a1e06",
+        "configurationHash": "0819502b98ab130c3581fc2318e41c0c3e723a87eea5bcbd73e158962f58cb3f",
+        "outcomeHash": "480235fe42397b790dd621658634d5534b941fbd65907dfb4fe0c8f7b435698f",
+        "reportHash": "b256d2867e7d4a0ffb0f0d2f01422b2f88c203f377138df81ab5fdd5dd05071e",
+        "executionHash": "05b9971cf7877fda1d2f5c9f1b92e9e6f007aaee49478532c4d54b9ba0a89c21",
+        "resultHash": "fb9a3a180ceeeaa78a2b179353fa6533849b8027d003a43c78614d516f23556f"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "hydrophobic_core",
+      "seed": 0,
+      "analysisSeconds": 0.0023624169999933997,
+      "runSeconds": 2.041284958999995,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.1,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 10,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "f0b29ba10540602268a7f979743566fd23e3c78f0a1a768492c91870d8dcfb6a",
+        "analysisHash": "226fc6fb79bdf5bf376bbc88d5bce61407d2854a05fe3b71a16b5d334f00f00d",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "4f4b86639d2a08d81e7024edf5f3159e5104a625b1f578aa7c72df18e97cc37f",
+        "outcomeHash": "9f3b506accc244707ac3d32e920575c544e909b007fe1a72b0703083ef90551c",
+        "reportHash": "b6efc8139ea99f1a9096115a09fffc38d708d443b87275fb772cd1679d46d455",
+        "executionHash": "a42a23ed296c35cc76d5d038621aa1071cf88aa196b82507b0d1619f74f1b4ec",
+        "resultHash": "9694d3827494c8343a7afe941f6a04ec92a8812cd9991e93d637f28f1ae88a65"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "hydrophobic_core",
+      "seed": 6,
+      "analysisSeconds": 0.0018911660000000552,
+      "runSeconds": 2.0973178750000017,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.1,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 10,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "f0b29ba10540602268a7f979743566fd23e3c78f0a1a768492c91870d8dcfb6a",
+        "analysisHash": "226fc6fb79bdf5bf376bbc88d5bce61407d2854a05fe3b71a16b5d334f00f00d",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "eb19011afadecf8185faf35eb3cd009db7efddac52e7fcdf245abc5a59fc5808",
+        "outcomeHash": "ccc1aba5cd85859544cc032d594608455f108fd0858f27e6af213931ff4f9ad3",
+        "reportHash": "5ba2187fb6e556b643aa2403887a76c8c37b156edf3f4b88aef6af943434564a",
+        "executionHash": "fcaa10f3a3c4dcb3458e88ebecfc1fd303ec6ba957ada41f736968fe14b03e0d",
+        "resultHash": "da28e50e97e26f21493fcec005c81282046bb56fbc3d70d538ba67783da6b872"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "hydrophobic_core",
+      "seed": 7,
+      "analysisSeconds": 0.0019031670000018153,
+      "runSeconds": 2.0872036670000043,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.1,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 9,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "f0b29ba10540602268a7f979743566fd23e3c78f0a1a768492c91870d8dcfb6a",
+        "analysisHash": "226fc6fb79bdf5bf376bbc88d5bce61407d2854a05fe3b71a16b5d334f00f00d",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "a7a07b1751cca86a0030403d211e120eba8f928567447e7ae2a6be4bfa35d21d",
+        "outcomeHash": "a10c6ef9db866e9135a603b8385094c014f2b60cbfeb98cab78f8829155cfdcb",
+        "reportHash": "bdb606288b7fe5931af39ea2d2eaf1d36dc7d1006df1b0c0b833721acd64b79a",
+        "executionHash": "576ddd9753afa45720f4d1c7e5c0909a5b494d2301cb5f494ff70c592f1cd32f",
+        "resultHash": "bbdc6a1827b1e795a3d35da0c2dd85819a5a87cbe1d8b59360f9e7f862d04cf3"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "charged_competition",
+      "seed": 1,
+      "analysisSeconds": 0.001962042000002384,
+      "runSeconds": 2.072292624999996,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.3,
+      "secondEnergyLevel": -1.3,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 4,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "8e403a945b7280cc84bbebb6063ae9bc4c7d610b217c8be916d53ddce4406155",
+        "analysisHash": "08ad2bd8b1d35b28402bd89506721286ddb9c8f8574ca552eff9a9bb1e895509",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "35bbd9a244963f43c7450c5c2466feeda96f3194ea33f51ddf69df4a19f29a95",
+        "outcomeHash": "615aec9b0b77ecc313442431fed19628ed57674cebdea9159b84496d8fb1c5ca",
+        "reportHash": "b81f51a61067ed2c94b68d21396b89d39136ac755c470dee1ee335853b14deda",
+        "executionHash": "e308b5fe2925f1ecfba7660a7ca8796e8edadcc080574a69dc22e7908af538ca",
+        "resultHash": "6f420f242e55c6f51fa25609226014416d7bfdecae62ee73fd67d1b891768851"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "charged_competition",
+      "seed": 6,
+      "analysisSeconds": 0.0019299999999944362,
+      "runSeconds": 2.110552042000002,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.4,
+      "secondEnergyLevel": -1.3,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 5,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "8e403a945b7280cc84bbebb6063ae9bc4c7d610b217c8be916d53ddce4406155",
+        "analysisHash": "08ad2bd8b1d35b28402bd89506721286ddb9c8f8574ca552eff9a9bb1e895509",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "c2d209e9b4daaf0980efc7ce033609f48d4a52867e506aa1f9586637ae6e01b3",
+        "outcomeHash": "37d0744f6ae0ab32bb0fe0ac9b127bdb1db43be477122e5a6826f5ed7cbdc27a",
+        "reportHash": "a911384e261f3ed769ea781975b674e076d64508d3fc4d251d0731fe44ae6e5d",
+        "executionHash": "768535550d51bcc1f9b979ca0cad53916ffa03f7d95cea9175d695d2c0330a9b",
+        "resultHash": "72836bbb3f66d0a76416f4756f293cf8dc2cec95ccc2240f0bdbcddf9aadfcd7"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "charged_competition",
+      "seed": 7,
+      "analysisSeconds": 0.0020062500000008754,
+      "runSeconds": 2.0733112919999996,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.4,
+      "secondEnergyLevel": -1.3,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 10,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "8e403a945b7280cc84bbebb6063ae9bc4c7d610b217c8be916d53ddce4406155",
+        "analysisHash": "08ad2bd8b1d35b28402bd89506721286ddb9c8f8574ca552eff9a9bb1e895509",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "4a81a0b34905ef533605f296813a9756169eb6a48114fa34c0a262ec1bd62a13",
+        "outcomeHash": "41390bcc4372577267aa6ab312b8097179c9ec858a8b024e74db66867ea84c0d",
+        "reportHash": "32101784c4c24bbdf4bf67794c979fa875bafc0c51d643c29bb30a0834e8b4dc",
+        "executionHash": "256f7e723fa824190aa3a68423bd6f3f0269184900b3f9122b509e2ee00e7be2",
+        "resultHash": "fca100e2fed231ac5e6e4d069e6adb1ead2334bee2e075c32b17082f8f1fc36d"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "contact_limited",
+      "seed": 0,
+      "analysisSeconds": 0.001961999999998909,
+      "runSeconds": 2.081986209,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.0,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 2,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "4598ab14d259c42da606453107ed43498fd9e4356e5f7e8b373639bd6d668e15",
+        "analysisHash": "19387da47497f9125292a5081aeaabff1053772e65cc3dba805b908eb0aad127",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "c2e0afcdcf3857434b30e6f79fa3c60c07e476f610807e73ae31ec9428741813",
+        "outcomeHash": "e976a92304bb1ce26a5dc49953d78b4ec2c25cbaeadcb628b044fc0d8a7a39ec",
+        "reportHash": "f6604896394e6e18c4374ebd2c541d734e9ec230b2e6d2c2b5501a763f474905",
+        "executionHash": "76b691ea89ecbdc9740e5f28aa2e296961315730511a339367f58a72dc5efa36",
+        "resultHash": "6b1aec978462a1afc4157c9ccd1c470b8b28656dcb44da06626e3e814f7e367e"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "contact_limited",
+      "seed": 6,
+      "analysisSeconds": 0.0019110839999996188,
+      "runSeconds": 2.0887572910000003,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.1,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 10,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "4598ab14d259c42da606453107ed43498fd9e4356e5f7e8b373639bd6d668e15",
+        "analysisHash": "19387da47497f9125292a5081aeaabff1053772e65cc3dba805b908eb0aad127",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "19379522ec6cbf996be411ae3dffd22cd43a39b766bece917bcb950f455162c9",
+        "outcomeHash": "e8c44d086480a6aa7d3004b4c731735cbd5dc1d386b34fc14c9f833a0b81ac87",
+        "reportHash": "def27ccc3657a1fc02e493f31c7237ed29e90d54c4dc19a8873b23958e67c2f2",
+        "executionHash": "939a0e08baf46809df83db238365877b1f1554ab50566331160a184454b3b5c1",
+        "resultHash": "f08c975f9c2e742fbcb6bba99dd349e1172dcaa554cd2a49ef649d64aa9f43d3"
+      }
+    },
+    {
+      "scenario": "peptide_landscape",
+      "preset": "contact_limited",
+      "seed": 7,
+      "analysisSeconds": 0.0019919160000014813,
+      "runSeconds": 2.1180154590000058,
+      "datasetId": "peptide.six-residue.square-lattice",
+      "quantumCandidateFeasible": true,
+      "candidateEnergy": -1.1,
+      "secondEnergyLevel": -1.0,
+      "lowestOrSecondLowestObserved": true,
+      "observedFeasibleCount": 10,
+      "passed": true,
+      "audit": {
+        "manifestHash": "5b4e33052fb87a029d350c7a6506a042e5d2cf110603b81818309bc90edc0dba",
+        "domainInputHash": "4598ab14d259c42da606453107ed43498fd9e4356e5f7e8b373639bd6d668e15",
+        "analysisHash": "19387da47497f9125292a5081aeaabff1053772e65cc3dba805b908eb0aad127",
+        "backendHash": "731a6c75fcab985005514953785d94e7a67777eef606b86c138e90542caa3bd9",
+        "configurationHash": "a68060fdcd497f6d12bd262ce849b5f26e1b0c01a13cc90b55d9a34c92847768",
+        "outcomeHash": "a26e71f32fbd0dec48383df83125726eafd735d52c342ac8719b00cd9eab7b62",
+        "reportHash": "b8fa36cab9809fe37485a4d4469bfbf464b0c5d8af1c508e193adf1c94ef2527",
+        "executionHash": "97142db247b90d1ef6e3b1715de19fab3e92abe881670df4fcb4cccd688d4598",
+        "resultHash": "c687028ce8c663d7fc1bdf7da661519f711cab755de47606506e4f43c73281c3"
+      }
+    }
+  ]
+}

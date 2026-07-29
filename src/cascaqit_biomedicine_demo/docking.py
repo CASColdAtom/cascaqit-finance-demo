@@ -9,6 +9,10 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Literal
 
+from cascaqit_biomedicine_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
+)
 from cascaqit_biomedicine_demo.problem_model import (
     OptimizationProblemDefinition,
     QuboBuilder,
@@ -604,6 +608,8 @@ def _analysis_payload(
             "sourceUri": fixture.manifest["source"]["uri"],
             "sourceChecksum": fixture.manifest["source"]["source_file_sha256"],
             "licensePolicyUri": fixture.manifest["source"]["license_policy_uri"],
+            "licenseCheckedAt": fixture.manifest["source"]["license_checked_at"],
+            "allowedClaims": fixture.manifest["allowed_claims"],
             "limitations": [*fixture.manifest["limitations"], *domain["limitations"]],
         },
         "problem": {
@@ -881,11 +887,26 @@ def run_docking_match(
             "datasetId": scenario.fixture.manifest["dataset_id"],
             "datasetVersion": scenario.fixture.manifest["version"],
             "manifestHash": scenario.fixture.manifest_hash,
+            "domainInputHash": _hash(
+                {
+                    "input": asdict(case_input),
+                    "manifestHash": scenario.fixture.manifest_hash,
+                }
+            ),
             "problemHash": result.execution.problem_hash,
             "analysisHash": result.execution.analysis_hash,
             "compileHash": result.execution.compile_hash,
             "executionHash": result.execution.execution_hash,
             "resultHash": result.evidence.result_hash,
+            "backend": local_backend_context(
+                execution_family="problem_qaoa",
+                mode=result.mode,
+                simulation_method=(
+                    "hybrid_state_vector"
+                    if result.mode == "hybrid"
+                    else "state_vector"
+                ),
+            ),
             "seed": seed,
             "shots": shots,
             "hardwareExecution": False,
@@ -893,7 +914,31 @@ def run_docking_match(
             "networkAccessed": False,
             "wallTimeSeconds": result.evidence.wall_time_seconds,
             "optimalityClaim": result.execution.optimality_claim,
+            "claimBoundary": "discrete_candidate_pose_matching",
         },
     }
+    finalize_stable_audit(
+        payload["audit"],
+        configuration={
+            "input": asdict(case_input),
+            "problemHash": result.execution.problem_hash,
+            "analysisHash": result.execution.analysis_hash,
+            "compileHash": result.execution.compile_hash,
+            "mode": result.mode,
+            "layers": layers,
+            "shots": shots,
+            "seed": seed,
+            "optimizer": {
+                "searchStrategy": search_strategy,
+                "parameterBudget": parameter_budget,
+                "starts": optimizer_starts,
+            },
+        },
+        outcome={
+            "domain": payload["domain"],
+            "counts": payload["quantum"]["counts"],
+            "parameterHistory": payload["quantum"]["parameterHistory"],
+        },
+    )
     payload["audit"]["resultPresentationHash"] = _hash(payload["domain"])
     return payload

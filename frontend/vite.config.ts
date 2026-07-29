@@ -11,7 +11,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
+    outDir: "../src/cascaqit_finance_demo/static",
+    emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {
       output: {

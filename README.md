@@ -12,7 +12,7 @@
 python3 -m pip install -e ../cascaqit-new/CASCAQit -e .
 ```
 
-Demo 需要 CASCAQit `1.0.7a0` 系列提供的 QUBO 完整参考布局契约；旧版 SDK 不能运行当前 Hybrid 场景。
+Demo 需要经过验收的 CASCAQit `1.0.5a0` 系列；该正式标签已通过生物医药 Pauli/VQE、QUBO/QAOA 和 Hybrid 映射测试，旧版 SDK 不能运行当前场景。
 
 构建 React 前端：
 
@@ -64,12 +64,12 @@ npm run dev
 
 | 场景 | 当前状态 | 中性原子量子路径 | 当前展示内容 |
 |---|---|---|---|
-| 小分子活性空间基态能量估计 | 可执行 | Digital VQE | H2 Pauli Hamiltonian、QWC 测量组、收敛历史、有限 shots 确认和精确对照 |
+| 小分子活性空间基态能量估计 | 可执行 | Digital VQE | H2 三点键长趋势、LiH/H2O 活性空间、QWC 测量、可选读出噪声和精确对照 |
 | 靶点口袋与配体候选构象匹配 | 可执行 | Hybrid D-A-D QAOA | 1HSG/Indinavir 离线派生匹配、QUBO 账本、几何门禁、量子候选、经典最优和共晶参考 |
 | 金属酶活性中心有效 Hamiltonian | 可执行 | Digital VQE | 三个双自旋预设、QWC 磁化/关联、扇区占据与精确对角化 |
 | 小肽离散构象与折叠能景采样 | 可执行 | Digital QAOA | 10 个二维自回避构象、one-hot QUBO、完整经典能景 |
 
-H2 使用仓库内带 manifest 和 checksum 的固化实验数据。构象匹配使用 PDB `1HSG` 的最小离线派生数据，manifest 保存原始 mmCIF checksum、DOI、CC0-1.0 政策链接和核对日期。页面分开保存量子候选、经典枚举最优和共晶派生参考，不输出结合自由能、Kd、Ki、IC50、药效、临床、催化活性或真实蛋白折叠结论，也不声称量子优势。
+生物医药共包含 12 个标准预设，每个预设均完成 3 个固定 seed 的推荐配置校准。电子结构使用仓库内带 manifest、生成脚本版本和 checksum 的 H2、LiH、H2O 固化实验数据。构象匹配使用 PDB `1HSG` 的最小离线派生数据，manifest 保存原始 mmCIF checksum、DOI、CC0-1.0 政策链接和核对日期。页面分开保存量子候选、经典枚举最优和共晶派生参考，不输出结合自由能、Kd、Ki、IC50、药效、临床、催化活性或真实蛋白折叠结论，也不声称量子优势。
 
 ## 页面内容
 
@@ -118,7 +118,7 @@ print(result.execution.result.counts)
 ## 当前限制
 
 - 生物医药四个场景均有真实本地模拟执行链；它们是边界明确的教学模型，不提供药物、催化或真实蛋白结构预测结论。
-- 生物医药 fixture、结构与参数全部为公开来源待审计数据或合成数据，不是内部药物研发和临床数据。
+- 生物医药 fixture 已登记来源、许可证、生成参数、checksum、允许说法和限制；它们来自 `1HSG` 公开结构或项目生成数据，不是内部药物研发和临床数据。
 - 输入全部为合成数据，不读取市场、账户、客户或交易生产数据。
 - 执行来自 `LocalBackend`，不是量子硬件或云端结果。
 - Hybrid 支持 `p=1~2`，当前推荐配置仍为 `p=1`；两层链路已通过结构和系数守恒验收，但交易结算在固定验证参数下没有稳定得到可行业务候选。

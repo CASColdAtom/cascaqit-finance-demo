@@ -448,11 +448,15 @@ const scenarioEnglish: Record<
     shortTitle: "Electronic Structure",
     title: "Small-molecule Active-space Ground-state Energy",
     description:
-      "Run VQE from an auditable H2 active-space Hamiltonian and compare against exact diagonalization.",
-    presets: { h2_equilibrium: "H2 / 0.735 Å" },
+      "Run VQE from an auditable H2, LiH, or H2O active-space Hamiltonian and compare against exact diagonalization.",
+    presets: {
+      h2_bond_scan: "H2 Bond Scan",
+      lih_active_space: "LiH Active Space",
+      h2o_minimal: "H2O Minimal Active Space",
+    },
     controls: {
       dataset: "Molecule and Geometry",
-      active_space: "Active Space",
+      noise_model: "Measurement Model",
     },
   },
   docking_match: {

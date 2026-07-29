@@ -1,0 +1,102 @@
+{
+  "allowed_claims": [
+    "Compare CASCAQit VQE with the exact energy of the same packaged Hamiltonian.",
+    "Explain active-space, Pauli mapping, QWC measurement, and finite-shot uncertainty."
+  ],
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "5cea0341c6f9736c52418043ef89843ea6057f5b144974ecfb86f6fccaa0204a"
+    },
+    {
+      "path": "pauli.json",
+      "sha256": "a365430784d4afa463ad805d3698f45c7b0b9699378778b9fb4d976ec6e0c5a9"
+    }
+  ],
+  "coordinate_system": "Cartesian molecular geometry; 2D display projection",
+  "dataset_id": "electronic.h2.sto3g.0500",
+  "generation": {
+    "parameters": {
+      "active_electrons": 2,
+      "active_indices": [
+        0,
+        1
+      ],
+      "basis": "STO-3G",
+      "charge": 0,
+      "final_qubit_count": 2,
+      "geometry_angstrom": [
+        {
+          "coordinates": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "element": "H"
+        },
+        {
+          "coordinates": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "element": "H"
+        }
+      ],
+      "mapping": "symmetry_conserving_bravyi_kitaev",
+      "molecule": "H2",
+      "multiplicity": 1,
+      "occupied_indices": [],
+      "spin_orbital_count": 4,
+      "tapered_qubit_count": 2
+    },
+    "script": "scripts/generate_electronic_structure_fixtures.py",
+    "script_sha256": "252df6cc41998d8326e206bb925326bdbe8d1bf68df4c1f246ef7b55f993b632",
+    "tool": "PySCF + OpenFermion-PySCF + OpenFermion",
+    "tool_versions": {
+      "openfermion": "1.7.1",
+      "openfermionpyscf": "0.5",
+      "pyscf": "2.10.0"
+    }
+  },
+  "limitations": [
+    "Fixed STO-3G active-space teaching fixture; not an arbitrary molecule workflow.",
+    "Frozen-orbital and active-space truncation omit correlation outside the declared space.",
+    "Readout-noise mode is a simulator sensitivity demonstration, not a hardware forecast.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ],
+  "logical_order": [
+    "q0",
+    "q1"
+  ],
+  "recommended_initial_parameters": {
+    "ansatz": "hardware_efficient_ry_rz_linear",
+    "layers": 1,
+    "purpose": "Prepare the tapered Hartree-Fock state before optimization.",
+    "values": {
+      "ry_0_0": 3.141592653589793,
+      "ry_0_1": 0.0,
+      "rz_0_0": 0.0,
+      "rz_0_1": 0.0
+    }
+  },
+  "reference": {
+    "exact_ground_energy_hartree": -1.05515979447062,
+    "full_space_fci_energy_hartree": -1.05515979447062,
+    "hartree_fock_bitstring": "11",
+    "hartree_fock_energy_hartree": -1.0429962745401,
+    "method": "exact diagonalization of the packaged tapered Pauli Hamiltonian"
+  },
+  "source": {
+    "input_sha256": "4eb08be280a3437e0a249a6696c04af1e5b75abb57652706d62b6a293adc3714",
+    "kind": "project_generated_ab_initio_fixture",
+    "license": "project_generated",
+    "license_checked_at": "2026-07-30",
+    "uri": null
+  },
+  "units": {
+    "energy": "hartree",
+    "geometry": "angstrom"
+  },
+  "version": "1"
+}
