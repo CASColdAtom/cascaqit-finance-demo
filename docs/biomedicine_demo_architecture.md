@@ -1,8 +1,10 @@
-# CASCAQit 生物医药量子实验台架构设计
+# 中科酷原行业量子实验台 - 生物医药领域架构设计
 
 ## 1. 架构结论
 
-生物医药实验台沿用金融 Demo 已验证的离线 FastAPI、React 工作台、CASCAQit 本地执行和审计报告结构，但不复用金融领域类型和命名。
+对外统一产品名称为“中科酷原行业量子实验台”。金融和生物医药作为产品内的一级领域，`CASCAQit` 仅表示底层量子编程 SDK 和执行引擎。
+
+生物医药领域沿用金融 Demo 已验证的离线 FastAPI、React 工作台、CASCAQit 本地执行和审计报告结构，但不复用金融领域类型和命名。
 
 四个场景分成两条执行链：
 
@@ -55,7 +57,7 @@ source data
 
 ```mermaid
 flowchart LR
-    UI[React Biomedicine Workbench]
+    UI[React Industry Quantum Workbench]
     API[FastAPI]
     REG[Scenario Registry]
     SVC[Experiment Service]
@@ -119,7 +121,7 @@ src/
 
 `cascaqit_finance_demo` 在生物医药首版建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或 API。只有当两个产品出现经过测试的稳定重复逻辑时，再提取 `cascaqit_demo_core`；本阶段不先做大范围公共层重构。
 
-前端沿用当前 `frontend/` 工程和构建方式，在生物医药分支中替换品牌、场景目录和领域视图。生产构建复制到 `cascaqit_biomedicine_demo/static/`。Python 项目新增 `cascaqit-biomedicine-api` 和 `cascaqit-biomedicine-demo` 脚本，金融入口继续保留，避免开发期无法对比旧版本。
+前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建复制到 `cascaqit_biomedicine_demo/static/`。Python 项目新增 `cascaqit-biomedicine-api` 和 `cascaqit-biomedicine-demo` 脚本，金融入口继续保留，避免开发期无法对比旧版本。
 
 ## 5. 公共领域接口
 
