@@ -2,6 +2,7 @@ import { AlertTriangle, LoaderCircle, RadioTower } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { analyzeScenario, getScenarios, runScenario } from "./api";
 import { ControlPanel } from "./components/ControlPanel";
+import { QuantumText } from "./components/QuantumText";
 import { ScenarioNav } from "./components/ScenarioNav";
 import { TelemetryHeader } from "./components/TelemetryHeader";
 import { viewTabs, type ViewId } from "./components/viewTabs";
@@ -22,7 +23,12 @@ import type {
   WorkbenchAnalysisPayload,
   WorkbenchRunPayload,
 } from "./types";
-import { executionSignature, MODE_LABELS } from "./utils";
+import {
+  estimateExecutionSeconds,
+  executionSignature,
+  MODE_LABELS,
+  type ExecutionIdentity,
+} from "./utils";
 
 const BusinessView = lazy(() =>
   import("./components/Views").then((module) => ({ default: module.BusinessView })),
@@ -64,6 +70,11 @@ const BiomedicineAuditView = lazy(() =>
     default: module.BiomedicineAuditView,
   })),
 );
+const BiomedicineComparisonView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineComparisonView,
+  })),
+);
 
 const DEFAULT_EXECUTION_PROFILE: ExecutionProfile = {
   shots: 32,
@@ -98,6 +109,20 @@ function isBiomedicineAnalysis(
 
 function isBiomedicineRun(run: WorkbenchRunPayload): run is BiomedicineRunPayload {
   return "kind" in run && run.kind === "biomedicine";
+}
+
+function cacheIdentity(
+  analysis: WorkbenchAnalysisPayload | null,
+  scenario: ScenarioSpec | null,
+): ExecutionIdentity {
+  if (analysis && isBiomedicineAnalysis(analysis)) {
+    return {
+      datasetVersion: analysis.dataset.version,
+      manifestHash: analysis.dataset.manifestHash,
+      executionFamily: analysis.executionFamily,
+    };
+  }
+  return { executionFamily: scenario?.executionFamily };
 }
 
 function analyzeForDomain(
@@ -340,12 +365,26 @@ function Workbench() {
     );
   }, [activeScenario, analysis, currentRequest, mode]);
 
+  const currentExecutionIdentity = useMemo(
+    () => cacheIdentity(analysis, activeScenario),
+    [activeScenario, analysis],
+  );
+  const estimatedSeconds = useMemo(
+    () =>
+      currentRequest
+        ? estimateExecutionSeconds(activeScenario?.recommendedExecution, currentRequest)
+        : null,
+    [activeScenario, currentRequest],
+  );
+
   useEffect(() => {
     if (!currentRequest) return;
     setRun(
-      cache.current.get(executionSignature(domainId, activeId, currentRequest)) ?? null,
+      cache.current.get(
+        executionSignature(domainId, activeId, currentRequest, currentExecutionIdentity),
+      ) ?? null,
     );
-  }, [activeId, currentRequest, domainId]);
+  }, [activeId, currentExecutionIdentity, currentRequest, domainId]);
 
   function selectScenario(scenario: ScenarioSpec) {
     lastScenario.current[domainId] = scenario.caseId;
@@ -435,7 +474,12 @@ function Workbench() {
       setAnalysis(response.run.analysis);
       setRun(response.run);
       cache.current.set(
-        executionSignature(domainId, activeScenario.caseId, currentRequest),
+        executionSignature(
+          domainId,
+          activeScenario.caseId,
+          currentRequest,
+          cacheIdentity(response.run.analysis, activeScenario),
+        ),
         response.run,
       );
       setActiveView("business");
@@ -480,6 +524,10 @@ function Workbench() {
         : run.audit.shotsPerGroup
       : run.audit.shots
     : null;
+  const visibleTabs =
+    domainId === "biomedicine"
+      ? viewTabs
+      : viewTabs.filter((tab) => tab.id !== "comparison");
 
   return (
     <div className="app-shell-react">
@@ -508,6 +556,7 @@ function Workbench() {
           optimizerStarts={optimizerStarts}
           repeats={repeats}
           recommendedConfiguration={recommendedConfiguration}
+          estimatedSeconds={estimatedSeconds}
           running={running}
           analyzing={analyzing}
           canRun={activeScenario.implementationStatus !== "preview"}
@@ -569,7 +618,7 @@ function Workbench() {
         <main className={`result-workspace accent-${activeScenario.accent}`}>
           <header className="scenario-header">
             <div>
-              <span className="scenario-eyebrow">{displayedScenario?.eyebrow}</span>
+              <span className="scenario-eyebrow"><QuantumText text={displayedScenario?.eyebrow ?? ""} /></span>
               <h1>{displayedScenario?.title}</h1>
               <p>{displayedScenario?.description}</p>
             </div>
@@ -579,7 +628,7 @@ function Workbench() {
               </span>
               <div>
                 <small>{run ? t("lastExecution") : analyzing ? t("analyzingStatus") : mode === analysis?.decision.recommendedMode ? t("recommendedPath") : t("comparisonPath")}</small>
-                <strong>{MODE_LABELS[run?.quantum.mode ?? mode]}</strong>
+                <strong><QuantumText text={MODE_LABELS[run?.quantum.mode ?? mode]} /></strong>
                 <span>{run ? `${run.audit.wallTimeSeconds.toFixed(3)}s / ${displayedShots} shots` : tx(selectedDecision?.reason ?? analysis?.decision.reason ?? "")}</span>
               </div>
             </div>
@@ -592,8 +641,8 @@ function Workbench() {
             </div>
           ) : null}
 
-          <nav className="view-tabs" aria-label={t("resultsView")} role="tablist">
-            {viewTabs.map((tab) => {
+          <nav className={`view-tabs view-tabs-${visibleTabs.length}`} aria-label={t("resultsView")} role="tablist">
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -623,7 +672,7 @@ function Workbench() {
               <div className="execution-overlay">
                 <span className="scan-line" aria-hidden="true" />
                 <LoaderCircle className="spin" size={22} aria-hidden="true" />
-                <strong>{MODE_LABELS[mode]}</strong>
+                <strong><QuantumText text={MODE_LABELS[mode]} /></strong>
                 <small>{t("compilingExecutingSampling")}</small>
               </div>
             ) : null}
@@ -635,6 +684,7 @@ function Workbench() {
                     {activeView === "scenario" ? <BiomedicineStructureView analysis={biomedicineAnalysis} /> : null}
                     {activeView === "mapping" ? <BiomedicineMappingView analysis={biomedicineAnalysis} /> : null}
                     {activeView === "quantum" ? <BiomedicineQuantumView run={biomedicineRun} mode={mode} /> : null}
+                    {activeView === "comparison" ? <BiomedicineComparisonView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}
                     {activeView === "audit" ? <BiomedicineAuditView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}
                   </>
                 ) : financeAnalysis ? (

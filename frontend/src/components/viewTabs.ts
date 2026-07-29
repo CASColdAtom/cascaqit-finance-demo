@@ -4,10 +4,17 @@ import {
   Gauge,
   GitBranch,
   Network,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 
-export type ViewId = "business" | "scenario" | "mapping" | "quantum" | "audit";
+export type ViewId =
+  | "business"
+  | "scenario"
+  | "mapping"
+  | "quantum"
+  | "comparison"
+  | "audit";
 
 export const viewTabs: ReadonlyArray<{
   id: ViewId;
@@ -16,6 +23,7 @@ export const viewTabs: ReadonlyArray<{
     | "scenarioSituation"
     | "problemMapping"
     | "quantumExperiment"
+    | "comparisonAnalysis"
     | "auditEvidence";
   icon: LucideIcon;
 }> = [
@@ -23,5 +31,6 @@ export const viewTabs: ReadonlyArray<{
   { id: "scenario", labelKey: "scenarioSituation", icon: Network },
   { id: "mapping", labelKey: "problemMapping", icon: GitBranch },
   { id: "quantum", labelKey: "quantumExperiment", icon: Atom },
+  { id: "comparison", labelKey: "comparisonAnalysis", icon: Scale },
   { id: "audit", labelKey: "auditEvidence", icon: FileJson },
 ];

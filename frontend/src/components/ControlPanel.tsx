@@ -1,4 +1,10 @@
-import { ChevronDown, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  Play,
+  RotateCcw,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useState } from "react";
 import type {
   Algorithm,
@@ -11,6 +17,7 @@ import type {
 } from "../types";
 import { MODE_LABELS } from "../utils";
 import { useI18n } from "../i18n";
+import { QuantumText } from "./QuantumText";
 
 interface ControlPanelProps {
   scenario: ScenarioSpec;
@@ -29,6 +36,7 @@ interface ControlPanelProps {
   optimizerStarts: number;
   repeats: number;
   recommendedConfiguration: boolean;
+  estimatedSeconds?: number | null;
   running: boolean;
   analyzing: boolean;
   canRun?: boolean;
@@ -210,7 +218,7 @@ export function ControlPanel(props: ControlPanelProps) {
             })}
           </div>
           <div className="mode-readout">
-            <span>{MODE_LABELS[props.mode]}</span>
+            <span><QuantumText text={MODE_LABELS[props.mode]} /></span>
             <small>{tx(selectedMode?.reason ?? props.analysis?.decision.reason ?? t("buildingMapping"))}</small>
           </div>
 
@@ -349,6 +357,14 @@ export function ControlPanel(props: ControlPanelProps) {
               </>
           </div>
 
+          {props.estimatedSeconds !== null &&
+          props.estimatedSeconds !== undefined &&
+          props.estimatedSeconds > 30 ? (
+            <div className="execution-cost-warning" role="status">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span><strong>{t("researchConfiguration")}</strong>{t("estimatedLocalRuntime")} {Math.ceil(props.estimatedSeconds)} s</span>
+            </div>
+          ) : null}
           <div className="run-actions">
             <button className="run-button" type="button" onClick={props.onRun} disabled={props.running || props.analyzing || props.canRun === false}>
               <Play size={17} fill="currentColor" aria-hidden="true" />

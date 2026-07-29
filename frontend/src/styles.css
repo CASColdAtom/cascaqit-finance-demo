@@ -104,13 +104,47 @@ code,
   top: 0;
   z-index: 50;
   display: flex;
-  min-height: 66px;
-  align-items: stretch;
-  justify-content: space-between;
+  min-height: 88px;
+  flex-direction: column;
   border-bottom: 1px solid var(--line-strong);
   background: rgba(7, 11, 10, 0.96);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(18px);
+}
+
+.telemetry-main-row {
+  display: flex;
+  min-height: 66px;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.execution-boundary {
+  display: flex;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  background: rgba(19, 29, 26, 0.72);
+  font-family: var(--mono);
+  font-size: 0.56rem;
+}
+
+.execution-boundary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.execution-boundary span::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  content: "";
 }
 
 .brand-lockup {
@@ -818,6 +852,78 @@ code,
   grid-template-columns: repeat(5, minmax(0, 1fr));
   margin: 16px 0 0;
   border-bottom: 1px solid var(--line-strong);
+}
+
+.view-tabs-6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.quantum-term {
+  color: inherit;
+  text-decoration: underline dotted var(--muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.comparison-empty {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 32px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.comparison-empty svg {
+  color: var(--accent);
+}
+
+.comparison-empty h3,
+.comparison-empty p {
+  margin: 0;
+}
+
+.comparison-empty p {
+  max-width: 560px;
+  font-size: 0.73rem;
+  line-height: 1.7;
+}
+
+.comparison-table td:last-child {
+  min-width: 180px;
+  color: var(--muted);
+}
+
+.execution-cost-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 42%, var(--line));
+  border-radius: 4px;
+  color: var(--amber);
+  background: rgba(234, 184, 82, 0.07);
+}
+
+.execution-cost-warning svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.execution-cost-warning span {
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.execution-cost-warning strong {
+  display: block;
+  color: var(--amber);
+  font-weight: 600;
 }
 
 .view-tabs button {
@@ -2574,6 +2680,10 @@ code,
 @media (max-width: 760px) {
   .telemetry-header {
     position: static;
+    min-height: 80px;
+  }
+
+  .telemetry-main-row {
     min-height: 58px;
   }
 
@@ -2812,6 +2922,18 @@ code,
 
   .telemetry-item {
     display: none;
+  }
+
+  .execution-boundary {
+    min-height: 22px;
+    gap: 8px;
+    padding: 0 6px;
+    font-size: 0.46rem;
+  }
+
+  .view-tabs,
+  .view-tabs-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .language-switch {

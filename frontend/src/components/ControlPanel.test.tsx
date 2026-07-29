@@ -152,6 +152,7 @@ function renderPanel(
     mode?: "digital" | "hybrid" | "analog";
     recommendedConfiguration?: boolean;
     shots?: number;
+    estimatedSeconds?: number | null;
   } = {},
   language: "zh" | "en" = "zh",
 ) {
@@ -178,6 +179,7 @@ function renderPanel(
         optimizerStarts={1}
         repeats={1}
         recommendedConfiguration={overrides.recommendedConfiguration ?? true}
+        estimatedSeconds={overrides.estimatedSeconds}
         running={overrides.running ?? false}
         analyzing={overrides.analyzing ?? false}
         onPreset={vi.fn()}
@@ -255,6 +257,7 @@ describe("ControlPanel", () => {
   it("identifies recommended and custom execution configurations", () => {
     renderPanel();
     expect(screen.getByText("推荐执行配置")).toBeTruthy();
+    expect(screen.getByTitle("数字-模拟-数字混合执行序列")).toBeTruthy();
 
     cleanup();
     renderPanel({ recommendedConfiguration: false });
@@ -286,5 +289,16 @@ describe("ControlPanel", () => {
     expect((runButton as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(runButton);
     expect(onRun).not.toHaveBeenCalled();
+  });
+
+  it("warns before a research configuration estimated above 30 seconds", () => {
+    renderPanel({ estimatedSeconds: 31.2 });
+    expect(screen.getByText("研究配置").closest(".execution-cost-warning")?.textContent).toContain(
+      "预计本地耗时 32 s",
+    );
+
+    cleanup();
+    renderPanel({ estimatedSeconds: 29.9 });
+    expect(screen.queryByText(/预计本地耗时/)).toBeNull();
   });
 });

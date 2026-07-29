@@ -99,8 +99,12 @@ src/
       electronic_structure/
       active_center/
       peptide_landscape/
+  cascaqit_industry_demo/
+    problem_api.py             # 领域中性的 Problem 执行协议
+    problem_executor.py        # QAOA / Hybrid 编译、优化和解码编排
   cascaqit_finance_demo/
     api/app.py                 # 统一行业 API 外壳与金融兼容入口
+    quantum/problem_executor.py # 对中性执行器的金融兼容重导出
     static/                    # 统一 React 生产构建
 ```
 
@@ -108,7 +112,7 @@ src/
 
 第三阶段已提取不依赖金融类型的 `pauli_vqe.py`，由电子结构与金属活性中心共同复用 Hamiltonian 构造、稳定哈希、精确对角化和自旋扇区聚合。金属活性中心没有继续扩展金融执行器依赖。
 
-小肽场景直接使用 CASCAQit `QAOA`、生物医药自有 `OptimizationProblemDefinition` 和贡献账本，没有新增金融类型依赖。构象匹配因 Hybrid 编译证据仍暂时复用 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`；直接移动文件会保留 `Finance*` 返回类型并产生包初始化循环，不构成真实解耦。这项兼容债务不影响四个领域模型的独立性，但后续应把 Hybrid 编译结果契约提取到领域中性包。
+小肽场景直接使用 CASCAQit `QAOA`、生物医药自有 `OptimizationProblemDefinition` 和贡献账本。构象匹配使用 `cascaqit_industry_demo.problem_executor.ScenarioExecutor` 获取 Digital/Hybrid 编译与执行证据；该包只依赖领域中性 Protocol 和 dataclass，不导入金融包。原金融 `problem_executor.py` 保留兼容重导出，使既有金融 API 与测试继续使用 `FinanceAlgorithmPolicy`、`FinanceModeAdvisor` 和 `ScenarioExecutor` 名称，但真实实现只有一份。架构测试阻止生物医药包重新引用 `cascaqit_finance_demo`。
 
 前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建继续复制到现有 `cascaqit_finance_demo/static/`，由统一 FastAPI 应用托管。Python 项目新增 `cascaqit-industry-api` 和 `cascaqit-industry-demo` 入口，金融入口继续保留以兼容已有部署。
 
@@ -410,7 +414,9 @@ ActiveCenterView
 PeptideLandscapeView
 ```
 
-公共组件包括执行参数、模式判断、线路、原子布局、波形、测量分组、参数历史、counts、审计载荷和错误状态。
+金融与生物医药共用品牌头、领域切换、场景导航、参数控制和结果工作区。金融域保持五个既有结果标签；生物医药域显示领域结果、场景结构、Problem 映射、量子实验、对照分析和审计证据六个标签。对照分析是独立视图，按场景分别展示量子观测、精确对角化、经典全枚举或共晶派生参考，不能用领域结果页中的摘要代替。
+
+公共组件包括执行参数、模式判断、线路、原子布局、波形、测量分组、参数历史、counts、审计载荷和错误状态。品牌头常驻显示 `LOCAL SIMULATION`、`NO HARDWARE EXECUTION` 和 `RESEARCH DEMONSTRATION`；专业缩写首次出现时使用中文 tooltip 解释。
 
 ### 11.2 可视化来源
 
@@ -437,6 +443,8 @@ noise config
 
 任一字段变化后，旧结果只能作为历史记录显示，不能进入当前结果视图。
 
+当前前端签名直接序列化 `domain_id`、`case_id`、完整运行请求，以及分析响应中的 `dataset.version`、`dataset.manifestHash` 和 `executionFamily`。领域输入、模式、算法、层数、shots、seed、优化器和噪声参数均属于完整运行请求。manifest 或执行族变化会立即使旧缓存失效。
+
 ## 12. 审计与安全
 
 ### 12.1 hash 链
@@ -458,6 +466,7 @@ source checksum
 - 不接受浏览器上传任意 Python、Hamiltonian 表达式或可执行脚本；
 - 数值输入检查范围、有限性和单位；
 - 报告文件名由后端生成，不使用用户输入拼接路径；
+- 报告写入配置的用户数据目录，API 返回 `reportPath`，不写入安装目录；
 - 错误响应不返回本机绝对路径或完整异常栈。
 
 ### 12.3 数据边界
@@ -510,12 +519,14 @@ source checksum
 每次分析和执行记录：
 
 - `case_id`、`dataset_id` 和 `error_id`；
-- 校验、构造、分析、编译、优化、采样、解码和报告耗时；
+- API 层 `preflight`、领域执行、报告生成和总耗时；算法内部通过目标评估数、Backend 执行数、shots、参数历史和测量组保留可观测证据；
 - 逻辑量子位、Pauli 项、测量组、QUBO 项和辅助变量数量；
 - Backend 执行次数、shots 和模拟方法；
 - 失败阶段和稳定诊断码。
 
 领域数据错误返回 422；未支持能力返回 CASCAQit `CapabilityError` 的结构化信息；未知内部错误返回 500 和 `error_id`，详细异常只写入本地日志。
+
+四个推荐配置在场景目录中保存基于固定 seed 校准的本机耗时基线。前端按 shots、预算、优化起点、重复次数和层数估算当前研究配置；估算超过 30 秒时在执行按钮前显示提示。该数字只用于本地等待量级，不是硬件或跨平台性能承诺。
 
 ## 15. 分阶段实施
 
@@ -551,6 +562,14 @@ source checksum
 - 全量质量门禁和浏览器验收；
 - 离线包和启动脚本；
 - 客户讲解文档、数据来源清单和已知限制。
+
+### 第六阶段：设计完成度收口
+
+- 提取领域中性 Problem 执行器并保留金融兼容层；
+- 增加常驻运行边界和独立对照分析视图；
+- 补齐数据集与执行族缓存身份、研究配置成本提示；
+- 统一结构化错误、用户目录报告和 API 阶段耗时；
+- 逐条复核 PRD、架构、浏览器、wheel 和离线包构建证据。
 
 ## 16. 关键风险
 

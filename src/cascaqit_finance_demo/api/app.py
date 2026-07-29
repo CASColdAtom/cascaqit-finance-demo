@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -18,6 +19,7 @@ from cascaqit.exceptions import CapabilityError
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -127,6 +129,44 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(CapabilityError)
+async def capability_error_response(
+    _request: Request, exc: CapabilityError
+) -> JSONResponse:
+    """Expose stable SDK diagnostics without returning a local traceback."""
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": {
+                "code": exc.code,
+                "message": str(exc),
+                "stage": exc.stage,
+                "error_id": exc.error_id,
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unknown_error_response(_request: Request, exc: Exception) -> JSONResponse:
+    """Return an opaque error ID while retaining the detailed exception locally."""
+
+    error_id = uuid4().hex
+    LOGGER.exception("行业场景执行失败，error_id=%s", error_id, exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": {
+                "code": "INTERNAL_EXECUTION_ERROR",
+                "message": "内部执行失败，请使用 error_id 查询本地日志。",
+                "stage": "internal",
+                "error_id": error_id,
+            }
+        },
+    )
+
+
 @app.middleware("http")
 async def prevent_stale_frontend_entry(
     request: Request,
@@ -162,7 +202,9 @@ def _request_input(case_id: str, request: ScenarioRequest) -> tuple[str, Any]:
         raise AssertionError("unreachable")
     preset = request.preset or spec.presets[0][0]
     if preset not in {value for value, _label in spec.presets}:
-        raise HTTPException(status_code=422, detail=f"unknown preset: {preset}")
+        raise _biomedicine_error(
+            "BIOMEDICINE_PRESET_UNKNOWN", f"unknown preset: {preset}", "preflight"
+        )
     try:
         return preset, build_case_input(case_id, preset, request.values)
     except (TypeError, ValueError) as exc:
@@ -250,20 +292,25 @@ def _biomedicine_request(
     allowed = {control.key for control in spec.controls}
     unknown = set(request.values) - allowed
     if unknown:
-        raise HTTPException(
-            status_code=422,
-            detail=f"unknown control values: {', '.join(sorted(unknown))}",
+        raise _biomedicine_error(
+            "BIOMEDICINE_CONTROL_UNKNOWN",
+            f"unknown control values: {', '.join(sorted(unknown))}",
+            "preflight",
         )
     if case_id == "electronic_structure":
         try:
             values = electronic_values(preset, request.values)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise _biomedicine_error(
+                "ELECTRONIC_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
     elif case_id == "docking_match":
         try:
             values = docking_values(preset, request.values)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise _biomedicine_error(
+                "DOCKING_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
         values = {
             key: values[key]
             for key in ("match_weight", "collision_penalty", "coverage_weight")
@@ -272,15 +319,92 @@ def _biomedicine_request(
         try:
             values = active_center_values(preset, request.values)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise _biomedicine_error(
+                "ACTIVE_CENTER_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
     elif case_id == "peptide_landscape":
         try:
             values = peptide_values(preset, request.values)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise _biomedicine_error(
+                "PEPTIDE_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
     else:
         values = {**spec.values, **request.values}
     return preset, values
+
+
+def _biomedicine_error(code: str, message: str, stage: str) -> HTTPException:
+    """Build the stable diagnostic object used by all biomedicine 422 responses."""
+
+    return HTTPException(
+        status_code=422,
+        detail={"code": code, "message": message, "stage": stage},
+    )
+
+
+def _persist_biomedicine_report(
+    case_id: str, preset: str, run: dict[str, Any], request_started: float
+) -> Path:
+    """Persist one run below the configured user-data directory using a safe name."""
+
+    report_started = time.perf_counter()
+    audit = run.get("audit")
+    if not isinstance(audit, dict) or not isinstance(audit.get("reportHash"), str):
+        raise RuntimeError("biomedicine run is missing its stable report hash")
+    report_hash = audit["reportHash"]
+    report_path = (REPORT_DIR / f"{case_id}-{report_hash[:16]}.json").resolve()
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    execution_seconds = float(audit.get("wallTimeSeconds", 0.0))
+    audit["reportPath"] = str(report_path)
+    audit["timings"] = {
+        **dict(audit.get("timings", {})),
+        "preflightSeconds": max(
+            0.0, report_started - request_started - execution_seconds
+        ),
+        "executionSeconds": execution_seconds,
+        "reportSeconds": 0.0,
+        "totalSeconds": report_started - request_started,
+    }
+    report_payload = {
+        "schema": "biomedicine.execution-report.v1",
+        "caseId": case_id,
+        "preset": preset,
+        "reportHash": report_hash,
+        "run": run,
+    }
+    report_path.write_text(
+        json.dumps(report_payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    audit["timings"]["reportSeconds"] = time.perf_counter() - report_started
+    audit["timings"]["totalSeconds"] = time.perf_counter() - request_started
+    report_path.write_text(
+        json.dumps(report_payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return report_path
+
+
+def _biomedicine_run_response(
+    spec: Any,
+    preset: str,
+    values: dict[str, Any],
+    run: dict[str, Any],
+    request_started: float,
+) -> dict[str, Any]:
+    """Persist the report and return the documented application response envelope."""
+
+    _persist_biomedicine_report(spec.case_id, preset, run, request_started)
+    scenario = spec.to_dict()
+    scenario["values"] = values
+    return {
+        "scenario": scenario,
+        "preset": preset,
+        "dataset": run["analysis"]["dataset"],
+        "analysis": run["analysis"],
+        "run": run,
+    }
 
 
 @app.post("/api/domains/{domain_id}/scenarios/{case_id}/analyze")
@@ -305,10 +429,17 @@ def analyze_domain_scenario(
         else:
             analysis = preview_analysis(case_id)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise _biomedicine_error(
+            "BIOMEDICINE_ANALYSIS_INVALID", str(exc), "analysis"
+        ) from exc
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
     scenario["values"] = values
-    return {"scenario": scenario, "preset": preset, "analysis": analysis}
+    return {
+        "scenario": scenario,
+        "preset": preset,
+        "dataset": analysis["dataset"],
+        "analysis": analysis,
+    }
 
 
 @app.post("/api/domains/{domain_id}/scenarios/{case_id}/run")
@@ -320,6 +451,7 @@ async def run_domain_scenario(
         return await run_scenario(case_id, request)
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
+    request_started = time.perf_counter()
     preset, values = _biomedicine_request(case_id, request)
     spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
     if spec.implementation_status != "available":
@@ -333,14 +465,17 @@ async def run_domain_scenario(
         )
     if case_id == "docking_match":
         if request.mode == "analog":
-            raise HTTPException(
-                status_code=422,
-                detail=(
+            raise _biomedicine_error(
+                "DOCKING_MODE_UNSUPPORTED",
+                (
                     "构象匹配的覆盖与构象约束需要 Digital residual，不支持纯 Analog。"
                 ),
+                "preflight",
             )
         if request.algorithm not in {None, "recommended", "qaoa"}:
-            raise HTTPException(status_code=422, detail="构象匹配只支持 QAOA。")
+            raise _biomedicine_error(
+                "DOCKING_ALGORITHM_UNSUPPORTED", "构象匹配只支持 QAOA。", "preflight"
+            )
         profile = spec.recommended_execution
         shots = request.shots if request.shots is not None else int(profile["shots"])
         seed = request.seed if request.seed is not None else int(profile["seed"])
@@ -372,15 +507,19 @@ async def run_domain_scenario(
                 optimizer_starts=starts,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        scenario = spec.to_dict()
-        scenario["values"] = values
-        return {"scenario": scenario, "preset": preset, "run": run}
+            raise _biomedicine_error(
+                "DOCKING_EXECUTION_INVALID", str(exc), "execution"
+            ) from exc
+        return _biomedicine_run_response(spec, preset, values, run, request_started)
     if case_id == "peptide_landscape":
         if request.mode not in {"recommended", "digital"}:
-            raise HTTPException(status_code=422, detail="小肽能景只支持 Digital QAOA。")
+            raise _biomedicine_error(
+                "PEPTIDE_MODE_UNSUPPORTED", "小肽能景只支持 Digital QAOA。", "preflight"
+            )
         if request.algorithm not in {None, "recommended", "qaoa"}:
-            raise HTTPException(status_code=422, detail="小肽能景只支持 QAOA。")
+            raise _biomedicine_error(
+                "PEPTIDE_ALGORITHM_UNSUPPORTED", "小肽能景只支持 QAOA。", "preflight"
+            )
         profile = spec.recommended_execution
         try:
             run = await run_in_threadpool(
@@ -396,19 +535,21 @@ async def run_domain_scenario(
                 or int(profile["optimizerStarts"]),
             )
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        scenario = spec.to_dict()
-        scenario["values"] = values
-        return {"scenario": scenario, "preset": preset, "run": run}
+            raise _biomedicine_error(
+                "PEPTIDE_EXECUTION_INVALID", str(exc), "execution"
+            ) from exc
+        return _biomedicine_run_response(spec, preset, values, run, request_started)
     if request.mode not in {"recommended", "digital"}:
-        raise HTTPException(
-            status_code=422,
-            detail="Pauli Hamiltonian 场景只支持 Digital VQE。",
+        raise _biomedicine_error(
+            "PAULI_MODE_UNSUPPORTED",
+            "Pauli Hamiltonian 场景只支持 Digital VQE。",
+            "preflight",
         )
     if request.algorithm not in {None, "recommended", "vqe"}:
-        raise HTTPException(
-            status_code=422,
-            detail="Pauli Hamiltonian 场景只支持 VQE。",
+        raise _biomedicine_error(
+            "PAULI_ALGORITHM_UNSUPPORTED",
+            "Pauli Hamiltonian 场景只支持 VQE。",
+            "preflight",
         )
     profile = spec.recommended_execution
     shots = request.shots if request.shots is not None else int(profile["shots"])
@@ -448,10 +589,10 @@ async def run_domain_scenario(
                 optimizer_starts=starts,
             )
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    scenario = spec.to_dict()
-    scenario["values"] = values
-    return {"scenario": scenario, "preset": preset, "run": run}
+        raise _biomedicine_error(
+            "PAULI_EXECUTION_INVALID", str(exc), "execution"
+        ) from exc
+    return _biomedicine_run_response(spec, preset, values, run, request_started)
 
 
 @app.post("/api/scenarios/{case_id}/analyze")

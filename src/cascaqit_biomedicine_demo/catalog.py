@@ -170,7 +170,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "electronic-structure",
         ("analysis", "vqe", "qwc_measurement", "exact_reference", "audit"),
         "available",
-        {**_VQE_PROFILE, "maxLayers": 2},
+        {**_VQE_PROFILE, "maxLayers": 2, "estimatedSeconds": 1.2},
     ),
     "docking_match": BiomedicineScenarioSpec(
         "docking_match",
@@ -208,7 +208,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "audit",
         ),
         "available",
-        {**_QAOA_PROFILE, "shots": 128, "seed": 8},
+        {**_QAOA_PROFILE, "shots": 128, "seed": 8, "estimatedSeconds": 2.7},
     ),
     "active_center": BiomedicineScenarioSpec(
         "active_center",
@@ -246,6 +246,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "seed": 7,
             "parameterBudget": 40,
             "optimizerStarts": 1,
+            "estimatedSeconds": 0.4,
         },
     ),
     "peptide_landscape": BiomedicineScenarioSpec(
@@ -282,6 +283,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "seed": 7,
             "parameterBudget": 40,
             "optimizerStarts": 2,
+            "estimatedSeconds": 2.2,
         },
     ),
 }

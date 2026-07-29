@@ -8,7 +8,7 @@ import { TelemetryHeader } from "./TelemetryHeader";
 afterEach(cleanup);
 
 describe("TelemetryHeader", () => {
-  it("omits the synthetic-data badge from the top-right status strip", () => {
+  it("keeps the execution boundary visible in the global header", () => {
     render(
       <I18nProvider initialLanguage="zh">
         <TelemetryHeader />
@@ -18,7 +18,9 @@ describe("TelemetryHeader", () => {
     const header = screen.getByRole("banner");
     expect(within(header).getByText("实验服务在线")).toBeTruthy();
     expect(within(header).getByText("执行可审计")).toBeTruthy();
-    expect(within(header).queryByText(/演示|demo/i)).toBeNull();
+    expect(within(header).getByText("LOCAL SIMULATION")).toBeTruthy();
+    expect(within(header).getByText("NO HARDWARE EXECUTION")).toBeTruthy();
+    expect(within(header).getByText("RESEARCH DEMONSTRATION")).toBeTruthy();
   });
 
   it("exposes the finance and biomedicine domain switch", () => {

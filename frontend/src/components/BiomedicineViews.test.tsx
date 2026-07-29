@@ -8,6 +8,7 @@ import type {
   DockingRunPayload,
   DockingSolutionPayload,
   ElectronicStructureRunPayload,
+  PeptideRunPayload,
 } from "../types";
 import { I18nProvider } from "../i18n";
 import {
@@ -15,6 +16,7 @@ import {
   BiomedicineQuantumView,
   BiomedicineResultView,
   BiomedicineAuditView,
+  BiomedicineComparisonView,
 } from "./BiomedicineViews";
 
 const analysis = {
@@ -208,6 +210,26 @@ const electronicRun = {
   audit: {},
 } as unknown as ElectronicStructureRunPayload;
 
+const peptideRun = {
+  kind: "biomedicine",
+  analysis: { ...analysis, caseId: "peptide_landscape" },
+  domain: {
+    kind: "peptide_landscape_result",
+    quantumCandidate: { bitstring: "010", conformationId: "c2", energy: -1.5, contactCount: 2, coordinates: [], contacts: [], feasible: true },
+    topObservedFeasible: [],
+    observedFeasibleCount: 1,
+    classicGroundConformations: [{ id: "c1", coordinates: [], contacts: [], energy: -2, contactCount: 3 }],
+    fullLandscape: [
+      { id: "c1", coordinates: [], contacts: [], energy: -2, contactCount: 3 },
+      { id: "c2", coordinates: [], contacts: [], energy: -1.5, contactCount: 2 },
+    ],
+    energyGapFromGround: 0.5,
+    interpretation: "有限构象库。",
+  },
+  quantum: {},
+  audit: {},
+} as unknown as PeptideRunPayload;
+
 afterEach(cleanup);
 
 describe("Biomedicine docking views", () => {
@@ -225,6 +247,7 @@ describe("Biomedicine docking views", () => {
   it("shows the QUBO ledger and verified Hybrid gate", () => {
     render(<BiomedicineMappingView analysis={analysis} />);
     expect(screen.getByText("QUBO 贡献账本")).toBeTruthy();
+    expect(screen.getByTitle("二次无约束二元优化")).toBeTruthy();
     expect(screen.getByText("BALANCED")).toBeTruthy();
     expect(screen.getByText(/2 A \/ 4 D/)).toBeTruthy();
     expect(screen.getByText(/verified/)).toBeTruthy();
@@ -285,5 +308,35 @@ describe("Biomedicine electronic-structure views", () => {
     expect(screen.getByText("理想与带噪测量组")).toBeTruthy();
     expect(screen.getByText("READOUT NOISE")).toBeTruthy();
     expect(screen.getByText("IDEAL")).toBeTruthy();
+  });
+});
+
+describe("Biomedicine comparison view", () => {
+  it("keeps the four scenario comparison contracts explicit", () => {
+    const { rerender } = render(
+      <BiomedicineComparisonView analysis={electronicAnalysis} run={electronicRun} />,
+    );
+    expect(screen.getByText("小分子基态能量对照")).toBeTruthy();
+    expect(screen.getByText("读出噪声 QWC")).toBeTruthy();
+    expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
+
+    rerender(<BiomedicineComparisonView analysis={analysis} run={activeCenterRun} />);
+    expect(screen.getByText("有效自旋 Hamiltonian 对照")).toBeTruthy();
+    expect(screen.getByText("HASH MATCH")).toBeTruthy();
+
+    rerender(<BiomedicineComparisonView analysis={analysis} run={run} />);
+    expect(screen.getByText("构象匹配三方对照")).toBeTruthy();
+    expect(screen.getByText("共晶派生参考")).toBeTruthy();
+
+    rerender(<BiomedicineComparisonView analysis={analysis} run={peptideRun} />);
+    expect(screen.getByText("小肽候选与完整能景对照")).toBeTruthy();
+    expect(screen.getByText("完整能景位置")).toBeTruthy();
+    expect(screen.getByTitle("量子近似优化算法")).toBeTruthy();
+  });
+
+  it("does not fabricate a comparison before execution", () => {
+    render(<BiomedicineComparisonView analysis={analysis} run={null} />);
+    expect(screen.getByText("执行后生成独立对照")).toBeTruthy();
+    expect(screen.getByText(/不预填运行结论/)).toBeTruthy();
   });
 });

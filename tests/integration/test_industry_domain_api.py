@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import shutil
+from importlib import import_module
 
 from fastapi.testclient import TestClient
 
 from cascaqit_biomedicine_demo import fixtures
 from cascaqit_finance_demo.api.app import app
 
+app_module = import_module("cascaqit_finance_demo.api.app")
 client = TestClient(app)
 
 
@@ -40,12 +43,16 @@ def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     assert payload["scenario"]["implementationStatus"] == "available"
     assert payload["analysis"]["problem"]["type"] == "pauli_hamiltonian"
     assert payload["analysis"]["domain"]["molecule"] == "H2"
+    assert payload["dataset"] == payload["analysis"]["dataset"]
     assert payload["analysis"]["resource"]["measurementGroups"] == 2
     assert len(payload["scenario"]["presets"]) == 3
     assert len(payload["analysis"]["domain"]["bondScanReference"]) == 3
 
 
-def test_h2o_api_returns_separate_ideal_and_noisy_measurement_evidence() -> None:
+def test_h2o_api_returns_separate_evidence_and_persists_report(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
     response = client.post(
         "/api/domains/biomedicine/scenarios/electronic_structure/run",
         json={
@@ -62,11 +69,28 @@ def test_h2o_api_returns_separate_ideal_and_noisy_measurement_evidence() -> None
     )
     assert response.status_code == 200
     run = response.json()["run"]
+    payload = response.json()
+    assert payload["dataset"] == run["analysis"]["dataset"]
+    assert payload["analysis"] == run["analysis"]
     assert run["domain"]["molecule"] == "H2O"
     assert run["domain"]["withinChemicalAccuracy"] is None
     assert run["quantum"]["measurement"]["groups"]
     assert run["quantum"]["measurement"]["noisyGroups"]
     assert run["audit"]["noiseModelHash"]
+    report_path = tmp_path / "reports" / (
+        f"electronic_structure-{run['audit']['reportHash'][:16]}.json"
+    )
+    assert run["audit"]["reportPath"] == str(report_path.resolve())
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["schema"] == "biomedicine.execution-report.v1"
+    assert report["reportHash"] == run["audit"]["reportHash"]
+    assert report["run"]["audit"] == run["audit"]
+    assert run["audit"]["timings"]["preflightSeconds"] >= 0.0
+    assert run["audit"]["timings"]["reportSeconds"] >= 0.0
+    assert (
+        run["audit"]["timings"]["totalSeconds"]
+        >= run["audit"]["timings"]["executionSeconds"]
+    )
 
 
 def test_electronic_structure_rejects_unsupported_mode_with_422() -> None:
@@ -75,7 +99,10 @@ def test_electronic_structure_rejects_unsupported_mode_with_422() -> None:
         json={"preset": "h2_bond_scan", "mode": "analog"},
     )
     assert response.status_code == 422
-    assert "Digital VQE" in response.json()["detail"]
+    detail = response.json()["detail"]
+    assert detail["code"] == "PAULI_MODE_UNSUPPORTED"
+    assert detail["stage"] == "preflight"
+    assert "Digital VQE" in detail["message"]
 
 
 def test_corrupted_electronic_fixture_returns_422_without_local_path(
@@ -99,8 +126,12 @@ def test_corrupted_electronic_fixture_returns_422_without_local_path(
     )
     assert response.status_code == 422
     detail = response.json()["detail"]
-    assert detail == "fixture checksum mismatch: pauli.json"
-    assert str(tmp_path) not in detail
+    assert detail == {
+        "code": "BIOMEDICINE_ANALYSIS_INVALID",
+        "message": "fixture checksum mismatch: pauli.json",
+        "stage": "analysis",
+    }
+    assert str(tmp_path) not in detail["message"]
 
 
 def test_docking_analysis_exposes_hybrid_gate_and_offline_source() -> None:
@@ -204,3 +235,22 @@ def test_legacy_finance_catalog_remains_seven_scenarios() -> None:
     response = client.get("/api/scenarios")
     assert response.status_code == 200
     assert len(response.json()["scenarios"]) == 7
+
+
+def test_unknown_biomedicine_failure_returns_opaque_error_id(monkeypatch) -> None:
+    def fail_run(**_kwargs):
+        raise RuntimeError("private path: /tmp/secret-fixture.json")
+
+    monkeypatch.setattr(app_module, "run_electronic_structure", fail_run)
+    safe_client = TestClient(app, raise_server_exceptions=False)
+    response = safe_client.post(
+        "/api/domains/biomedicine/scenarios/electronic_structure/run",
+        json={"preset": "h2_bond_scan", "mode": "digital", "algorithm": "vqe"},
+    )
+
+    assert response.status_code == 500
+    detail = response.json()["detail"]
+    assert detail["code"] == "INTERNAL_EXECUTION_ERROR"
+    assert detail["stage"] == "internal"
+    assert len(detail["error_id"]) == 32
+    assert "/tmp/secret-fixture.json" not in detail["message"]

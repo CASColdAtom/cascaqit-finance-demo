@@ -19,7 +19,7 @@ from cascaqit_biomedicine_demo.problem_model import (
     TermGroup,
     with_isolated_pair_geometry,
 )
-from cascaqit_finance_demo.quantum.problem_executor import ScenarioExecutor
+from cascaqit_industry_demo.problem_executor import ScenarioExecutor
 
 DATA_ROOT = (
     Path(__file__).resolve().parent / "data" / "docking_match" / "1hsg_indinavir" / "1"

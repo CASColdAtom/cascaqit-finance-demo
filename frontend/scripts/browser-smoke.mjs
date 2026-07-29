@@ -155,6 +155,18 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await page.locator(".app-shell-react").waitFor();
   await page.waitForFunction(() => document.title === "中科酷原行业量子实验台");
   await selectBiomedicine(page);
+  for (const boundary of [
+    "LOCAL SIMULATION",
+    "NO HARDWARE EXECUTION",
+    "RESEARCH DEMONSTRATION",
+  ]) {
+    if (!(await page.getByText(boundary, { exact: true }).isVisible())) {
+      throw new Error(`${name}: global execution boundary is missing ${boundary}`);
+    }
+  }
+  if (!(await page.getByRole("tab", { name: "对照分析" }).isVisible())) {
+    throw new Error(`${name}: biomedicine comparison tab is missing`);
+  }
 
   const result = {
     viewport: { width, height },
@@ -199,6 +211,10 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     fullPage: true,
   });
 
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "构象匹配三方对照" }).waitFor();
+  result.dockingComparison = await assertLayout(page, `${name}/docking-comparison`);
+
   await page.getByRole("tab", { name: "量子实验" }).click();
   await waitForPaintedCanvas(page, ".docking-quantum-view canvas");
   const dockingQuantum = await assertLayout(page, `${name}/docking-quantum`);
@@ -242,6 +258,13 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     fullPage: true,
   });
 
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "有效自旋 Hamiltonian 对照" }).waitFor();
+  result.activeCenterComparison = await assertLayout(
+    page,
+    `${name}/active-center-comparison`,
+  );
+
   await page.getByRole("tab", { name: "量子实验" }).click();
   await waitForPaintedCanvas(page, ".view-stage canvas");
   const activeCenterQuantum = await assertLayout(
@@ -282,6 +305,10 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     fullPage: true,
   });
 
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "小肽候选与完整能景对照" }).waitFor();
+  result.peptideComparison = await assertLayout(page, `${name}/peptide-comparison`);
+
   await page.getByRole("tab", { name: "量子实验" }).click();
   await waitForPaintedCanvas(page, ".peptide-quantum-view canvas");
   result.peptideQuantum = await assertLayout(page, `${name}/peptide-quantum`);
@@ -304,6 +331,13 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     throw new Error(`${name}: H2 result evidence is incomplete: ${resultText}`);
   }
   result.h2Run = await assertLayout(page, `${name}/h2-run`);
+
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "小分子基态能量对照" }).waitFor();
+  result.electronicComparison = await assertLayout(
+    page,
+    `${name}/electronic-comparison`,
+  );
 
   await page.getByRole("tab", { name: "量子实验" }).click();
   await waitForPaintedCanvas(page, ".view-stage canvas");

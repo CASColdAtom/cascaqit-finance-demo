@@ -231,6 +231,8 @@ describe("App", () => {
     ).toBeTruthy();
     expect(screen.queryByText("投资组合")).toBeNull();
     expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
+    expect(screen.getByRole("tab", { name: "对照分析" })).toBeTruthy();
+    expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(window.location.pathname).toBe("/biomedicine/electronic_structure");
     await waitFor(() => {
       expect(api.analyzeScenario).toHaveBeenLastCalledWith(
@@ -265,6 +267,7 @@ describe("App", () => {
     expect((screen.getByLabelText("变分层数") as HTMLSelectElement).value).toBe("2");
     expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("128");
     expect(screen.getByText("推荐执行配置")).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "对照分析" })).toBeNull();
     expect(screen.queryByRole("option", { name: "VQE" })).toBeNull();
   });
 

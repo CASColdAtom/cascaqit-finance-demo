@@ -36,6 +36,7 @@ export interface ExecutionProfile {
   parameterBudget: number;
   optimizerStarts?: number;
   repeats?: number;
+  estimatedSeconds?: number;
 }
 
 export interface ScenarioSpec {
@@ -724,6 +725,13 @@ export interface ElectronicStructureRunPayload {
     wallTimeSeconds: number;
     optimalityClaim?: string;
     claimBoundary?: string;
+    reportPath?: string;
+    timings?: {
+      preflightSeconds: number;
+      executionSeconds: number;
+      reportSeconds: number;
+      totalSeconds: number;
+    };
   };
 }
 
@@ -856,6 +864,8 @@ export interface DockingRunPayload {
     wallTimeSeconds: number;
     optimalityClaim: string;
     claimBoundary: string;
+    reportPath?: string;
+    timings?: ElectronicStructureRunPayload["audit"]["timings"];
   };
 }
 
@@ -936,6 +946,8 @@ export interface PeptideRunPayload {
     wallTimeSeconds: number;
     optimalityClaim: string;
     claimBoundary: string;
+    reportPath?: string;
+    timings?: ElectronicStructureRunPayload["audit"]["timings"];
   };
 }
 

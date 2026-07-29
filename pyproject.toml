@@ -34,7 +34,11 @@ cascaqit-finance-api = "cascaqit_finance_demo.api.app:run"
 cascaqit-finance-demo = "cascaqit_finance_demo.api.app:launch"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cascaqit_finance_demo", "src/cascaqit_biomedicine_demo"]
+packages = [
+    "src/cascaqit_industry_demo",
+    "src/cascaqit_finance_demo",
+    "src/cascaqit_biomedicine_demo",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

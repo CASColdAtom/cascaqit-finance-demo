@@ -12,57 +12,64 @@ export function TelemetryHeader({
   const { language, setLanguage, t } = useI18n();
   return (
     <header className="telemetry-header">
-      <div className="brand-lockup">
-        <img
-          className="brand-logo"
-          src="/cascoldatom-logo-transparent.png"
-          alt="CASColdAtom 中科酷原"
-        />
-        <div className="brand-title">
-          <strong>{t("productTitle")}</strong>
-          <span>{t("productSubtitle")}</span>
+      <div className="telemetry-main-row">
+        <div className="brand-lockup">
+          <img
+            className="brand-logo"
+            src="/cascoldatom-logo-transparent.png"
+            alt="CASColdAtom 中科酷原"
+          />
+          <div className="brand-title">
+            <strong>{t("productTitle")}</strong>
+            <span>{t("productSubtitle")}</span>
+          </div>
         </div>
-      </div>
-      <div className="domain-switch" role="group" aria-label={t("industryDomain")}>
-        <button
-          type="button"
-          aria-pressed={domainId === "finance"}
-          onClick={() => onDomain("finance")}
-        >
-          {t("financeDomain")}
-        </button>
-        <button
-          type="button"
-          aria-pressed={domainId === "biomedicine"}
-          onClick={() => onDomain("biomedicine")}
-        >
-          {t("biomedicineDomain")}
-        </button>
-      </div>
-      <div className="telemetry-strip">
-        <span className="telemetry-item status-live">
-          <i aria-hidden="true" /> {t("serviceOnline")}
-        </span>
-        <span className="telemetry-item telemetry-wide">
-          <ShieldCheck size={14} aria-hidden="true" /> {t("auditReady")}
-        </span>
-        <div className="language-switch" role="group" aria-label="Language / 语言">
-          <Languages size={14} aria-hidden="true" />
+        <div className="domain-switch" role="group" aria-label={t("industryDomain")}>
           <button
             type="button"
-            aria-pressed={language === "zh"}
-            onClick={() => setLanguage("zh")}
+            aria-pressed={domainId === "finance"}
+            onClick={() => onDomain("finance")}
           >
-            中文
+            {t("financeDomain")}
           </button>
           <button
             type="button"
-            aria-pressed={language === "en"}
-            onClick={() => setLanguage("en")}
+            aria-pressed={domainId === "biomedicine"}
+            onClick={() => onDomain("biomedicine")}
           >
-            EN
+            {t("biomedicineDomain")}
           </button>
         </div>
+        <div className="telemetry-strip">
+          <span className="telemetry-item status-live">
+            <i aria-hidden="true" /> {t("serviceOnline")}
+          </span>
+          <span className="telemetry-item telemetry-wide">
+            <ShieldCheck size={14} aria-hidden="true" /> {t("auditReady")}
+          </span>
+          <div className="language-switch" role="group" aria-label="Language / 语言">
+            <Languages size={14} aria-hidden="true" />
+            <button
+              type="button"
+              aria-pressed={language === "zh"}
+              onClick={() => setLanguage("zh")}
+            >
+              中文
+            </button>
+            <button
+              type="button"
+              aria-pressed={language === "en"}
+              onClick={() => setLanguage("en")}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="execution-boundary" aria-label={t("executionBoundary")}>
+        <span>{t("localSimulation")}</span>
+        <span>{t("noHardwareExecution")}</span>
+        <span>{t("researchDemonstration")}</span>
       </div>
     </header>
   );

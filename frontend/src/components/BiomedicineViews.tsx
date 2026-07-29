@@ -8,6 +8,7 @@ import {
   FileJson,
   GitBranch,
   Radio,
+  Scale,
 } from "lucide-react";
 import type {
   ActiveCenterRunPayload,
@@ -23,6 +24,7 @@ import type {
 } from "../types";
 import { compactId, MODE_LABELS } from "../utils";
 import { AtomChart, CountsChart, ParameterChart, WaveformChart } from "./charts/Charts";
+import { QuantumText } from "./QuantumText";
 
 function isDockingRun(run: BiomedicineRunPayload): run is DockingRunPayload {
   return run.domain.kind === "docking_match_result";
@@ -34,6 +36,10 @@ function isActiveCenterRun(run: BiomedicineRunPayload): run is ActiveCenterRunPa
 
 function isPeptideRun(run: BiomedicineRunPayload): run is PeptideRunPayload {
   return run.domain.kind === "peptide_landscape_result";
+}
+
+function QuantumTerm({ short, title }: { short: string; title: string }) {
+  return <abbr className="quantum-term" title={title}>{short}</abbr>;
 }
 
 function StructureDiagram({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
@@ -167,8 +173,8 @@ export function BiomedicineResultView({
   return (
     <div className="view-stack biomed-view">
       <div className="biomed-metric-band">
-        <div><small>{result.molecule} / VQE OBJECTIVE</small><strong>{result.exactOptimizedEnergy.toFixed(6)}</strong><span>Hartree</span></div>
-        <div><small>IDEAL QWC</small><strong>{result.sampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.sampledStandardError.toFixed(4)}</span></div>
+        <div><small>{result.molecule} / <QuantumTerm short="VQE" title="变分量子本征求解器" /> OBJECTIVE</small><strong>{result.exactOptimizedEnergy.toFixed(6)}</strong><span>Hartree</span></div>
+        <div><small>IDEAL <QuantumTerm short="QWC" title="逐量子比特可对易测量分组" /></small><strong>{result.sampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.sampledStandardError.toFixed(4)}</span></div>
         {result.noisySampledConfirmationEnergy !== null ? <div><small>READOUT-NOISE QWC</small><strong>{result.noisySampledConfirmationEnergy.toFixed(6)}</strong><span>± {result.noisySampledStandardError?.toFixed(4)}</span></div> : null}
         <div><small>EXACT REFERENCE</small><strong>{result.referenceEnergy.toFixed(6)}</strong><span>Hartree</span></div>
         <div data-pass={result.withinChemicalAccuracy ?? undefined}><small>ABSOLUTE ERROR</small><strong>{(result.absoluteErrorHartree * 1000).toFixed(3)}</strong><span>{(result.relativeError * 100).toFixed(4)}%</span></div>
@@ -252,8 +258,8 @@ function ActiveCenterResultView({
   return (
     <div className="view-stack biomed-view active-center-result-view">
       <div className="biomed-metric-band">
-        <div><small>VQE EXACT OBJECTIVE</small><strong>{result.vqeExactEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
-        <div><small>QWC CONFIRMATION</small><strong>{result.sampledEnergyMeV.toFixed(5)}</strong><span>± {result.sampledStandardErrorMeV.toFixed(4)} meV</span></div>
+        <div><small><QuantumTerm short="VQE" title="变分量子本征求解器" /> EXACT OBJECTIVE</small><strong>{result.vqeExactEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
+        <div><small><QuantumTerm short="QWC" title="逐量子比特可对易测量分组" /> CONFIRMATION</small><strong>{result.sampledEnergyMeV.toFixed(5)}</strong><span>± {result.sampledStandardErrorMeV.toFixed(4)} meV</span></div>
         <div><small>EXACT REFERENCE</small><strong>{result.exactGroundEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
         <div data-pass={hashesMatch}><small>HAMILTONIAN IDENTITY</small><strong>{hashesMatch ? "MATCH" : "MISMATCH"}</strong><span>{compactId(run.audit.hamiltonianHash, 14)}</span></div>
       </div>
@@ -373,6 +379,109 @@ function energyPosition(value: number, run: ElectronicStructureRunPayload) {
   return Math.max(0, Math.min(100, ((value - minimum) / (maximum - minimum)) * 100));
 }
 
+function ComparisonTable({
+  rows,
+}: {
+  rows: Array<{ source: string; candidate: string; value: string; evidence: string }>;
+}) {
+  return (
+    <div className="table-wrap">
+      <table className="data-table comparison-table">
+        <thead><tr><th>对照来源</th><th>候选 / 方法</th><th>结果</th><th>证据边界</th></tr></thead>
+        <tbody>{rows.map((row) => (
+          <tr key={`${row.source}-${row.candidate}`}>
+            <td>{row.source}</td><td className="mono">{row.candidate}</td><td className="mono">{row.value}</td><td>{row.evidence}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  );
+}
+
+export function BiomedicineComparisonView({
+  analysis,
+  run,
+}: {
+  analysis: BiomedicineAnalysisPayload;
+  run: BiomedicineRunPayload | null;
+}) {
+  if (!run) {
+    return (
+      <div className="view-stack biomed-view">
+        <section className="data-section comparison-empty">
+          <Scale aria-hidden="true" />
+          <h3>执行后生成独立对照</h3>
+          <p>对照视图只使用本次量子观测、固化经典基线与数据集参考，不预填运行结论。</p>
+        </section>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
+  if (isDockingRun(run)) {
+    return (
+      <div className="view-stack biomed-view">
+        <section className="data-section docking-comparison">
+          <div className="subsection-head"><div><span className="section-kicker">OBSERVED / ENUMERATED / REFERENCE</span><h3>构象匹配三方对照</h3></div><span className="data-chip">DISCRETE SCORE</span></div>
+          <div className="docking-solution-grid">
+            <DockingSolution solution={run.domain.quantumCandidate} title="量子观测候选" tone="quantum" />
+            <DockingSolution solution={run.domain.classicOptimum} title="经典枚举最优" tone="classic" />
+            <DockingSolution solution={run.domain.coCrystalReference} title="共晶派生参考" tone="reference" />
+          </div>
+        </section>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
+  if (isPeptideRun(run)) {
+    const groundIds = run.domain.classicGroundConformations.map((item) => item.id).join(" / ");
+    return (
+      <div className="view-stack biomed-view">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="QAOA" title="量子近似优化算法" /> / COMPLETE ENUMERATION</span><h3>小肽候选与完整能景对照</h3></div><span className="data-chip">{run.domain.fullLandscape.length} CONFORMATIONS</span></div>
+          <ComparisonTable rows={[
+            { source: "量子观测", candidate: run.domain.quantumCandidate.conformationId ?? "NONE", value: run.domain.quantumCandidate.energy?.toFixed(3) ?? "N/A", evidence: run.domain.quantumCandidate.feasible ? "可行采样候选" : "未观测到可行候选" },
+            { source: "经典全枚举", candidate: groundIds || "NONE", value: run.domain.classicGroundConformations[0]?.energy.toFixed(3) ?? "N/A", evidence: "有限构象库最低能级" },
+            { source: "完整能景位置", candidate: `${run.domain.fullLandscape.findIndex((item) => item.id === run.domain.quantumCandidate.conformationId) + 1}/${run.domain.fullLandscape.length}`, value: run.domain.energyGapFromGround?.toFixed(3) ?? "N/A", evidence: "候选相对基态能隙" },
+          ]} />
+        </section>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
+  if (isActiveCenterRun(run)) {
+    const hashesMatch = run.comparison.hamiltonianHash === run.comparison.vqeHamiltonianHash;
+    return (
+      <div className="view-stack biomed-view">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="VQE" title="变分量子本征求解器" /> / EXACT DIAGONALIZATION</span><h3>有效自旋 Hamiltonian 对照</h3></div><span className={`data-chip ${hashesMatch ? "source-quantum" : "status-preview"}`}>{hashesMatch ? "HASH MATCH" : "HASH MISMATCH"}</span></div>
+          <ComparisonTable rows={[
+            { source: "VQE 目标", candidate: "optimized state", value: `${run.domain.vqeExactEnergyMeV.toFixed(5)} meV`, evidence: "同一固化 Hamiltonian" },
+            { source: "QWC 采样", candidate: "measurement groups", value: `${run.domain.sampledEnergyMeV.toFixed(5)} ± ${run.domain.sampledStandardErrorMeV.toFixed(4)} meV`, evidence: "有限 shots 统计量" },
+            { source: "经典精确对角化", candidate: run.comparison.referenceMethod, value: `${run.domain.exactGroundEnergyMeV.toFixed(5)} meV`, evidence: `绝对误差 ${run.domain.absoluteErrorMeV.toFixed(5)} meV` },
+            { source: "关联对照", candidate: "XX / YY / ZZ", value: run.domain.correlations.map((item) => `${item.operator}=${item.expectation.toFixed(3)}`).join(" · "), evidence: "有效自旋模型内解释" },
+          ]} />
+        </section>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
+  return (
+    <div className="view-stack biomed-view">
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="VQE" title="变分量子本征求解器" /> / CLASSIC REFERENCES</span><h3>小分子基态能量对照</h3></div><span className="data-chip">HARTREE</span></div>
+        <ComparisonTable rows={[
+          { source: "Hartree-Fock", candidate: "mean-field baseline", value: run.comparison.hartreeFockEnergy.toFixed(6), evidence: "数据集固化参考" },
+          { source: "VQE 目标", candidate: "optimized statevector", value: run.comparison.vqeExactEnergy.toFixed(6), evidence: "优化点精确目标值" },
+          { source: "理想 QWC", candidate: "finite-shot groups", value: run.comparison.vqeSampledEnergy.toFixed(6), evidence: `标准误 ${run.domain.sampledStandardError.toFixed(4)}` },
+          ...(run.comparison.vqeNoisySampledEnergy === null ? [] : [{ source: "读出噪声 QWC", candidate: "readout-demo groups", value: run.comparison.vqeNoisySampledEnergy.toFixed(6), evidence: `标准误 ${run.domain.noisySampledStandardError?.toFixed(4) ?? "N/A"}` }]),
+          { source: "经典精确对角化", candidate: run.comparison.referenceMethod, value: run.comparison.exactGroundEnergy.toFixed(6), evidence: `绝对误差 ${run.domain.absoluteErrorHartree.toFixed(6)} Ha` },
+        ]} />
+      </section>
+      <InterpretationBoundary analysis={analysis} />
+    </div>
+  );
+}
+
 export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
   const edges = analysis.domain.bonds ?? analysis.domain.edges ?? [];
   return (
@@ -397,7 +506,7 @@ export function BiomedicineMappingView({ analysis }: { analysis: BiomedicineAnal
   return (
     <div className="view-stack biomed-view">
       <div className="mapping-summary">
-        <div><span>IR / HAMILTONIAN</span><strong>{analysis.problem.id}</strong><small>{analysis.problem.type.toUpperCase()}</small></div>
+        <div><span>IR / HAMILTONIAN</span><strong>{analysis.problem.id}</strong><small><QuantumText text={analysis.problem.type.toUpperCase()} /></small></div>
         <div><span>IDENTITY</span><strong className="mono">{compactId(analysis.problem.hash, 18)}</strong><small>SHA-256</small></div>
         <div><span>EXECUTION FAMILY</span><strong>{analysis.executionFamily.toUpperCase()}</strong><small>{analysis.decision.recommendedMode.toUpperCase()}</small></div>
       </div>
