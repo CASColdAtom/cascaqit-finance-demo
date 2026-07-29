@@ -1,0 +1,19 @@
+{
+  "modelLevel": "双金属中心二自旋低能有效模型",
+  "modelName": "桥联双金属中心各向异性 Heisenberg 模型",
+  "effectiveSpinSites": 2,
+  "declaredSector": "total_magnetization_z",
+  "nodes": [
+    {"id": "spin.m1", "label": "M1", "group": "有效自旋", "x": 26, "y": 54, "role": "effective_spin_site"},
+    {"id": "bridge.ligand", "label": "L", "group": "桥联配体", "x": 50, "y": 54, "role": "model_context"},
+    {"id": "spin.m2", "label": "M2", "group": "有效自旋", "x": 74, "y": 54, "role": "effective_spin_site"},
+    {"id": "field.env", "label": "LF", "group": "配位环境", "x": 50, "y": 22, "role": "local_field_context"}
+  ],
+  "edges": [
+    {"source": "spin.m1", "target": "bridge.ligand", "kind": "model_context", "score": 1.0},
+    {"source": "bridge.ligand", "target": "spin.m2", "kind": "model_context", "score": 1.0},
+    {"source": "spin.m1", "target": "spin.m2", "kind": "effective_exchange", "score": 1.0},
+    {"source": "field.env", "target": "spin.m1", "kind": "local_field", "score": 1.0},
+    {"source": "field.env", "target": "spin.m2", "kind": "local_field", "score": -1.0}
+  ]
+}

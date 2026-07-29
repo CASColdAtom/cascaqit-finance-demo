@@ -21,6 +21,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from cascaqit_biomedicine_demo.active_center import (
+    active_center_values,
+    analyze_active_center,
+    run_active_center,
+)
 from cascaqit_biomedicine_demo.catalog import (
     BIOMEDICINE_SCENARIO_SPECS,
     preview_analysis,
@@ -252,6 +257,11 @@ def _biomedicine_request(
             key: values[key]
             for key in ("match_weight", "collision_penalty", "coverage_weight")
         }
+    elif case_id == "active_center":
+        try:
+            values = active_center_values(preset, request.values)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     else:
         values = {**spec.values, **request.values}
     return preset, values
@@ -271,6 +281,8 @@ def analyze_domain_scenario(
         analysis = analyze_electronic_structure()
     elif case_id == "docking_match":
         analysis = analyze_docking_match(preset, values)
+    elif case_id == "active_center":
+        analysis = analyze_active_center(preset, values)
     else:
         analysis = preview_analysis(case_id)
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
@@ -347,12 +359,12 @@ async def run_domain_scenario(
     if request.mode not in {"recommended", "digital"}:
         raise HTTPException(
             status_code=422,
-            detail="电子结构场景只支持 Digital VQE。",
+            detail="Pauli Hamiltonian 场景只支持 Digital VQE。",
         )
     if request.algorithm not in {None, "recommended", "vqe"}:
         raise HTTPException(
             status_code=422,
-            detail="电子结构场景只支持 VQE。",
+            detail="Pauli Hamiltonian 场景只支持 VQE。",
         )
     profile = spec.recommended_execution
     shots = request.shots if request.shots is not None else int(profile["shots"])
@@ -369,14 +381,26 @@ async def run_domain_scenario(
         else int(profile["optimizerStarts"])
     )
     try:
-        run = await run_in_threadpool(
-            run_electronic_structure,
-            shots=shots,
-            seed=seed,
-            layers=layers,
-            parameter_budget=budget,
-            optimizer_starts=starts,
-        )
+        if case_id == "active_center":
+            run = await run_in_threadpool(
+                run_active_center,
+                preset=preset,
+                values=values,
+                shots=shots,
+                seed=seed,
+                layers=layers,
+                parameter_budget=budget,
+                optimizer_starts=starts,
+            )
+        else:
+            run = await run_in_threadpool(
+                run_electronic_structure,
+                shots=shots,
+                seed=seed,
+                layers=layers,
+                parameter_budget=budget,
+                optimizer_starts=starts,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     scenario = spec.to_dict()

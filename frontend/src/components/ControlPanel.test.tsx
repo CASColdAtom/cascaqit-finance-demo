@@ -151,6 +151,7 @@ function renderPanel(
     analyzing?: boolean;
     mode?: "digital" | "hybrid" | "analog";
     recommendedConfiguration?: boolean;
+    shots?: number;
   } = {},
   language: "zh" | "en" = "zh",
 ) {
@@ -168,7 +169,7 @@ function renderPanel(
         mode={overrides.mode ?? "hybrid"}
         algorithm="recommended"
         layerPolicy="fixed"
-        shots={32}
+        shots={overrides.shots ?? 32}
         seed={23}
         layers={1}
         maxLayers={2}
@@ -201,6 +202,12 @@ function renderPanel(
 }
 
 describe("ControlPanel", () => {
+  it("shows the 512-shot calibrated Pauli profile without visual fallback", () => {
+    renderPanel({ shots: 512 });
+    const select = screen.getByLabelText("Shots") as HTMLSelectElement;
+    expect(select.value).toBe("512");
+  });
+
   it("uses neutral preset wording", () => {
     renderPanel();
 

@@ -1,0 +1,38 @@
+{
+  "dataset_id": "active-center.bimetal-spin.effective-model",
+  "version": "1",
+  "source": {
+    "kind": "project_generated_effective_model",
+    "uri": null,
+    "license": "project_generated"
+  },
+  "generation": {
+    "tool": "cascaqit-biomedicine fixture curation",
+    "tool_version": "active-center-fixture-v1",
+    "parameters": {
+      "model": "anisotropic two-site spin-1/2 Heisenberg",
+      "site_count": 2,
+      "units": "meV"
+    }
+  },
+  "units": {
+    "energy": "meV",
+    "exchange_coupling": "meV",
+    "local_field": "meV",
+    "spin_observable": "dimensionless Pauli expectation"
+  },
+  "logical_order": ["spin.m1", "spin.m2"],
+  "artifacts": [
+    {"path": "domain.json", "sha256": "997632f18b2c5eccebf3e0465e642d681a4f929b9fc607da4f5ca9334e5fecd7"},
+    {"path": "pauli.json", "sha256": "72a25fdb54a7e3df582cb57a3df4ec4e53c0381b731548e5920627c6a6850476"}
+  ],
+  "reference": {
+    "method": "exact diagonalization of the request-resolved packaged Pauli Hamiltonian"
+  },
+  "limitations": [
+    "This is a two-spin low-energy effective model, not a full metal-enzyme electronic-structure calculation.",
+    "Model context nodes are not electronic orbitals and are not a neutral-atom hardware layout.",
+    "The experiment does not predict catalytic barriers, reaction rates, redox potentials, or enzyme activity.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

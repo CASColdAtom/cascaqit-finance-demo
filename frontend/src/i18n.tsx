@@ -479,6 +479,7 @@ const scenarioEnglish: Record<
     presets: {
       antiferromagnetic: "Antiferromagnetic Coupling",
       ligand_field: "Ligand-field Perturbation",
+      coupling_imbalance: "Coupling Imbalance",
     },
     controls: {
       exchange_coupling: "Exchange Coupling J",

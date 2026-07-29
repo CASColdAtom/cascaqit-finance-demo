@@ -2,50 +2,32 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import time
 from typing import Any
 
-from cascaqit.algorithms import VQE, HamiltonianTerm, OptimizerConfig, PauliHamiltonian
+from cascaqit.algorithms import VQE, OptimizerConfig, PauliHamiltonian
 from cascaqit.algorithms.measurement import (
     PauliMeasurementConfig,
     build_pauli_measurement_plan,
 )
-from cascaqit.observables import PauliProduct
 
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import LoadedFixture, load_h2_fixture
-
-
-def _hash_payload(value: Any) -> str:
-    raw = json.dumps(value, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
+from cascaqit_biomedicine_demo.pauli_vqe import (
+    build_pauli_hamiltonian,
+    hash_payload,
+)
 
 
 def _hamiltonian(fixture: LoadedFixture) -> PauliHamiltonian:
-    pauli = fixture.pauli
-    logical_order = tuple(str(item) for item in pauli["logical_order"])
-    terms = []
-    for item in pauli["terms"]:
-        factors = tuple((str(target), str(basis)) for target, basis in item["factors"])
-        terms.append(
-            HamiltonianTerm(
-                str(item["term_id"]),
-                float(item["coefficient"]),
-                PauliProduct(factors, name=str(item["operator"])),
-            )
-        )
-    return PauliHamiltonian(
-        hamiltonian_id=str(pauli["hamiltonian_id"]),
-        terms=tuple(terms),
-        constant=float(pauli["constant"]),
-        logical_order=logical_order,
-        metadata={
+    payload = {
+        **fixture.pauli,
+        "metadata": {
             "dataset_id": fixture.manifest["dataset_id"],
             "manifest_hash": fixture.manifest_hash,
         },
-    )
+    }
+    return build_pauli_hamiltonian(payload)
 
 
 def analyze_electronic_structure() -> dict[str, Any]:
@@ -138,7 +120,7 @@ def analyze_electronic_structure() -> dict[str, Any]:
             "limitations": fixture.manifest["limitations"],
         },
     }
-    analysis["analysisHash"] = _hash_payload(analysis)
+    analysis["analysisHash"] = hash_payload(analysis)
     return analysis
 
 
@@ -159,6 +141,9 @@ def run_electronic_structure(
             starts=optimizer_starts,
             seed=seed,
         ),
+        initial_parameters=fixture.manifest["recommended_initial_parameters"][
+            "values"
+        ],
         final_shots=shots,
     )
     best = result.evaluations[result.best_evaluation_index]
@@ -264,13 +249,14 @@ def run_electronic_structure(
             "executionHash": result.stable_hash(),
             "seed": seed,
             "shotsPerGroup": shots,
+            "warmStartSource": "fixture.recommended_initial_parameters",
             "hardwareExecution": False,
             "cloudExecution": False,
             "networkAccessed": False,
             "wallTimeSeconds": wall_time,
         },
     }
-    payload["audit"]["resultHash"] = _hash_payload(payload)
+    payload["audit"]["resultHash"] = hash_payload(payload)
     return payload
 
 

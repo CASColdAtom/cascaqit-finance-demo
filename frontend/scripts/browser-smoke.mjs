@@ -167,7 +167,7 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
       await waitForAnalysis(page);
     }
     const runButton = page.locator(".run-button");
-    const shouldBeDisabled = !["electronic_structure", "docking_match"].includes(caseId);
+    const shouldBeDisabled = caseId === "peptide_landscape";
     if ((await runButton.isDisabled()) !== shouldBeDisabled) {
       throw new Error(`${name}/${caseId}: unexpected run button enabled state`);
     }
@@ -210,6 +210,52 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     path: path.join(outputDir, `docking-quantum-${name}.png`),
     fullPage: true,
   });
+
+  await page.locator(".scenario-item", { hasText: "金属活性中心" }).click();
+  await page.waitForURL("**/biomedicine/active_center");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  await page.locator(".run-button").click();
+  await page.locator(".active-center-result-view").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const activeCenterText = await page.locator(".active-center-result-view").innerText();
+  for (const expected of [
+    "HAMILTONIAN IDENTITY",
+    "MATCH",
+    "局域磁化与两点自旋关联",
+    "总磁化扇区占据",
+    "CORRELATION / XX",
+  ]) {
+    if (!activeCenterText.includes(expected)) {
+      throw new Error(`${name}: active-center result is missing ${expected}`);
+    }
+  }
+  result.activeCenterRun = await assertLayout(page, `${name}/active-center-run`);
+  await page.screenshot({
+    path: path.join(outputDir, `active-center-result-${name}.png`),
+    fullPage: true,
+  });
+
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await waitForPaintedCanvas(page, ".view-stage canvas");
+  const activeCenterQuantum = await assertLayout(
+    page,
+    `${name}/active-center-quantum`,
+  );
+  if (
+    !activeCenterQuantum.graphics.some(
+      (graphic) => graphic.tag === "canvas" && graphic.marks > 0,
+    )
+  ) {
+    throw new Error(`${name}: active-center quantum view contains no painted canvas`);
+  }
+  result.activeCenterQuantum = activeCenterQuantum;
 
   await page.locator(".scenario-item", { hasText: "电子结构" }).click();
   await page.waitForURL("**/biomedicine/electronic_structure");

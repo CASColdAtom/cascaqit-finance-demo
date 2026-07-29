@@ -59,11 +59,38 @@ def test_docking_analysis_exposes_hybrid_gate_and_offline_source() -> None:
 
 def test_remaining_preview_scenario_rejects_execution_before_backend_work() -> None:
     run = client.post(
-        "/api/domains/biomedicine/scenarios/active_center/run",
+        "/api/domains/biomedicine/scenarios/peptide_landscape/run",
         json={},
     )
     assert run.status_code == 422
     assert run.json()["detail"]["code"] == "BIOMEDICINE_EXECUTOR_NOT_IMPLEMENTED"
+
+
+def test_active_center_analysis_and_run_expose_one_hamiltonian_chain() -> None:
+    analysis_response = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze",
+        json={"preset": "coupling_imbalance", "values": {}},
+    )
+    assert analysis_response.status_code == 200
+    assert analysis_response.json()["analysis"]["implementationStatus"] == "available"
+
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/run",
+        json={
+            "preset": "antiferromagnetic",
+            "mode": "digital",
+            "algorithm": "vqe",
+            "shots": 256,
+            "seed": 7,
+            "layers": 1,
+            "parameter_budget": 40,
+            "optimizer_starts": 1,
+        },
+    )
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["audit"]["hamiltonianHash"] == run["comparison"]["hamiltonianHash"]
+    assert len(run["domain"]["correlations"]) == 3
 
 
 def test_docking_run_keeps_quantum_classic_and_reference_results_separate() -> None:

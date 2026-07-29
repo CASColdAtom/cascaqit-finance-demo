@@ -248,7 +248,7 @@ export function ControlPanel(props: ControlPanelProps) {
             <label>
               <span>Shots</span>
               <select value={props.shots} onChange={(event) => props.onShots(Number(event.target.value))}>
-                {[16, 32, 64, 128].map((value) => (
+                {[16, 32, 64, 128, 256, 512].map((value) => (
                   <option key={value}>{value}</option>
                 ))}
               </select>

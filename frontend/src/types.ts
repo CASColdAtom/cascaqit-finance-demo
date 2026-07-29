@@ -663,10 +663,48 @@ export interface ElectronicStructureRunPayload {
     resultHash: string;
     seed: number;
     shotsPerGroup: number;
+    warmStartSource?: string;
     hardwareExecution: false;
     cloudExecution: false;
     networkAccessed: false;
     wallTimeSeconds: number;
+  };
+}
+
+export interface ActiveCenterRunPayload
+  extends Omit<ElectronicStructureRunPayload, "domain" | "comparison" | "audit"> {
+  domain: {
+    kind: "active_center_result";
+    vqeExactEnergyMeV: number;
+    sampledEnergyMeV: number;
+    sampledStandardErrorMeV: number;
+    exactGroundEnergyMeV: number;
+    absoluteErrorMeV: number;
+    magnetization: Array<{
+      siteId: string;
+      expectation: number;
+      standardError: number;
+    }>;
+    correlations: Array<{
+      operator: "XX" | "YY" | "ZZ";
+      expectation: number;
+      standardError: number;
+    }>;
+    sectorOccupancy: Record<string, number>;
+    declaredSector: string;
+    interpretation: string;
+  };
+  comparison: {
+    referenceMethod: string;
+    hamiltonianHash: string;
+    exactSpectrumMeV: number[];
+    exactExpectations: Record<string, number>;
+    exactSectorOccupancy: Record<string, number>;
+    vqeHamiltonianHash: string;
+  };
+  audit: ElectronicStructureRunPayload["audit"] & {
+    referenceHamiltonianHash: string;
+    claimBoundary: "effective_spin_model_only";
   };
 }
 
@@ -758,7 +796,10 @@ export interface DockingRunPayload {
   };
 }
 
-export type BiomedicineRunPayload = ElectronicStructureRunPayload | DockingRunPayload;
+export type BiomedicineRunPayload =
+  | ElectronicStructureRunPayload
+  | ActiveCenterRunPayload
+  | DockingRunPayload;
 
 export type WorkbenchRunPayload = RunPayload | BiomedicineRunPayload;
 

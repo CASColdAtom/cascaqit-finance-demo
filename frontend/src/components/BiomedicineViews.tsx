@@ -10,6 +10,7 @@ import {
   Radio,
 } from "lucide-react";
 import type {
+  ActiveCenterRunPayload,
   BiomedicineAnalysisPayload,
   BiomedicineRunPayload,
   BiomedicineStructureEdge,
@@ -24,6 +25,10 @@ import { AtomChart, CountsChart, ParameterChart, WaveformChart } from "./charts/
 
 function isDockingRun(run: BiomedicineRunPayload): run is DockingRunPayload {
   return run.domain.kind === "docking_match_result";
+}
+
+function isActiveCenterRun(run: BiomedicineRunPayload): run is ActiveCenterRunPayload {
+  return run.domain.kind === "active_center_result";
 }
 
 function StructureDiagram({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
@@ -72,7 +77,7 @@ function StructureDiagram({ analysis }: { analysis: BiomedicineAnalysisPayload }
 }
 
 function nodeRadius(node: BiomedicineStructureNode) {
-  if (node.role === "spin_site") return 8;
+  if (node.role === "spin_site" || node.role === "effective_spin_site") return 8;
   if (node.element === "H") return 7;
   return 6;
 }
@@ -132,6 +137,7 @@ export function BiomedicineResultView({
     );
   }
   if (isDockingRun(run)) return <DockingResultView analysis={analysis} run={run} />;
+  if (isActiveCenterRun(run)) return <ActiveCenterResultView analysis={analysis} run={run} />;
   const result = run.domain;
   return (
     <div className="view-stack biomed-view">
@@ -162,6 +168,51 @@ export function BiomedicineResultView({
         </div>
         <p className="subsection-note">{result.estimatorNote}</p>
       </section>
+      <BoundaryList values={analysis.dataset.limitations} />
+    </div>
+  );
+}
+
+function ActiveCenterResultView({
+  analysis,
+  run,
+}: {
+  analysis: BiomedicineAnalysisPayload;
+  run: ActiveCenterRunPayload;
+}) {
+  const result = run.domain;
+  const hashesMatch =
+    run.comparison.hamiltonianHash === run.comparison.vqeHamiltonianHash;
+  return (
+    <div className="view-stack biomed-view active-center-result-view">
+      <div className="biomed-metric-band">
+        <div><small>VQE EXACT OBJECTIVE</small><strong>{result.vqeExactEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
+        <div><small>QWC CONFIRMATION</small><strong>{result.sampledEnergyMeV.toFixed(5)}</strong><span>± {result.sampledStandardErrorMeV.toFixed(4)} meV</span></div>
+        <div><small>EXACT REFERENCE</small><strong>{result.exactGroundEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
+        <div data-pass={hashesMatch}><small>HAMILTONIAN IDENTITY</small><strong>{hashesMatch ? "MATCH" : "MISMATCH"}</strong><span>{compactId(run.audit.hamiltonianHash, 14)}</span></div>
+      </div>
+      <div className="split-layout spin-observable-split">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> BACKEND OBSERVABLES</span><h3>局域磁化与两点自旋关联</h3></div><span className="data-chip source-quantum">QWC COUNTS</span></div>
+          <div className="spin-observable-grid">
+            {result.magnetization.map((item) => (
+              <div key={item.siteId}><small>LOCAL Z / {item.siteId}</small><strong>{item.expectation.toFixed(4)}</strong><span>± {item.standardError.toFixed(4)}</span></div>
+            ))}
+            {result.correlations.map((item) => (
+              <div key={item.operator}><small>CORRELATION / {item.operator}</small><strong>{item.expectation.toFixed(4)}</strong><span>± {item.standardError.toFixed(4)}</span></div>
+            ))}
+          </div>
+        </section>
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker">DECLARED SPIN SECTOR</span><h3>总磁化扇区占据</h3></div><span className="data-chip">{result.declaredSector}</span></div>
+          <div className="sector-occupancy-list">
+            {Object.entries(result.sectorOccupancy).map(([sector, occupancy]) => (
+              <div key={sector}><span>{sector}</span><i><b style={{ width: `${Math.max(2, occupancy * 100)}%` }} /></i><strong>{(occupancy * 100).toFixed(1)}%</strong></div>
+            ))}
+          </div>
+          <p className="subsection-note">{result.interpretation}</p>
+        </section>
+      </div>
       <BoundaryList values={analysis.dataset.limitations} />
     </div>
   );

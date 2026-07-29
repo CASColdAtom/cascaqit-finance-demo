@@ -3,6 +3,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type {
+  ActiveCenterRunPayload,
   BiomedicineAnalysisPayload,
   DockingRunPayload,
   DockingSolutionPayload,
@@ -87,6 +88,36 @@ const run = {
   audit: {},
 } as unknown as DockingRunPayload;
 
+const activeCenterRun = {
+  kind: "biomedicine",
+  analysis,
+  domain: {
+    kind: "active_center_result",
+    vqeExactEnergyMeV: -0.921,
+    sampledEnergyMeV: -0.919,
+    sampledStandardErrorMeV: 0.01,
+    exactGroundEnergyMeV: -0.9211,
+    absoluteErrorMeV: 0.0001,
+    magnetization: [
+      { siteId: "spin.m1", expectation: -0.25, standardError: 0.04 },
+      { siteId: "spin.m2", expectation: 0.25, standardError: 0.04 },
+    ],
+    correlations: [
+      { operator: "XX", expectation: -0.97, standardError: 0.02 },
+      { operator: "YY", expectation: -0.96, standardError: 0.02 },
+      { operator: "ZZ", expectation: -1, standardError: 0 },
+    ],
+    sectorOccupancy: { "Mz=+1": 0, "Mz=+0": 1, "Mz=-1": 0 },
+    declaredSector: "total_magnetization_z",
+    interpretation: "有效自旋模型。",
+  },
+  comparison: {
+    hamiltonianHash: "same-hash",
+    vqeHamiltonianHash: "same-hash",
+  },
+  audit: { hamiltonianHash: "same-hash" },
+} as unknown as ActiveCenterRunPayload;
+
 afterEach(cleanup);
 
 describe("Biomedicine docking views", () => {
@@ -105,5 +136,15 @@ describe("Biomedicine docking views", () => {
     expect(screen.getByText("BALANCED")).toBeTruthy();
     expect(screen.getByText(/2 A \/ 4 D/)).toBeTruthy();
     expect(screen.getByText(/verified/)).toBeTruthy();
+  });
+});
+
+describe("Biomedicine active-center views", () => {
+  it("shows backend observables, sector occupancy, and Hamiltonian identity", () => {
+    render(<BiomedicineResultView analysis={analysis} run={activeCenterRun} />);
+    expect(screen.getByText("局域磁化与两点自旋关联")).toBeTruthy();
+    expect(screen.getByText("总磁化扇区占据")).toBeTruthy();
+    expect(screen.getByText("MATCH")).toBeTruthy();
+    expect(screen.getByText("CORRELATION / XX")).toBeTruthy();
   });
 });

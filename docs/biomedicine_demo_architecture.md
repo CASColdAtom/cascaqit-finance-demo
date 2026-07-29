@@ -87,13 +87,16 @@ flowchart LR
 src/
   cascaqit_biomedicine_demo/
     catalog.py
+    active_center.py
     docking.py
     electronic_structure.py
     fixtures.py
+    pauli_vqe.py
     problem_model.py
     data/
       docking_match/
       electronic_structure/
+      active_center/
   cascaqit_finance_demo/
     api/app.py                 # 统一行业 API 外壳与金融兼容入口
     static/                    # 统一 React 生产构建
@@ -101,7 +104,9 @@ src/
 
 `cascaqit_finance_demo` 在生物医药建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或旧 API。生物医药的 fixture、QUBO builder、贡献账本、TermGroup、GeometryEvidence、ProblemDefinition 和解码结果均为独立类型，不依赖 `Finance*` 领域类型。
 
-第二阶段的构象匹配执行适配器暂时复用现有 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`。该执行器以结构协议工作，但模块位置和内部结果名仍带金融命名。这是明确的过渡债务：接入第三个生物医药执行场景前，应把编译、模式门禁、LocalBackend、参数搜索和量子证据提取到领域中性的共享包，并让金融与生物医药适配器共同回归；不得让新的生物医药领域模型反向继承 `Finance*` 类型。
+第三阶段已提取不依赖金融类型的 `pauli_vqe.py`，由电子结构与金属活性中心共同复用 Hamiltonian 构造、稳定哈希、精确对角化和自旋扇区聚合。金属活性中心没有继续扩展金融执行器依赖。
+
+构象匹配仍暂时复用 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`。该执行器以结构协议工作，但模块位置和内部结果名仍带金融命名。直接移动文件会保留 `Finance*` 返回类型并产生包初始化循环，不构成真实解耦。因此组合优化共享执行核心的类型提取保留为显式债务，必须在第四个小肽 QUBO 场景接入时完成；生物医药领域模型不得反向继承 `Finance*` 类型。
 
 前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建继续复制到现有 `cascaqit_finance_demo/static/`，由统一 FastAPI 应用托管。Python 项目新增 `cascaqit-industry-api` 和 `cascaqit-industry-demo` 入口，金融入口继续保留以兼容已有部署。
 
@@ -513,13 +518,19 @@ source checksum
 - 完成 Hybrid 几何门禁；
 - 完成相互作用网络和量子实验页面。
 
-### 第三阶段：有效自旋和小肽能景
+### 第三阶段：有效自旋模型
 
 - 复用 Pauli VQE 链接入有效自旋模型；
+- 后端返回局域磁化、两点关联和声明扇区占据；
+- 使用相同 Hamiltonian hash 完成精确对角化对照。
+
+### 第四阶段：小肽能景
+
+- 提取领域中性的组合优化执行契约；
 - 构造离散小肽能景和 Digital QAOA；
 - 完成四场景统一导航、结果和审计体验。
 
-### 第四阶段：校准和发布
+### 第五阶段：校准和发布
 
 - 标准预设固定 seed 校准；
 - 全量质量门禁和浏览器验收；
