@@ -1,0 +1,11 @@
+{
+  "hamiltonian_id": "electronic.h2.sto3g.0735",
+  "constant": -1.052373245772859,
+  "logical_order": ["q0", "q1"],
+  "terms": [
+    {"term_id": "z0", "operator": "Z(q0)", "coefficient": 0.39793742484318045, "factors": [["q0", "Z"]]},
+    {"term_id": "z1", "operator": "Z(q1)", "coefficient": -0.39793742484318045, "factors": [["q1", "Z"]]},
+    {"term_id": "zz", "operator": "Z(q0) Z(q1)", "coefficient": -0.01128010425623538, "factors": [["q0", "Z"], ["q1", "Z"]]},
+    {"term_id": "xx", "operator": "X(q0) X(q1)", "coefficient": 0.18093119978423156, "factors": [["q0", "X"], ["q1", "X"]]}
+  ]
+}

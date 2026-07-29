@@ -1,4 +1,4 @@
-"""为金融 Demo 前端提供业务分析、量子执行和静态资源的 FastAPI 应用。"""
+"""为行业量子实验台提供领域目录、量子执行和静态资源。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from cascaqit_biomedicine_demo.catalog import (
+    BIOMEDICINE_SCENARIO_SPECS,
+    preview_analysis,
+)
+from cascaqit_biomedicine_demo.electronic_structure import (
+    analyze_electronic_structure,
+    run_electronic_structure,
+)
 from cascaqit_finance_demo.api.catalog import (
     SCENARIO_SPECS,
     build_case_input,
@@ -40,10 +48,20 @@ FRONTEND_DIST = PACKAGE_ROOT / "static"
 
 # 报告属于运行数据，不应写入只读的 site-packages。启动脚本会把数据目录指向
 # 离线包根目录；其他调用方式默认写入当前工作目录，环境变量可显式覆盖。
-DATA_DIR = Path(os.environ.get("CASCAQIT_FINANCE_DATA_DIR", Path.cwd())).resolve()
+DATA_DIR = Path(
+    os.environ.get(
+        "CASCAQIT_INDUSTRY_DATA_DIR",
+        os.environ.get("CASCAQIT_FINANCE_DATA_DIR", Path.cwd()),
+    )
+).resolve()
 REPORT_DIR = DATA_DIR / "artifacts" / "reports"
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("CASCAQIT_FINANCE_PORT", "8000"))
+PORT = int(
+    os.environ.get(
+        "CASCAQIT_INDUSTRY_PORT",
+        os.environ.get("CASCAQIT_FINANCE_PORT", "8000"),
+    )
+)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -73,16 +91,16 @@ class RunRequest(ScenarioRequest):
         Literal["preset", "grid", "seeded_sample", "continuous"]
     ] = None
     parameter_budget: Optional[int] = Field(  # noqa: UP045
-        default=None, ge=1, le=24
+        default=None, ge=1, le=80
     )
     optimizer_starts: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
     repeats: Optional[int] = Field(default=None, ge=1, le=5)  # noqa: UP045
 
 
 app = FastAPI(
-    title="CASCAQit Finance API",
+    title="CASColdAtom Industry Quantum Workbench API",
     version="1.0",
-    description="Offline finance experiments backed by CASCAQit Problem API.",
+    description="Offline industry experiments backed by CASCAQit.",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -140,7 +158,7 @@ def health() -> dict[str, Any]:
     """返回服务边界和执行环境事实，供前端启动检查。"""
     return {
         "status": "ok",
-        "service": "cascaqit-finance-api",
+        "service": "cascaqit-industry-api",
         "execution": "local_simulation",
         "hardware": False,
         "cloud": False,
@@ -162,6 +180,146 @@ def scenarios() -> dict[str, Any]:
             )
         )
     return {"scenarios": items}
+
+
+@app.get("/api/domains")
+def domains() -> dict[str, Any]:
+    """Return the product-level domains without mixing their scenario catalogs."""
+    return {
+        "domains": [
+            {
+                "id": "finance",
+                "label": "金融",
+                "shortLabel": "金融",
+                "description": "组合优化、资源编排与风险情景实验",
+                "scenarioCount": len(SCENARIO_SPECS),
+            },
+            {
+                "id": "biomedicine",
+                "label": "生物医药",
+                "shortLabel": "生物医药",
+                "description": "电子结构、构象匹配、有效自旋与小肽能景实验",
+                "scenarioCount": len(BIOMEDICINE_SCENARIO_SPECS),
+            },
+        ]
+    }
+
+
+@app.get("/api/domains/{domain_id}/scenarios")
+def domain_scenarios(domain_id: str) -> dict[str, Any]:
+    """Return only scenarios owned by the requested product domain."""
+    if domain_id == "finance":
+        return scenarios()
+    if domain_id == "biomedicine":
+        return {
+            "scenarios": [
+                spec.to_dict() for spec in BIOMEDICINE_SCENARIO_SPECS.values()
+            ]
+        }
+    raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
+
+
+def _biomedicine_request(
+    case_id: str, request: ScenarioRequest
+) -> tuple[str, dict[str, Any]]:
+    try:
+        spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"unknown biomedicine scenario: {case_id}"
+        ) from exc
+    preset = request.preset or spec.presets[0][0]
+    if preset not in {value for value, _label in spec.presets}:
+        raise HTTPException(status_code=422, detail=f"unknown preset: {preset}")
+    allowed = {control.key for control in spec.controls}
+    unknown = set(request.values) - allowed
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail=f"unknown control values: {', '.join(sorted(unknown))}",
+        )
+    values = {**spec.values, **request.values}
+    return preset, values
+
+
+@app.post("/api/domains/{domain_id}/scenarios/{case_id}/analyze")
+def analyze_domain_scenario(
+    domain_id: str, case_id: str, request: ScenarioRequest
+) -> dict[str, Any]:
+    """Analyze a domain scenario while preserving the legacy finance route."""
+    if domain_id == "finance":
+        return analyze(case_id, request)
+    if domain_id != "biomedicine":
+        raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
+    preset, values = _biomedicine_request(case_id, request)
+    analysis = (
+        analyze_electronic_structure()
+        if case_id == "electronic_structure"
+        else preview_analysis(case_id)
+    )
+    scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
+    scenario["values"] = values
+    return {"scenario": scenario, "preset": preset, "analysis": analysis}
+
+
+@app.post("/api/domains/{domain_id}/scenarios/{case_id}/run")
+async def run_domain_scenario(
+    domain_id: str, case_id: str, request: RunRequest
+) -> dict[str, Any]:
+    """Execute an available domain scenario through its native execution family."""
+    if domain_id == "finance":
+        return await run_scenario(case_id, request)
+    if domain_id != "biomedicine":
+        raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
+    preset, values = _biomedicine_request(case_id, request)
+    spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    if spec.implementation_status != "available":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "BIOMEDICINE_EXECUTOR_NOT_IMPLEMENTED",
+                "message": "该场景当前只开放结构预览，量子执行链尚未接入。",
+                "stage": "preflight",
+            },
+        )
+    if request.mode not in {"recommended", "digital"}:
+        raise HTTPException(
+            status_code=422,
+            detail="电子结构场景只支持 Digital VQE。",
+        )
+    if request.algorithm not in {None, "recommended", "vqe"}:
+        raise HTTPException(
+            status_code=422,
+            detail="电子结构场景只支持 VQE。",
+        )
+    profile = spec.recommended_execution
+    shots = request.shots if request.shots is not None else int(profile["shots"])
+    seed = request.seed if request.seed is not None else int(profile["seed"])
+    layers = request.layers if request.layers is not None else int(profile["layers"])
+    budget = (
+        request.parameter_budget
+        if request.parameter_budget is not None
+        else int(profile["parameterBudget"])
+    )
+    starts = (
+        request.optimizer_starts
+        if request.optimizer_starts is not None
+        else int(profile["optimizerStarts"])
+    )
+    try:
+        run = await run_in_threadpool(
+            run_electronic_structure,
+            shots=shots,
+            seed=seed,
+            layers=layers,
+            parameter_budget=budget,
+            optimizer_starts=starts,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    scenario = spec.to_dict()
+    scenario["values"] = values
+    return {"scenario": scenario, "preset": preset, "run": run}
 
 
 @app.post("/api/scenarios/{case_id}/analyze")

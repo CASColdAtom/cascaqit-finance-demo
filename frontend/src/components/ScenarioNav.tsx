@@ -1,20 +1,26 @@
 import {
+  Atom,
   Building2,
   ChartNoAxesCombined,
   Landmark,
   Layers3,
+  Orbit,
+  Route,
   ScanSearch,
   Sigma,
   Waves,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ScenarioSpec } from "../types";
+import type { DomainId, ScenarioSpec } from "../types";
 import { useI18n } from "../i18n";
 
 const icons: Record<string, LucideIcon> = {
+  atom: Atom,
   "building-2": Building2,
   "chart-no-axes-combined": ChartNoAxesCombined,
   landmark: Landmark,
+  orbit: Orbit,
+  route: Route,
   "layers-3": Layers3,
   "scan-search": ScanSearch,
   sigma: Sigma,
@@ -25,13 +31,16 @@ interface ScenarioNavProps {
   scenarios: ScenarioSpec[];
   activeId: string;
   onSelect: (scenario: ScenarioSpec) => void;
+  domainId?: DomainId;
 }
 
-export function ScenarioNav({ scenarios, activeId, onSelect }: ScenarioNavProps) {
+export function ScenarioNav({ scenarios, activeId, onSelect, domainId = "finance" }: ScenarioNavProps) {
   const { t } = useI18n();
   return (
     <nav className="scenario-nav" aria-label={t("experiments")}>
-      <div className="nav-section-label">{t("experiments")}</div>
+      <div className="nav-section-label">
+        {domainId === "finance" ? t("financeScenarios") : t("biomedicineScenarios")}
+      </div>
       <div className="scenario-list">
         {scenarios.map((scenario, index) => {
           const Icon = icons[scenario.icon] ?? ChartNoAxesCombined;
@@ -40,6 +49,7 @@ export function ScenarioNav({ scenarios, activeId, onSelect }: ScenarioNavProps)
             <button
               className={`scenario-item accent-${scenario.accent}`}
               data-active={active}
+              aria-current={active ? "page" : undefined}
               key={scenario.caseId}
               onClick={() => onSelect(scenario)}
               type="button"

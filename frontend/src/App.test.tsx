@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnalysisPayload, ScenarioSpec } from "./types";
+import type {
+  AnalysisPayload,
+  BiomedicineAnalysisPayload,
+  ScenarioSpec,
+} from "./types";
 
 const api = vi.hoisted(() => ({
   analyzeScenario: vi.fn(),
@@ -112,6 +116,81 @@ const analysis: AnalysisPayload = {
   },
 };
 
+const biomedicineScenario: ScenarioSpec = {
+  domainId: "biomedicine",
+  caseId: "electronic_structure",
+  shortTitle: "电子结构",
+  title: "小分子活性空间基态能量估计",
+  eyebrow: "PAULI HAMILTONIAN / DIGITAL VQE",
+  description: "从可审计的 H2 Hamiltonian 出发。",
+  icon: "atom",
+  accent: "emerald",
+  presets: [{ value: "h2_equilibrium", label: "H2 / 0.735 Å" }],
+  controls: [],
+  values: {},
+  recommendedMode: "digital",
+  executionFamily: "pauli_vqe",
+  implementationStatus: "available",
+  recommendedExecution: {
+    shots: 64,
+    seed: 23,
+    algorithm: "vqe",
+    layers: 1,
+    maxLayers: 1,
+    searchStrategy: "continuous",
+    parameterBudget: 40,
+    optimizerStarts: 2,
+  },
+};
+
+const biomedicineAnalysis: BiomedicineAnalysisPayload = {
+  kind: "biomedicine",
+  caseId: "electronic_structure",
+  executionFamily: "pauli_vqe",
+  implementationStatus: "available",
+  analysisHash: "analysis-hash",
+  dataset: {
+    id: "electronic.h2.sto3g.0735",
+    version: "1",
+    manifestHash: "manifest-hash",
+    sourceKind: "project_generated_benchmark",
+    license: "project_generated",
+    limitations: ["Local simulation only"],
+  },
+  problem: {
+    id: "electronic.h2.sto3g.0735",
+    type: "pauli_hamiltonian",
+    hash: "hamiltonian-hash",
+    variables: ["q0", "q1"],
+    terms: [],
+  },
+  resource: { logicalQubits: 2 },
+  decision: {
+    recommendedMode: "digital",
+    reason: "Digital VQE",
+    modes: [
+      {
+        mode: "digital",
+        algorithm: "vqe",
+        availableAlgorithms: ["vqe"],
+        status: "recommended",
+        reason: "Digital VQE",
+      },
+    ],
+  },
+  domain: {
+    kind: "electronic_structure",
+    molecule: "H2",
+    geometryLabel: "平衡键长基准",
+    atoms: [
+      { id: "H1", element: "H", x: 24, y: 50 },
+      { id: "H2", element: "H", x: 76, y: 50 },
+    ],
+    bonds: [{ source: "H1", target: "H2", order: 1 }],
+    limitations: ["Local simulation only"],
+  },
+};
+
 beforeEach(() => {
   api.getScenarios.mockResolvedValue([scenario]);
   api.analyzeScenario.mockResolvedValue({
@@ -127,6 +206,42 @@ afterEach(() => {
 });
 
 describe("App", () => {
+  it("switches domains without mixing finance and biomedicine navigation", async () => {
+    api.getScenarios.mockImplementation((domainId?: string) =>
+      Promise.resolve(domainId === "biomedicine" ? [biomedicineScenario] : [scenario]),
+    );
+    api.analyzeScenario.mockImplementation((caseId: string) =>
+      Promise.resolve(
+        caseId === "electronic_structure"
+          ? {
+              scenario: biomedicineScenario,
+              preset: "h2_equilibrium",
+              analysis: biomedicineAnalysis,
+            }
+          : { scenario, preset: "base", analysis },
+      ),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "多资产投资组合优化" });
+    fireEvent.click(screen.getByRole("button", { name: "生物医药" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "小分子活性空间基态能量估计" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("投资组合")).toBeNull();
+    expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
+    expect(window.location.pathname).toBe("/biomedicine/electronic_structure");
+    await waitFor(() => {
+      expect(api.analyzeScenario).toHaveBeenLastCalledWith(
+        "electronic_structure",
+        { preset: "h2_equilibrium", values: {} },
+        expect.any(AbortSignal),
+        "biomedicine",
+      );
+    });
+  });
+
   it("loads the catalog, analyzes the default input, and resolves the deferred view", async () => {
     render(<App />);
 
@@ -139,7 +254,7 @@ describe("App", () => {
     ).toBe("/cascoldatom-logo-transparent.png");
     expect(await screen.findByText("资产相关性矩阵")).toBeTruthy();
     expect(
-      screen.getByRole("tab", { name: "场景态势" }).getAttribute("aria-selected"),
+      screen.getByRole("tab", { name: "场景结构" }).getAttribute("aria-selected"),
     ).toBe("true");
     expect(api.analyzeScenario).toHaveBeenCalledWith(
       "portfolio",
@@ -275,7 +390,7 @@ describe("App", () => {
     render(<App />);
 
     await screen.findByText("资产相关性矩阵");
-    fireEvent.click(screen.getByRole("tab", { name: "Problem 映射" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Problem / Hamiltonian 映射" }));
     expect(await screen.findByText("PROBLEM HASH")).toBeTruthy();
     expect(document.querySelector(".term-groups")?.textContent).toContain("旧版业务分组");
   });
@@ -289,8 +404,8 @@ describe("App", () => {
     expect(
       screen.getByRole("heading", { name: "Multi-asset Portfolio Optimization" }),
     ).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Scenario View" })).toBeTruthy();
-    expect(document.title).toBe("CASColdAtom Financial Quantum Workbench");
+    expect(screen.getByRole("tab", { name: "Scenario Structure" })).toBeTruthy();
+    expect(document.title).toBe("CASColdAtom Industry Quantum Workbench");
     expect(screen.getByRole("button", { name: "RUN" })).toBeTruthy();
   });
 });

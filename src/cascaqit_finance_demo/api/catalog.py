@@ -103,6 +103,7 @@ class ScenarioSpec:
     ) -> dict[str, Any]:
         """合并静态场景说明、当前控件值和实时推荐模式。"""
         return {
+            "domainId": "finance",
             "caseId": self.case_id,
             "shortTitle": self.short_title,
             "title": self.title,
@@ -117,6 +118,11 @@ class ScenarioSpec:
             "values": values,
             "recommendedMode": recommended_mode,
             "recommendedExecution": self.recommended_execution.to_dict(),
+            "executionFamily": "problem",
+            "resultKind": "finance_optimization",
+            "visualKind": "finance",
+            "capabilities": ["analysis", "execution", "comparison", "audit"],
+            "implementationStatus": "available",
         }
 
 

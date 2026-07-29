@@ -10,6 +10,7 @@
 
 当前实现记录：
 
+- [生物医药第一阶段实现报告](process/biomedicine_phase_1_implementation_report.md)：记录统一行业外壳、四场景目录、H2 Pauli VQE、浏览器验收、当前结构预览边界和后续执行链顺序。
 - [前后端分离金融工作台实现报告](process/problem_api_workbench_implementation_report.md)：记录 FastAPI + React 结构、七场景执行、状态隔离、自动验证和人工验收缺口。
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。

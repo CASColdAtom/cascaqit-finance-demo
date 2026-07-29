@@ -81,47 +81,24 @@ flowchart LR
 
 ## 4. 代码布局
 
-生物医药代码使用独立包，避免继续扩大 `cascaqit_finance_demo` 的职责：
+生物医药领域代码使用独立包，避免继续扩大金融领域模型的职责。第一阶段采用统一行业 API 外壳，领域目录、路由和缓存签名显式携带 `domain_id`；金融兼容 API 保留在原包内：
 
 ```text
 src/
   cascaqit_biomedicine_demo/
-    api/
-      app.py
-      catalog.py
-      presenters.py
-      schemas.py
-    application/
-      experiment_service.py
-      result_models.py
-      run_signature.py
-    domain/
-      common.py
-      electronic_structure.py
-      docking.py
-      active_center.py
-      peptide_landscape.py
-    adapters/
-      fixtures.py
-      pauli_fixture.py
-      qubo_builder.py
-      chemistry_manifest.py
-    quantum/
-      pauli_vqe_executor.py
-      problem_executor.py
-      mode_advisor.py
-      audit.py
+    catalog.py
+    electronic_structure.py
+    fixtures.py
     data/
       electronic_structure/
-      docking/
-      active_center/
-      peptide_landscape/
-    static/
+  cascaqit_finance_demo/
+    api/app.py                 # 统一行业 API 外壳与金融兼容入口
+    static/                    # 统一 React 生产构建
 ```
 
-`cascaqit_finance_demo` 在生物医药首版建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或 API。只有当两个产品出现经过测试的稳定重复逻辑时，再提取 `cascaqit_demo_core`；本阶段不先做大范围公共层重构。
+`cascaqit_finance_demo` 在生物医药建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或旧 API。生物医药目录、fixture 和执行器不依赖金融领域类型。只有两个领域出现经过测试的稳定重复逻辑后，才提取公共包；本阶段不做大范围公共层重构。
 
-前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建复制到 `cascaqit_biomedicine_demo/static/`。Python 项目新增 `cascaqit-biomedicine-api` 和 `cascaqit-biomedicine-demo` 脚本，金融入口继续保留，避免开发期无法对比旧版本。
+前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建继续复制到现有 `cascaqit_finance_demo/static/`，由统一 FastAPI 应用托管。Python 项目新增 `cascaqit-industry-api` 和 `cascaqit-industry-demo` 入口，金融入口继续保留以兼容已有部署。
 
 ## 5. 公共领域接口
 
@@ -335,15 +312,22 @@ term_kind
 
 ## 10. API
 
-独立生物医药应用保持与现有工作台相近的请求方式：
+统一行业应用使用领域化请求路径，同时保留旧金融路径：
 
 ```text
 GET  /api/health
+GET  /api/domains
+GET  /api/domains/{domain_id}/scenarios
+POST /api/domains/{domain_id}/scenarios/{case_id}/analyze
+POST /api/domains/{domain_id}/scenarios/{case_id}/run
+
+# 金融兼容入口
 GET  /api/scenarios
 POST /api/scenarios/{case_id}/analyze
 POST /api/scenarios/{case_id}/run
-GET  /api/datasets/{dataset_id}/manifest
 ```
+
+第一阶段尚未开放独立 dataset manifest HTTP 接口；manifest 通过分析和审计响应返回必要摘要，完整文件随 Python 包安装。
 
 ### 10.1 分析请求
 

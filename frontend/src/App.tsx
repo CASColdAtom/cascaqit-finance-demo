@@ -9,6 +9,9 @@ import { I18nProvider, useI18n } from "./i18n";
 import type {
   Algorithm,
   AnalysisPayload,
+  BiomedicineAnalysisPayload,
+  BiomedicineRunPayload,
+  DomainId,
   ExecutionProfile,
   LayerPolicy,
   Mode,
@@ -16,6 +19,8 @@ import type {
   RunRequest,
   ScenarioSpec,
   SearchStrategy,
+  WorkbenchAnalysisPayload,
+  WorkbenchRunPayload,
 } from "./types";
 import { executionSignature, MODE_LABELS } from "./utils";
 
@@ -33,6 +38,31 @@ const QuantumView = lazy(() =>
 );
 const AuditView = lazy(() =>
   import("./components/Views").then((module) => ({ default: module.AuditView })),
+);
+const BiomedicineResultView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineResultView,
+  })),
+);
+const BiomedicineStructureView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineStructureView,
+  })),
+);
+const BiomedicineMappingView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineMappingView,
+  })),
+);
+const BiomedicineQuantumView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineQuantumView,
+  })),
+);
+const BiomedicineAuditView = lazy(() =>
+  import("./components/BiomedicineViews").then((module) => ({
+    default: module.BiomedicineAuditView,
+  })),
 );
 
 const DEFAULT_EXECUTION_PROFILE: ExecutionProfile = {
@@ -60,6 +90,33 @@ function sameValues(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function isBiomedicineAnalysis(
+  analysis: WorkbenchAnalysisPayload,
+): analysis is BiomedicineAnalysisPayload {
+  return "kind" in analysis && analysis.kind === "biomedicine";
+}
+
+function isBiomedicineRun(run: WorkbenchRunPayload): run is BiomedicineRunPayload {
+  return "kind" in run && run.kind === "biomedicine";
+}
+
+function analyzeForDomain(
+  domainId: DomainId,
+  caseId: string,
+  body: { preset: string; values: Record<string, string | number | boolean> },
+  signal?: AbortSignal,
+) {
+  return domainId === "finance"
+    ? analyzeScenario(caseId, body, signal)
+    : analyzeScenario(caseId, body, signal, domainId);
+}
+
+function runForDomain(domainId: DomainId, caseId: string, request: RunRequest) {
+  return domainId === "finance"
+    ? runScenario(caseId, request)
+    : runScenario(caseId, request, domainId);
+}
+
 function ViewLoading() {
   const { t } = useI18n();
   return (
@@ -72,11 +129,12 @@ function ViewLoading() {
 
 function Workbench() {
   const { scenario: localizeScenario, t, tx } = useI18n();
+  const [domainId, setDomainId] = useState<DomainId>("finance");
   const [scenarios, setScenarios] = useState<ScenarioSpec[]>([]);
   const [activeId, setActiveId] = useState("");
   const [preset, setPreset] = useState("");
   const [values, setValues] = useState<Record<string, string | number | boolean>>({});
-  const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
+  const [analysis, setAnalysis] = useState<WorkbenchAnalysisPayload | null>(null);
   const [mode, setMode] = useState<Mode>("digital");
   const [algorithm, setAlgorithm] = useState<Algorithm>("recommended");
   const [layerPolicy, setLayerPolicy] = useState<LayerPolicy>("fixed");
@@ -90,14 +148,16 @@ function Workbench() {
   const [optimizerStarts, setOptimizerStarts] = useState(1);
   const [repeats, setRepeats] = useState(1);
   const [activeView, setActiveView] = useState<ViewId>("scenario");
-  const [run, setRun] = useState<RunPayload | null>(null);
+  const [run, setRun] = useState<WorkbenchRunPayload | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const revision = useRef(0);
   const suppressAnalysis = useRef(false);
-  const cache = useRef(new Map<string, RunPayload>());
+  const cache = useRef(new Map<string, WorkbenchRunPayload>());
+  const catalogs = useRef(new Map<DomainId, ScenarioSpec[]>());
+  const lastScenario = useRef<Record<DomainId, string>>({ finance: "", biomedicine: "" });
 
   const activeScenario = useMemo(
     () => scenarios.find((scenario) => scenario.caseId === activeId) ?? null,
@@ -136,6 +196,7 @@ function Workbench() {
       .then((items) => {
         if (!mounted) return;
         setScenarios(items);
+        catalogs.current.set("finance", items);
         const first = items[0];
         setActiveId(first.caseId);
         setPreset(first.presets[0].value);
@@ -160,7 +221,7 @@ function Workbench() {
     const timer = window.setTimeout(() => {
       setAnalyzing(true);
       setError(null);
-      analyzeScenario(activeId, { preset, values }, controller.signal)
+      analyzeForDomain(domainId, activeId, { preset, values }, controller.signal)
         .then((response) => {
           if (currentRevision !== revision.current) return;
           setAnalysis(response.analysis);
@@ -189,7 +250,7 @@ function Workbench() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [activeId, preset, values]);
+  }, [activeId, domainId, preset, values]);
 
   const currentRequest = useMemo<RunRequest | null>(() => {
     if (!activeId || !preset) return null;
@@ -281,10 +342,13 @@ function Workbench() {
 
   useEffect(() => {
     if (!currentRequest) return;
-    setRun(cache.current.get(executionSignature(activeId, currentRequest)) ?? null);
-  }, [activeId, currentRequest]);
+    setRun(
+      cache.current.get(executionSignature(domainId, activeId, currentRequest)) ?? null,
+    );
+  }, [activeId, currentRequest, domainId]);
 
   function selectScenario(scenario: ScenarioSpec) {
+    lastScenario.current[domainId] = scenario.caseId;
     setActiveId(scenario.caseId);
     setPreset(scenario.presets[0].value);
     setValues(scenario.values);
@@ -294,6 +358,41 @@ function Workbench() {
     setRun(null);
     setActiveView("scenario");
     setError(null);
+    window.history.replaceState(null, "", `/${domainId}/${scenario.caseId}`);
+  }
+
+  async function selectDomain(nextDomain: DomainId) {
+    if (nextDomain === domainId) return;
+    lastScenario.current[domainId] = activeId;
+    const currentRevision = ++revision.current;
+    setCatalogLoading(true);
+    setError(null);
+    try {
+      let items = catalogs.current.get(nextDomain);
+      if (!items) {
+        items = await getScenarios(nextDomain);
+        catalogs.current.set(nextDomain, items);
+      }
+      if (currentRevision !== revision.current) return;
+      const remembered = lastScenario.current[nextDomain];
+      const scenario = items.find((item) => item.caseId === remembered) ?? items[0];
+      if (!scenario) throw new Error(t("emptyCatalog"));
+      setDomainId(nextDomain);
+      setScenarios(items);
+      setActiveId(scenario.caseId);
+      setPreset(scenario.presets[0].value);
+      setValues(scenario.values);
+      setMode(scenario.recommendedMode);
+      applyExecutionProfile(executionProfile(scenario));
+      setAnalysis(null);
+      setRun(null);
+      setActiveView("scenario");
+      window.history.replaceState(null, "", `/${nextDomain}/${scenario.caseId}`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      if (currentRevision === revision.current) setCatalogLoading(false);
+    }
   }
 
   async function selectPreset(nextPreset: string) {
@@ -305,10 +404,11 @@ function Workbench() {
     setAnalyzing(true);
     setError(null);
     try {
-      const response = await analyzeScenario(activeScenario.caseId, {
-        preset: nextPreset,
-        values: {},
-      });
+      const response = await analyzeForDomain(
+        domainId,
+        activeScenario.caseId,
+        { preset: nextPreset, values: {} },
+      );
       if (currentRevision !== revision.current) return;
       setValues(response.scenario.values);
       setAnalysis(response.analysis);
@@ -327,11 +427,15 @@ function Workbench() {
     setRunning(true);
     setError(null);
     try {
-      const response = await runScenario(activeScenario.caseId, currentRequest);
+      const response = await runForDomain(
+        domainId,
+        activeScenario.caseId,
+        currentRequest,
+      );
       setAnalysis(response.run.analysis);
       setRun(response.run);
       cache.current.set(
-        executionSignature(activeScenario.caseId, currentRequest),
+        executionSignature(domainId, activeScenario.caseId, currentRequest),
         response.run,
       );
       setActiveView("business");
@@ -363,14 +467,27 @@ function Workbench() {
     );
   }
 
+  const biomedicineAnalysis =
+    analysis && isBiomedicineAnalysis(analysis) ? analysis : null;
+  const biomedicineRun = run && isBiomedicineRun(run) ? run : null;
+  const financeAnalysis =
+    analysis && !isBiomedicineAnalysis(analysis) ? (analysis as AnalysisPayload) : null;
+  const financeRun = run && !isBiomedicineRun(run) ? (run as RunPayload) : null;
+  const displayedShots = run
+    ? isBiomedicineRun(run)
+      ? run.audit.shotsPerGroup
+      : run.audit.shots
+    : null;
+
   return (
     <div className="app-shell-react">
-      <TelemetryHeader />
+      <TelemetryHeader domainId={domainId} onDomain={selectDomain} />
       <div className="workbench-grid">
         <ScenarioNav
           scenarios={localizedScenarios}
           activeId={activeId}
           onSelect={selectScenario}
+          domainId={domainId}
         />
         <ControlPanel
           scenario={displayedScenario ?? activeScenario}
@@ -391,6 +508,7 @@ function Workbench() {
           recommendedConfiguration={recommendedConfiguration}
           running={running}
           analyzing={analyzing}
+          canRun={activeScenario.implementationStatus !== "preview"}
           onPreset={selectPreset}
           onValue={(key, value) => {
             setActiveView("scenario");
@@ -460,7 +578,7 @@ function Workbench() {
               <div>
                 <small>{run ? t("lastExecution") : analyzing ? t("analyzingStatus") : mode === analysis?.decision.recommendedMode ? t("recommendedPath") : t("comparisonPath")}</small>
                 <strong>{MODE_LABELS[run?.quantum.mode ?? mode]}</strong>
-                <span>{run ? `${run.audit.wallTimeSeconds.toFixed(3)}s / ${run.audit.shots} shots` : tx(selectedDecision?.reason ?? analysis?.decision.reason ?? "")}</span>
+                <span>{run ? `${run.audit.wallTimeSeconds.toFixed(3)}s / ${displayedShots} shots` : tx(selectedDecision?.reason ?? analysis?.decision.reason ?? "")}</span>
               </div>
             </div>
           </header>
@@ -509,11 +627,23 @@ function Workbench() {
             ) : null}
             {analysis ? (
               <Suspense fallback={<ViewLoading />}>
-                {activeView === "business" ? <BusinessView run={run} mode={mode} /> : null}
-                {activeView === "scenario" ? <ScenarioView analysis={analysis} run={run} /> : null}
-                {activeView === "mapping" ? <MappingView analysis={analysis} run={run} /> : null}
-                {activeView === "quantum" ? <QuantumView run={run} mode={mode} /> : null}
-                {activeView === "audit" ? <AuditView run={run} mode={mode} /> : null}
+                {biomedicineAnalysis ? (
+                  <>
+                    {activeView === "business" ? <BiomedicineResultView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}
+                    {activeView === "scenario" ? <BiomedicineStructureView analysis={biomedicineAnalysis} /> : null}
+                    {activeView === "mapping" ? <BiomedicineMappingView analysis={biomedicineAnalysis} /> : null}
+                    {activeView === "quantum" ? <BiomedicineQuantumView run={biomedicineRun} mode={mode} /> : null}
+                    {activeView === "audit" ? <BiomedicineAuditView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}
+                  </>
+                ) : financeAnalysis ? (
+                  <>
+                    {activeView === "business" ? <BusinessView run={financeRun} mode={mode} /> : null}
+                    {activeView === "scenario" ? <ScenarioView analysis={financeAnalysis} run={financeRun} /> : null}
+                    {activeView === "mapping" ? <MappingView analysis={financeAnalysis} run={financeRun} /> : null}
+                    {activeView === "quantum" ? <QuantumView run={financeRun} mode={mode} /> : null}
+                    {activeView === "audit" ? <AuditView run={financeRun} mode={mode} /> : null}
+                  </>
+                ) : null}
               </Suspense>
             ) : (
               <div className="analysis-loading">

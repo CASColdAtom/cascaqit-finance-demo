@@ -1,0 +1,17 @@
+{
+  "molecule": "H2",
+  "geometryLabel": "平衡键长基准",
+  "bondLengthAngstrom": 0.735,
+  "charge": 0,
+  "multiplicity": 1,
+  "basis": "STO-3G",
+  "activeSpace": "2 electrons / 2 orbitals",
+  "mapping": "two-qubit reduced parity benchmark",
+  "atoms": [
+    {"id": "H1", "element": "H", "x": 24, "y": 50, "z": 0},
+    {"id": "H2", "element": "H", "x": 76, "y": 50, "z": 0}
+  ],
+  "bonds": [
+    {"source": "H1", "target": "H2", "order": 1, "lengthAngstrom": 0.735}
+  ]
+}

@@ -1,4 +1,4 @@
-import type { Mode, RunRequest } from "./types";
+import type { DomainId, Mode, RunRequest } from "./types";
 
 export const MODE_LABELS: Record<Mode, string> = {
   digital: "DIGITAL",
@@ -6,11 +6,15 @@ export const MODE_LABELS: Record<Mode, string> = {
   analog: "ANALOG AHS",
 };
 
-export function executionSignature(caseId: string, request: RunRequest): string {
+export function executionSignature(
+  domainId: DomainId,
+  caseId: string,
+  request: RunRequest,
+): string {
   const values = Object.entries(request.values).sort(([left], [right]) =>
     left.localeCompare(right),
   );
-  return JSON.stringify({ caseId, ...request, values });
+  return JSON.stringify({ domainId, caseId, ...request, values });
 }
 
 export function compactId(value: string, length = 14): string {

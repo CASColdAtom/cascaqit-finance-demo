@@ -17,12 +17,12 @@ describe("executionSignature", () => {
       parameter_budget: 8,
     };
     expect(
-      executionSignature("portfolio", {
+      executionSignature("finance", "portfolio", {
         ...base,
         values: { risk_weight: 0.5, selected_count: 4 },
       }),
     ).toBe(
-      executionSignature("portfolio", {
+      executionSignature("finance", "portfolio", {
         ...base,
         values: { selected_count: 4, risk_weight: 0.5 },
       }),
@@ -44,22 +44,23 @@ describe("executionSignature", () => {
       search_strategy: "preset" as const,
       parameter_budget: 2,
     };
-    const base = executionSignature("portfolio", request);
+    const base = executionSignature("finance", "portfolio", request);
 
     expect(
-      executionSignature("portfolio", {
+      executionSignature("finance", "portfolio", {
         ...request,
         layers: 2,
         search_strategy: "seeded_sample",
       }),
     ).not.toBe(base);
     expect(
-      executionSignature("portfolio", {
+      executionSignature("finance", "portfolio", {
         ...request,
         search_strategy: "grid",
         parameter_budget: 8,
       }),
     ).not.toBe(base);
+    expect(executionSignature("biomedicine", "portfolio", request)).not.toBe(base);
   });
 });
 

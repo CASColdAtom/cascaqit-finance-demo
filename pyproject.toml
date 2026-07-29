@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cascaqit-finance-demo"
 version = "0.1.1"
-description = "Offline financial experiments built on CASCAQit"
+description = "Offline finance and biomedicine experiments built on CASCAQit"
 readme = "README.md"
 requires-python = ">=3.9,<3.14"
 dependencies = [
@@ -28,11 +28,13 @@ dev = [
 ]
 
 [project.scripts]
+cascaqit-industry-api = "cascaqit_finance_demo.api.app:run"
+cascaqit-industry-demo = "cascaqit_finance_demo.api.app:launch"
 cascaqit-finance-api = "cascaqit_finance_demo.api.app:run"
 cascaqit-finance-demo = "cascaqit_finance_demo.api.app:launch"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cascaqit_finance_demo"]
+packages = ["src/cascaqit_finance_demo", "src/cascaqit_biomedicine_demo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

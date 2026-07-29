@@ -5,6 +5,8 @@ export type LayerPolicy = "fixed" | "adaptive";
 export type SearchStrategy = "preset" | "grid" | "seeded_sample" | "continuous";
 export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
+export type DomainId = "finance" | "biomedicine";
+export type ImplementationStatus = "available" | "preview";
 
 export interface SelectOption {
   value: string;
@@ -37,6 +39,7 @@ export interface ExecutionProfile {
 }
 
 export interface ScenarioSpec {
+  domainId?: DomainId;
   caseId: string;
   shortTitle: string;
   title: string;
@@ -49,6 +52,19 @@ export interface ScenarioSpec {
   values: Record<string, string | number | boolean>;
   recommendedMode: Mode;
   recommendedExecution?: ExecutionProfile;
+  executionFamily?: "problem" | "pauli_vqe";
+  resultKind?: string;
+  visualKind?: string;
+  capabilities?: string[];
+  implementationStatus?: ImplementationStatus;
+}
+
+export interface WorkbenchModeDecisionRow {
+  mode: Mode;
+  algorithm: ResolvedAlgorithm;
+  availableAlgorithms?: ResolvedAlgorithm[];
+  status: ModeStatus;
+  reason: string;
 }
 
 export interface InputRow {
@@ -225,10 +241,96 @@ export interface AnalysisPayload {
   };
 }
 
+export interface BiomedicineStructureNode {
+  id: string;
+  label?: string;
+  element?: string;
+  group?: string;
+  role?: string;
+  x: number;
+  y: number;
+  z?: number;
+}
+
+export interface BiomedicineStructureEdge {
+  source: string;
+  target: string;
+  kind?: string;
+  score?: number;
+  order?: number;
+  lengthAngstrom?: number;
+}
+
+export interface BiomedicineAnalysisPayload {
+  kind: "biomedicine";
+  caseId: string;
+  executionFamily: "pauli_vqe" | "problem";
+  implementationStatus: ImplementationStatus;
+  analysisHash?: string;
+  dataset: {
+    id: string;
+    version: string;
+    manifestHash: string;
+    sourceKind: string;
+    license: string;
+    limitations: string[];
+  };
+  problem: {
+    id: string;
+    type: string;
+    hash: string;
+    variables: string[];
+    constant?: number;
+    terms: Array<{
+      id: string;
+      operator: string;
+      targets: string[];
+      coefficient: number;
+    }>;
+    measurementPlanHash?: string;
+    measurementGroups?: Array<{
+      index: number;
+      basis: Record<string, string>;
+      termIds: string[];
+    }>;
+  };
+  resource: Record<string, number | string | boolean>;
+  decision: {
+    recommendedMode: Mode;
+    reason: string;
+    modes: WorkbenchModeDecisionRow[];
+  };
+  domain: {
+    kind: string;
+    modelLevel?: string;
+    molecule?: string;
+    geometryLabel?: string;
+    bondLengthAngstrom?: number;
+    charge?: number;
+    multiplicity?: number;
+    basis?: string;
+    activeSpace?: string;
+    mapping?: string;
+    sequence?: string;
+    atoms?: BiomedicineStructureNode[];
+    bonds?: BiomedicineStructureEdge[];
+    nodes?: BiomedicineStructureNode[];
+    edges?: BiomedicineStructureEdge[];
+    limitations: string[];
+    reference?: {
+      method: string;
+      exact_ground_energy_hartree: number;
+      hartree_fock_energy_hartree: number;
+    };
+  };
+}
+
+export type WorkbenchAnalysisPayload = AnalysisPayload | BiomedicineAnalysisPayload;
+
 export interface AnalyzeResponse {
   scenario: ScenarioSpec;
   preset: string;
-  analysis: AnalysisPayload;
+  analysis: WorkbenchAnalysisPayload;
 }
 
 export interface Metric {
@@ -414,6 +516,81 @@ export interface RunPayload {
   statistics?: RepeatedRunStatistics;
 }
 
+export interface BiomedicineRunPayload {
+  kind: "biomedicine";
+  analysis: BiomedicineAnalysisPayload;
+  domain: {
+    kind: "ground_state_energy";
+    exactOptimizedEnergy: number;
+    sampledConfirmationEnergy: number;
+    sampledStandardError: number;
+    referenceEnergy: number;
+    absoluteErrorHartree: number;
+    chemicalAccuracyThresholdHartree: number;
+    withinChemicalAccuracy: boolean;
+    estimatorNote: string;
+  };
+  quantum: {
+    kind: "pauli_vqe";
+    mode: "digital";
+    algorithm: "vqe";
+    summary: {
+      qubits: number;
+      pauliTerms: number;
+      measurementGroups: number;
+      shotsPerGroup: number;
+      totalMeasurementShots: number;
+      evaluations: number;
+    };
+    circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
+    counts: Record<string, number>;
+    parameterHistory: Array<{
+      index: number;
+      objective: number;
+      parameters: Record<string, number>;
+    }>;
+    measurement: {
+      planHash: string;
+      groups: Array<{
+        index: number;
+        basis: Record<string, string>;
+        shots: number;
+        counts: Record<string, number>;
+      }>;
+    };
+    termination: Record<string, string | number | boolean | null>;
+    ansatz: Record<string, unknown>;
+  };
+  comparison: {
+    referenceMethod: string;
+    hartreeFockEnergy: number;
+    exactGroundEnergy: number;
+    vqeExactEnergy: number;
+    vqeSampledEnergy: number;
+  };
+  audit: {
+    domainId: "biomedicine";
+    caseId: string;
+    datasetId: string;
+    datasetVersion: string;
+    manifestHash: string;
+    hamiltonianHash: string;
+    analysisHash: string;
+    ansatzHash: string;
+    measurementPlanHash: string;
+    executionHash: string;
+    resultHash: string;
+    seed: number;
+    shotsPerGroup: number;
+    hardwareExecution: false;
+    cloudExecution: false;
+    networkAccessed: false;
+    wallTimeSeconds: number;
+  };
+}
+
+export type WorkbenchRunPayload = RunPayload | BiomedicineRunPayload;
+
 export interface RepeatedRunStatistics {
   repeatCount: number;
   feasibleCount: number;
@@ -445,7 +622,7 @@ export interface RepeatedRunStatistics {
 export interface RunResponse {
   scenario: ScenarioSpec;
   preset: string;
-  run: RunPayload;
+  run: WorkbenchRunPayload;
 }
 
 export interface ScenarioRequest {

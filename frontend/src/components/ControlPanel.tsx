@@ -2,12 +2,12 @@ import { ChevronDown, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import type {
   Algorithm,
-  AnalysisPayload,
   ControlSpec,
   LayerPolicy,
   Mode,
   ScenarioSpec,
   SearchStrategy,
+  WorkbenchAnalysisPayload,
 } from "../types";
 import { MODE_LABELS } from "../utils";
 import { useI18n } from "../i18n";
@@ -16,7 +16,7 @@ interface ControlPanelProps {
   scenario: ScenarioSpec;
   preset: string;
   values: Record<string, string | number | boolean>;
-  analysis: AnalysisPayload | null;
+  analysis: WorkbenchAnalysisPayload | null;
   mode: Mode;
   algorithm: Algorithm;
   layerPolicy: LayerPolicy;
@@ -31,6 +31,7 @@ interface ControlPanelProps {
   recommendedConfiguration: boolean;
   running: boolean;
   analyzing: boolean;
+  canRun?: boolean;
   onPreset: (value: string) => void;
   onValue: (key: string, value: string | number) => void;
   onMode: (mode: Mode) => void;
@@ -123,8 +124,8 @@ export function ControlPanel(props: ControlPanelProps) {
     props.searchStrategy === "preset"
       ? [1, 2]
       : props.searchStrategy === "continuous"
-        ? [4, 8, 12, 16, 24]
-        : [2, 4, 8, 12, 16, 24]
+        ? [4, 8, 12, 16, 24, 40, 80]
+        : [2, 4, 8, 12, 16, 24, 40, 80]
   ).filter(
     (value) => props.searchStrategy !== "continuous" || value >= minimumContinuousBudget,
   );
@@ -349,9 +350,15 @@ export function ControlPanel(props: ControlPanelProps) {
           </div>
 
           <div className="run-actions">
-            <button className="run-button" type="button" onClick={props.onRun} disabled={props.running || props.analyzing}>
+            <button className="run-button" type="button" onClick={props.onRun} disabled={props.running || props.analyzing || props.canRun === false}>
               <Play size={17} fill="currentColor" aria-hidden="true" />
-              {props.running ? t("running") : props.analyzing ? t("analyzing") : t("runExperiment")}
+              {props.canRun === false
+                ? t("previewOnly")
+                : props.running
+                  ? t("running")
+                  : props.analyzing
+                    ? t("analyzing")
+                    : t("runExperiment")}
             </button>
             <button className="icon-button" type="button" onClick={props.onReset} aria-label={t("resetScenario")} data-tip={t("resetScenario")}>
               <RotateCcw size={17} aria-hidden="true" />

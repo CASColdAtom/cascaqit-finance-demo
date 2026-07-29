@@ -1,7 +1,14 @@
 import { Languages, ShieldCheck } from "lucide-react";
 import { useI18n } from "../i18n";
+import type { DomainId } from "../types";
 
-export function TelemetryHeader() {
+export function TelemetryHeader({
+  domainId = "finance",
+  onDomain = () => undefined,
+}: {
+  domainId?: DomainId;
+  onDomain?: (domainId: DomainId) => void;
+} = {}) {
   const { language, setLanguage, t } = useI18n();
   return (
     <header className="telemetry-header">
@@ -15,6 +22,22 @@ export function TelemetryHeader() {
           <strong>{t("productTitle")}</strong>
           <span>{t("productSubtitle")}</span>
         </div>
+      </div>
+      <div className="domain-switch" role="group" aria-label={t("industryDomain")}>
+        <button
+          type="button"
+          aria-pressed={domainId === "finance"}
+          onClick={() => onDomain("finance")}
+        >
+          {t("financeDomain")}
+        </button>
+        <button
+          type="button"
+          aria-pressed={domainId === "biomedicine"}
+          onClick={() => onDomain("biomedicine")}
+        >
+          {t("biomedicineDomain")}
+        </button>
       </div>
       <div className="telemetry-strip">
         <span className="telemetry-item status-live">

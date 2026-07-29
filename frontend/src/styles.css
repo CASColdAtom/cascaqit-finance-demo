@@ -156,6 +156,38 @@ code,
   text-transform: uppercase;
 }
 
+.domain-switch {
+  display: flex;
+  min-width: 238px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 14px;
+}
+
+.domain-switch button {
+  min-width: 92px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.domain-switch button:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.domain-switch button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--cyan) 44%, var(--line));
+  color: var(--text);
+  background: var(--cyan-soft);
+}
+
 .telemetry-strip {
   display: flex;
   min-width: 0;
@@ -1752,6 +1784,283 @@ code,
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
+.biomed-view {
+  --structure-line: #60756e;
+}
+
+.biomed-overview {
+  min-height: 420px;
+}
+
+.biomed-structure-canvas {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  background:
+    linear-gradient(rgba(54, 73, 67, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(54, 73, 67, 0.08) 1px, transparent 1px),
+    #0a100f;
+  background-size: 32px 32px;
+}
+
+.biomed-structure-canvas svg {
+  display: block;
+  width: 100%;
+  height: 360px;
+}
+
+.structure-edge {
+  stroke: var(--structure-line);
+  stroke-width: 1.5;
+}
+
+.edge-hydrogen_bond,
+.edge-candidate_match,
+.edge-contact {
+  stroke: var(--cyan);
+  stroke-dasharray: 3 2;
+}
+
+.edge-exchange {
+  stroke: var(--amber);
+  stroke-width: 2.2;
+}
+
+.structure-node circle {
+  fill: #16231f;
+  stroke: var(--cyan);
+  stroke-width: 1.3;
+  filter: drop-shadow(0 0 4px rgba(42, 213, 223, 0.32));
+}
+
+.structure-node text {
+  fill: var(--text);
+  font-family: var(--mono);
+  font-size: 4px;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.node-spin_site circle {
+  fill: rgba(238, 187, 82, 0.16);
+  stroke: var(--amber);
+}
+
+.node-ligand circle,
+.node-residue circle {
+  fill: rgba(74, 217, 135, 0.12);
+  stroke: var(--green);
+}
+
+.structure-legend {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.structure-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.59rem;
+}
+
+.structure-legend i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.boundary-list {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.boundary-list span {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.72rem;
+}
+
+.boundary-list svg {
+  flex: 0 0 auto;
+  color: var(--amber);
+}
+
+.biomed-metric-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.biomed-metric-band > div {
+  display: grid;
+  min-width: 0;
+  min-height: 96px;
+  align-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--line);
+}
+
+.biomed-metric-band > div:last-child {
+  border-right: 0;
+}
+
+.biomed-metric-band small,
+.biomed-metric-band span {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.61rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biomed-metric-band strong {
+  overflow: hidden;
+  font-size: 1.12rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biomed-metric-band [data-pass="true"] strong {
+  color: var(--green);
+}
+
+.status-preview {
+  color: var(--amber) !important;
+}
+
+.energy-comparison {
+  min-height: 260px;
+}
+
+.energy-axis {
+  position: relative;
+  height: 126px;
+  margin: 28px 30px 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.energy-axis > div {
+  position: absolute;
+  bottom: -6px;
+  left: var(--energy-position);
+  display: grid;
+  width: 116px;
+  justify-items: center;
+  gap: 5px;
+  transform: translateX(-50%);
+}
+
+.energy-axis i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
+}
+
+.energy-axis strong,
+.energy-axis span {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  white-space: nowrap;
+}
+
+.energy-axis span {
+  color: var(--muted);
+}
+
+.preview-contract {
+  display: grid;
+  min-height: 210px;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  padding: 30px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.preview-contract svg {
+  color: var(--amber);
+}
+
+.preview-contract strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.preview-contract span {
+  max-width: 520px;
+  font-size: 0.73rem;
+  line-height: 1.7;
+}
+
+.quantum-empty {
+  min-height: 430px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.group-grid,
+.gate-sequence {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.group-grid > div,
+.gate-sequence > div {
+  display: grid;
+  min-height: 84px;
+  align-content: center;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.group-grid small,
+.group-grid span,
+.gate-sequence small,
+.gate-sequence span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.59rem;
+}
+
+.group-grid strong,
+.gate-sequence strong {
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.gate-sequence > div {
+  border-top: 2px solid var(--cyan);
+}
+
 @media (max-width: 900px) {
   .statistics-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1844,6 +2153,11 @@ code,
     min-width: 300px;
   }
 
+  .domain-switch {
+    min-width: 216px;
+    padding: 0 8px;
+  }
+
   .workbench-grid {
     grid-template-areas:
       "nav nav"
@@ -1931,6 +2245,18 @@ code,
   .brand-lockup strong {
     max-width: 210px;
     font-size: 0.86rem;
+  }
+
+  .domain-switch {
+    min-width: 190px;
+    padding: 0 4px;
+  }
+
+  .domain-switch button {
+    min-width: 82px;
+    min-height: 32px;
+    padding: 0 7px;
+    font-size: 0.66rem;
   }
 
   .telemetry-item {
@@ -2092,6 +2418,18 @@ code,
     flex-wrap: wrap;
   }
 
+  .biomed-metric-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .biomed-metric-band > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .biomed-metric-band > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
 }
 
 @media (max-width: 520px) {
@@ -2106,6 +2444,15 @@ code,
   .brand-logo {
     width: 96px;
     height: 40px;
+  }
+
+  .domain-switch {
+    min-width: 174px;
+  }
+
+  .domain-switch button {
+    min-width: 76px;
+    padding: 0 5px;
   }
 
   .telemetry-item {
@@ -2145,6 +2492,26 @@ code,
   .metric-band-react,
   .mapping-readout {
     grid-template-columns: 1fr;
+  }
+
+  .biomed-metric-band {
+    grid-template-columns: 1fr;
+  }
+
+  .biomed-metric-band > div {
+    min-height: 78px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .biomed-metric-band > div:last-child {
+    border-bottom: 0;
+  }
+
+  .biomed-structure-canvas,
+  .biomed-structure-canvas svg {
+    min-height: 280px;
+    height: 280px;
   }
 
   .metric-cell,

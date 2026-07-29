@@ -1,0 +1,44 @@
+{
+  "dataset_id": "electronic.h2.sto3g.0735",
+  "version": "1",
+  "source": {
+    "kind": "project_generated_benchmark",
+    "uri": null,
+    "license": "project_generated"
+  },
+  "generation": {
+    "tool": "documented two-qubit H2 benchmark",
+    "tool_version": "fixture-v1",
+    "parameters": {
+      "basis": "STO-3G",
+      "bond_length_angstrom": 0.735,
+      "active_electrons": 2,
+      "active_orbitals": 2
+    }
+  },
+  "units": {
+    "geometry": "angstrom",
+    "energy": "hartree"
+  },
+  "logical_order": ["q0", "q1"],
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "26f77c59fc022d9d736e00f2e8cf32b36237caeafbabcd281cdedb9912a6d58d"
+    },
+    {
+      "path": "pauli.json",
+      "sha256": "b387a06bf088ef10bdd4aa18c9097f024dc3eb11ed8dbd6db0b3396155b17b8a"
+    }
+  ],
+  "reference": {
+    "method": "exact diagonalization of the packaged Pauli Hamiltonian",
+    "exact_ground_energy_hartree": -1.8572750302023797,
+    "hartree_fock_energy_hartree": -1.836967991202984
+  },
+  "limitations": [
+    "This is a fixed two-qubit educational benchmark, not an arbitrary molecule workflow.",
+    "The packaged coefficients require an independent provenance audit before external scientific release.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

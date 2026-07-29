@@ -1,5 +1,6 @@
 import type {
   AnalyzeResponse,
+  DomainId,
   RunRequest,
   RunResponse,
   ScenarioRequest,
@@ -18,15 +19,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {
-      detail?: string;
+      detail?: string | { message?: string; code?: string };
     } | null;
-    throw new Error(payload?.detail ?? `请求失败：HTTP ${response.status}`);
+    const detail = payload?.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail?.message ?? detail?.code ?? `请求失败：HTTP ${response.status}`;
+    throw new Error(message);
   }
   return (await response.json()) as T;
 }
 
-export async function getScenarios(): Promise<ScenarioSpec[]> {
-  const payload = await request<{ scenarios: ScenarioSpec[] }>("/api/scenarios");
+export async function getScenarios(domainId: DomainId = "finance"): Promise<ScenarioSpec[]> {
+  const payload = await request<{ scenarios: ScenarioSpec[] }>(
+    `/api/domains/${domainId}/scenarios`,
+  );
   return payload.scenarios;
 }
 
@@ -34,8 +42,9 @@ export function analyzeScenario(
   caseId: string,
   body: ScenarioRequest,
   signal?: AbortSignal,
+  domainId: DomainId = "finance",
 ): Promise<AnalyzeResponse> {
-  return request(`/api/scenarios/${caseId}/analyze`, {
+  return request(`/api/domains/${domainId}/scenarios/${caseId}/analyze`, {
     method: "POST",
     body: JSON.stringify(body),
     signal,
@@ -45,8 +54,9 @@ export function analyzeScenario(
 export function runScenario(
   caseId: string,
   body: RunRequest,
+  domainId: DomainId = "finance",
 ): Promise<RunResponse> {
-  return request(`/api/scenarios/${caseId}/run`, {
+  return request(`/api/domains/${domainId}/scenarios/${caseId}/run`, {
     method: "POST",
     body: JSON.stringify(body),
   });
