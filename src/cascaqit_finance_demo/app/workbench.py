@@ -249,8 +249,8 @@ def build_document(doc: Document) -> dict[str, Any]:
 
     header = Div(
         text=(
-            '<div class="brand"><strong>CASCAQit Finance</strong>'
-            "<span>中性原子金融量子实验台</span></div>"
+            '<div class="brand"><strong>中科酷原行业量子实验台</strong>'
+            "<span>金融领域</span></div>"
             '<div class="environment"><span>本地模拟</span><span>合成数据</span>'
             "<span>无真实硬件</span></div>"
         ),
@@ -270,7 +270,7 @@ def build_document(doc: Document) -> dict[str, Any]:
         css_classes=["app-root"],
     )
     doc.add_root(root)
-    doc.title = "CASCAQit Finance"
+    doc.title = "中科酷原行业量子实验台 · 金融领域"
     doc.theme = finance_theme()
     doc.template = APP_TEMPLATE.replace("</style>", _WORKBENCH_CSS + "</style>")
     doc.on_session_destroyed(lambda _context: worker.shutdown(wait=False))

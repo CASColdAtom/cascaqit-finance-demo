@@ -17,7 +17,7 @@ def test_app_builds_seven_scenarios_and_five_result_tabs() -> None:
     handles = build_document(document)
 
     serialized = json.dumps(document.to_json(), ensure_ascii=False)
-    assert document.title == "CASCAQit Finance"
+    assert document.title == "中科酷原行业量子实验台 · 金融领域"
     assert len(document.roots) == 1
     assert list(handles["workspaces"]) == [
         "portfolio",
@@ -64,7 +64,8 @@ def test_custom_template_renders_as_server_page() -> None:
         template=document.template,
     )
 
-    assert "CASCAQit Finance" in rendered
+    assert "中科酷原行业量子实验台" in rendered
+    assert "金融领域" in rendered
     assert "overflow-x: clip" in rendered
     assert "analysis-grid" in rendered
 

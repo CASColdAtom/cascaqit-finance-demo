@@ -18,6 +18,7 @@
 - [生物医药第四阶段实现报告](process/biomedicine_phase_4_peptide_landscape_report.md)：记录二维自回避构象库、one-hot QUBO、Digital QAOA、完整经典能景和四场景联调验收。
 - [生物医药第五阶段发布验收报告](process/biomedicine_phase_5_release_report.md)：记录 12 个预设的固定 seed 校准、数据来源复核、浏览器与打包门禁、CASCAQit 版本验证和 Windows 实机验收限制。
 - [生物医药第六阶段完成度报告](process/biomedicine_phase_6_completion_report.md)：逐条记录领域解耦、六视图、运行边界、缓存身份、报告落盘、错误契约、最终门禁和剩余外部验收项。
+- [生物医药第七阶段最终验收报告](process/biomedicine_phase_7_final_acceptance_report.md)：记录 PRD/架构逐项审计、manifest 与错误契约收口、平台用户数据目录、品牌统一、重新校准、三视口和最终交付制品证据。
 - [前后端分离金融工作台实现报告](process/problem_api_workbench_implementation_report.md)：记录 FastAPI + React 结构、七场景执行、状态隔离、自动验证和人工验收缺口。
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。

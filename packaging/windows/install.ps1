@@ -52,7 +52,7 @@ function Expand-PortablePythonArchive {
 & (Join-Path $Root "verify.ps1")
 New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
 Set-Content -LiteralPath $InstallLog -Value "" -Encoding UTF8
-Write-InstallEvent "开始安装中科酷原金融量子实验台。"
+Write-InstallEvent "开始安装中科酷原行业量子实验台。"
 
 if (-not (Test-Python311X64 -Executable $PortablePython)) {
     if (-not (Test-Path -LiteralPath $PortableArchive -PathType Leaf)) {
@@ -103,10 +103,10 @@ $PipArguments = @(
     "--only-binary=:all:"
 )
 if ($ForceReinstall) {
-    Write-InstallEvent "正在强制重装 CASCAQit 和金融 Demo……"
+    Write-InstallEvent "正在强制重装 CASCAQit 和行业实验台……"
     $PipArguments += @("--upgrade", "--force-reinstall")
 } else {
-    Write-InstallEvent "正在检查并安装 CASCAQit 和金融 Demo……"
+    Write-InstallEvent "正在检查并安装 CASCAQit 和行业实验台……"
 }
 $PipArguments += "cascaqit-finance-demo==0.1.1"
 & $VenvPython @PipArguments
@@ -121,8 +121,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # 版本、静态资源和真实 settlement 执行必须同时通过。后者会覆盖资源规划器、
 # Digital-Analog-Digital 编译、本地模拟、采样和结果映射，不再只验证 import。
-$env:CASCAQIT_FINANCE_DATA_DIR = $Root
-$VersionCheck = "from importlib.metadata import version; from cascaqit_finance_demo.api.app import FRONTEND_DIST; assert (FRONTEND_DIST / 'index.html').is_file(); print('CASCAQit', version('cascaqit')); print('Finance Demo', version('cascaqit-finance-demo'))"
+$env:CASCAQIT_INDUSTRY_DATA_DIR = $Root
+$VersionCheck = "from importlib.metadata import version; from cascaqit_finance_demo.api.app import FRONTEND_DIST; assert (FRONTEND_DIST / 'index.html').is_file(); print('CASCAQit', version('cascaqit')); print('Industry Workbench', version('cascaqit-finance-demo'))"
 & $VenvPython -c $VersionCheck
 if ($LASTEXITCODE -ne 0) {
     throw "安装后的版本或静态资源自检失败。安装日志：$InstallLog"

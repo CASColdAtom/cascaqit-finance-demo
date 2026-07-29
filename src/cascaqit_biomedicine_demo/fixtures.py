@@ -35,6 +35,78 @@ class LoadedFixture:
     manifest_hash: str
 
 
+def validate_manifest_contract(manifest: dict[str, Any]) -> None:
+    """Validate the provenance fields required by the biomedicine PRD."""
+
+    for key in ("dataset_id", "version"):
+        if not isinstance(manifest.get(key), str) or not manifest[key]:
+            raise ValueError(f"fixture manifest {key} must be a non-empty string")
+    source = manifest.get("source")
+    if not isinstance(source, dict):
+        raise ValueError("fixture manifest source must be an object")
+    for key in ("kind", "license", "license_checked_at"):
+        if not isinstance(source.get(key), str) or not source[key]:
+            raise ValueError(f"fixture manifest source.{key} is required")
+    has_source_checksum = any(
+        key in source
+        for key in ("source_file_sha256", "input_sha256", "raw_file_sha256")
+    )
+    if not has_source_checksum:
+        raise ValueError("fixture manifest must declare its raw input checksum status")
+
+    generation = manifest.get("generation")
+    if not isinstance(generation, dict) or not isinstance(
+        generation.get("parameters"), dict
+    ):
+        raise ValueError("fixture manifest generation parameters are required")
+    if not isinstance(generation.get("tool"), str) or not generation["tool"]:
+        raise ValueError("fixture manifest generation tool is required")
+    if not (
+        isinstance(generation.get("tool_version"), str)
+        and generation["tool_version"]
+    ) and not (
+        isinstance(generation.get("tool_versions"), dict)
+        and generation["tool_versions"]
+    ):
+        raise ValueError("fixture manifest generation tool version is required")
+
+    if not isinstance(manifest.get("units"), dict) or not manifest["units"]:
+        raise ValueError("fixture manifest units are required")
+    variable_order = manifest.get("variable_order", manifest.get("logical_order"))
+    if (
+        not isinstance(variable_order, list)
+        or not variable_order
+        or len(set(variable_order)) != len(variable_order)
+    ):
+        raise ValueError(
+            "fixture manifest variable order must contain unique identifiers"
+        )
+    if "coordinate_system" not in manifest and "geometry_angstrom" not in generation[
+        "parameters"
+    ]:
+        raise ValueError("fixture manifest coordinate system is required")
+
+    reference = manifest.get("reference")
+    if not isinstance(reference, dict) or not isinstance(reference.get("method"), str):
+        raise ValueError("fixture manifest reference method is required")
+    if not (
+        isinstance(reference.get("software_version"), str)
+        and reference["software_version"]
+    ) and not (
+        isinstance(generation.get("tool_versions"), dict)
+        and generation["tool_versions"]
+    ):
+        raise ValueError("fixture manifest reference software version is required")
+    if not (
+        isinstance(reference.get("standard_presets"), dict)
+        and reference["standard_presets"]
+    ) and "exact_ground_energy_hartree" not in reference:
+        raise ValueError("fixture manifest reference results are required")
+    for key in ("allowed_claims", "limitations"):
+        if not isinstance(manifest.get(key), list) or not manifest[key]:
+            raise ValueError(f"fixture manifest {key} must not be empty")
+
+
 def _read_json(path: Path) -> tuple[dict[str, Any], bytes]:
     raw = path.read_bytes()
     value = json.loads(raw)
@@ -46,6 +118,7 @@ def _read_json(path: Path) -> tuple[dict[str, Any], bytes]:
 def load_fixture(scenario: str, dataset: str, version: str) -> LoadedFixture:
     root = DATA_ROOT / scenario / dataset / version
     manifest, manifest_raw = _read_json(root / "manifest.json")
+    validate_manifest_contract(manifest)
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         raise ValueError("fixture manifest must declare artifacts")

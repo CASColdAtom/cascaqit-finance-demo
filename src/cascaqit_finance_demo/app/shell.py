@@ -24,8 +24,9 @@ def build_header() -> Div:
             '<div style="min-height:58px;display:flex;align-items:center;'
             'justify-content:space-between;gap:16px;padding:10px 20px;flex-wrap:wrap">'
             '<div style="display:flex;align-items:baseline;gap:9px">'
-            '<strong style="font-size:18px;font-weight:600">CASCAQit Finance</strong>'
-            f'<span style="color:{MUTED}">金融量子优化实验台</span></div>'
+            '<strong style="font-size:18px;font-weight:600">'
+            "中科酷原行业量子实验台</strong>"
+            f'<span style="color:{MUTED}">金融领域</span></div>'
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
             f'<span style="border:1px solid {BORDER};border-radius:5px;padding:5px 9px;'
             f'background:{SURFACE}"><span style="color:{GREEN}">●</span> '

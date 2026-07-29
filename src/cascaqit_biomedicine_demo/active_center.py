@@ -20,6 +20,7 @@ from cascaqit_biomedicine_demo.audit import (
     local_backend_context,
 )
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
+from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
 from cascaqit_biomedicine_demo.pauli_vqe import (
     build_pauli_hamiltonian,
     exact_diagonalization,
@@ -52,6 +53,7 @@ def _read_json(path: Path) -> tuple[dict[str, Any], bytes]:
 def load_active_center_fixture() -> ActiveCenterFixture:
     """Load and checksum the packaged effective-model fixture."""
     manifest, manifest_raw = _read_json(DATA_ROOT / "manifest.json")
+    validate_manifest_contract(manifest)
     artifacts: dict[str, dict[str, Any]] = {
         str(item["path"]): item for item in manifest["artifacts"]
     }

@@ -121,6 +121,12 @@ def test_windows_installer_uses_portable_runtime_and_real_smoke() -> None:
     assert "--force-reinstall" in install_script
     assert "if ($ForceReinstall)" in install_script
     assert "cascaqit_finance_demo.smoke_test" in install_script
+    assert "中科酷原行业量子实验台" in install_script
+    assert "中科酷原行业量子实验台" in run_script
+    assert "cascaqit-industry-demo.exe" in run_script
+    assert "CASCAQIT_INDUSTRY_DATA_DIR" in install_script
+    assert "CASCAQIT_INDUSTRY_DATA_DIR" in run_script
+    assert "CASCAQIT_INDUSTRY_PORT" in run_script
     assert "Test-VenvPython" in run_script
     assert len(PYTHON_RUNTIME_SOURCE_SHA256) == 64
 

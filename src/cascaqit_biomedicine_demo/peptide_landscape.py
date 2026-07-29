@@ -17,6 +17,7 @@ from cascaqit_biomedicine_demo.audit import (
     local_backend_context,
 )
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
+from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
 from cascaqit_biomedicine_demo.pauli_vqe import hash_payload
 from cascaqit_biomedicine_demo.problem_model import (
     OptimizationProblemDefinition,
@@ -69,6 +70,7 @@ def _derived_contacts(coordinates: list[list[int]]) -> list[list[int]]:
 
 def load_peptide_fixture() -> PeptideFixture:
     manifest, manifest_raw = _read_json(DATA_ROOT / "manifest.json")
+    validate_manifest_contract(manifest)
     domain, domain_raw = _read_json(DATA_ROOT / "domain.json")
     if hashlib.sha256(domain_raw).hexdigest() != manifest["artifacts"][0]["sha256"]:
         raise ValueError("peptide fixture checksum mismatch: domain.json")
@@ -94,6 +96,10 @@ def load_peptide_fixture() -> PeptideFixture:
         conformations
     ):
         raise ValueError("peptide conformations must be unique")
+    if manifest["variable_order"] != [
+        f"conf.{item['id']}" for item in conformations
+    ]:
+        raise ValueError("peptide fixture variable order is inconsistent")
     return PeptideFixture(
         manifest=manifest,
         domain=domain,

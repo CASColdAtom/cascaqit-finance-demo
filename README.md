@@ -73,14 +73,16 @@ npm run dev
 
 ## 页面内容
 
-React 工作台使用统一三栏布局：左侧只展示当前领域的场景，中间展示领域参数和执行配置，右侧展示结果。金融和生物医药通过顶部一级领域切换，不在同一结果视图中直接比较业务指标。结果分为五个视图：
+React 工作台使用统一三栏布局：左侧只展示当前领域的场景，中间展示领域参数和执行配置，右侧展示结果。金融和生物医药通过顶部一级领域切换，不在同一结果视图中直接比较业务指标。金融领域保持五个视图；生物医药领域增加独立“对照分析”，共六个视图：
 
 - 业务结果：当前选择、核心指标、约束和未选原因。
 - 场景态势：合成输入、候选空间、冲突网络或依赖关系。
 - Problem 映射：Canonical Problem、Hamiltonian、模式判断、资源估算和 term mapping。
 - 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史、counts 和独立重复运行统计。
-- 模式证据：完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。
+- 对照分析（仅生物医药）：分别展示量子观测、精确对角化、经典全枚举或共晶派生参考。
 - 审计证据：Problem、analysis、compile、execution hash，以及 mode、seed、shots 和耗时；完整 Target、Backend 和执行边界保留在结构化审计载荷中。
+
+模式证据位于“Problem 映射”内，包括完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。
 
 Digital 当前公开 QAOA，并展示实际变分逻辑层。投资组合、抵押品、流动性和授信的 VQE 已接通显式 API，每个场景都有独立的 Ansatz 和执行默认值；固定 seed 校准仍未达到页面发布门槛，因此客户界面不显示 VQE。Hybrid 同时显示 D-A-D block、原子阵列、波形和 Digital residual 逻辑层。Analog 只显示原子阵列、波形和采样结果，不伪造数字线路。
 
@@ -113,7 +115,7 @@ print(analysis.mode_decision.recommended_mode)
 print(result.execution.result.counts)
 ```
 
-执行结果包含 `ProblemExecutionResult`、业务候选、经典有界基准、模式分析和运行证据。业务解码会根据原始输入重新检查约束；QUBO energy 较低不等于业务方案可行。每次 UI 运行还会把 CASCAQit 标准 Problem 报告保存到 `artifacts/reports/`。
+执行结果包含 `ProblemExecutionResult`、业务候选、经典有界基准、模式分析和运行证据。业务解码会根据原始输入重新检查约束；QUBO energy 较低不等于业务方案可行。FastAPI 默认把报告写入平台用户数据目录：macOS 为 `~/Library/Application Support/CASColdAtom/IndustryQuantumWorkbench/artifacts/reports`，Windows 为 `%LOCALAPPDATA%\CASColdAtom\IndustryQuantumWorkbench\artifacts\reports`，Linux 为 `${XDG_DATA_HOME:-~/.local/share}/CASColdAtom/IndustryQuantumWorkbench/artifacts/reports`。可用 `CASCAQIT_INDUSTRY_DATA_DIR` 覆盖根目录；Windows 便携离线包会把它固定到解压目录。
 
 ## 当前限制
 

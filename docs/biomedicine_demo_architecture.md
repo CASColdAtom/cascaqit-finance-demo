@@ -225,6 +225,8 @@ data/<scenario>/<dataset>/<version>/
 
 加载器验证数据结构、checksum、逻辑顺序、单位和交叉引用。任一数据不一致都必须在分析前失败，不允许后端用部分数据继续执行。
 
+当前八组 fixture 在各自领域加载器读取 artifact 前统一调用 `validate_manifest_contract()`。公共契约强制检查来源 checksum 状态、生成工具版本和参数、单位、坐标系、变量顺序、经典参考方法与软件版本、标准预设参考结果、允许说法和限制；领域加载器继续复核 Pauli logical order、对接 QUBO 变量顺序和小肽构象顺序。
+
 ### 6.3 fixture 生成
 
 生成脚本与运行时分离：
@@ -388,6 +390,8 @@ POST /api/scenarios/{case_id}/run
 
 API 对不适用组合返回 422 和结构化诊断。例如 Pauli/VQE 场景请求 `hybrid`、对接场景请求 `vqe`、缺失 fixture 或 checksum 不一致都必须在执行前失败。
 
+生物医药路径的业务校验错误和 FastAPI/Pydantic 请求 schema 错误统一返回 `detail.code/message/stage`；未知预设使用 `BIOMEDICINE_PRESET_UNKNOWN`，请求字段错误使用 `BIOMEDICINE_REQUEST_INVALID`，阶段均为 `preflight`。金融兼容路径保留原有 FastAPI 校验响应。
+
 ### 10.3 响应外层
 
 ```text
@@ -468,6 +472,8 @@ source checksum
 - 报告文件名由后端生成，不使用用户输入拼接路径；
 - 报告写入配置的用户数据目录，API 返回 `reportPath`，不写入安装目录；
 - 错误响应不返回本机绝对路径或完整异常栈。
+
+未配置环境变量时，用户数据根目录按平台解析为 macOS `~/Library/Application Support/CASColdAtom/IndustryQuantumWorkbench`、Windows `%LOCALAPPDATA%\CASColdAtom\IndustryQuantumWorkbench`、Linux `${XDG_DATA_HOME:-~/.local/share}/CASColdAtom/IndustryQuantumWorkbench`。`CASCAQIT_INDUSTRY_DATA_DIR` 可覆盖根目录；便携 Windows 离线包显式把它设置为解压目录。旧 `CASCAQIT_FINANCE_DATA_DIR` 仅作为兼容回退。
 
 ### 12.3 数据边界
 
@@ -570,6 +576,14 @@ source checksum
 - 补齐数据集与执行族缓存身份、研究配置成本提示；
 - 统一结构化错误、用户目录报告和 API 阶段耗时；
 - 逐条复核 PRD、架构、浏览器、wheel 和离线包构建证据。
+
+### 第七阶段：最终契约审计
+
+- 强制执行八组 manifest 的公共溯源和标准参考契约；
+- 统一全部生物医药 422 请求错误，并证明长运行不阻塞健康检查；
+- 将默认报告位置切换为平台用户数据目录；
+- 统一 Web、Windows 离线入口、旧金融界面和当前讲解文档的产品名；
+- 重跑 36 次固定 seed 校准、三视口浏览器验收、全量测试和发布包构建。
 
 ## 16. 关键风险
 

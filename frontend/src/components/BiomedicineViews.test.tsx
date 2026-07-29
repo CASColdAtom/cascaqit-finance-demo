@@ -18,6 +18,7 @@ import {
   BiomedicineAuditView,
   BiomedicineComparisonView,
 } from "./BiomedicineViews";
+import { QuantumText } from "./QuantumText";
 
 const analysis = {
   kind: "biomedicine",
@@ -232,6 +233,24 @@ const peptideRun = {
 
 afterEach(cleanup);
 
+describe("Biomedicine terminology", () => {
+  it("provides Chinese explanations for the published quantum abbreviations", () => {
+    render(<QuantumText text="HF VQE QWC QAOA QUBO D-A-D QAA AHS" />);
+    for (const title of [
+      "Hartree-Fock 平均场参考",
+      "变分量子本征求解器",
+      "逐量子比特可对易测量分组",
+      "量子近似优化算法",
+      "二次无约束二元优化",
+      "数字-模拟-数字混合执行序列",
+      "量子绝热算法",
+      "模拟 Hamiltonian 仿真",
+    ]) {
+      expect(screen.getByTitle(title)).toBeTruthy();
+    }
+  });
+});
+
 describe("Biomedicine docking views", () => {
   it("keeps quantum, classic, and co-crystal results visibly separate", () => {
     render(<BiomedicineResultView analysis={analysis} run={run} />);
@@ -246,8 +265,8 @@ describe("Biomedicine docking views", () => {
 
   it("shows the QUBO ledger and verified Hybrid gate", () => {
     render(<BiomedicineMappingView analysis={analysis} />);
-    expect(screen.getByText("QUBO 贡献账本")).toBeTruthy();
-    expect(screen.getByTitle("二次无约束二元优化")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "QUBO 贡献账本" })).toBeTruthy();
+    expect(screen.getAllByTitle("二次无约束二元优化").length).toBeGreaterThan(0);
     expect(screen.getByText("BALANCED")).toBeTruthy();
     expect(screen.getByText(/2 A \/ 4 D/)).toBeTruthy();
     expect(screen.getByText(/verified/)).toBeTruthy();
@@ -308,6 +327,8 @@ describe("Biomedicine electronic-structure views", () => {
     expect(screen.getByText("理想与带噪测量组")).toBeTruthy();
     expect(screen.getByText("READOUT NOISE")).toBeTruthy();
     expect(screen.getByText("IDEAL")).toBeTruthy();
+    expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
+    expect(screen.getByTitle("逐量子比特可对易测量分组")).toBeTruthy();
   });
 });
 

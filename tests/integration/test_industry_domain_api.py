@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
+import threading
 from importlib import import_module
 
+import httpx
 from fastapi.testclient import TestClient
 
 from cascaqit_biomedicine_demo import fixtures
@@ -13,6 +16,30 @@ from cascaqit_finance_demo.api.app import app
 
 app_module = import_module("cascaqit_finance_demo.api.app")
 client = TestClient(app)
+
+
+def test_default_data_dir_uses_platform_user_storage(tmp_path) -> None:
+    resolver = app_module._default_user_data_dir
+    suffix = ("CASColdAtom", "IndustryQuantumWorkbench")
+    assert resolver(platform_name="darwin", environ={}, home=tmp_path) == (
+        tmp_path / "Library" / "Application Support" / suffix[0] / suffix[1]
+    )
+    assert resolver(
+        platform_name="win32",
+        environ={"LOCALAPPDATA": str(tmp_path / "Local")},
+        home=tmp_path,
+    ) == (tmp_path / "Local" / suffix[0] / suffix[1])
+    assert resolver(
+        platform_name="linux",
+        environ={"XDG_DATA_HOME": str(tmp_path / "xdg")},
+        home=tmp_path,
+    ) == (tmp_path / "xdg" / suffix[0] / suffix[1])
+    assert resolver(
+        platform_name="win32", environ={"LOCALAPPDATA": ""}, home=tmp_path
+    ) == (tmp_path / "AppData" / "Local" / suffix[0] / suffix[1])
+    assert resolver(
+        platform_name="linux", environ={"XDG_DATA_HOME": ""}, home=tmp_path
+    ) == (tmp_path / ".local" / "share" / suffix[0] / suffix[1])
 
 
 def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
@@ -103,6 +130,81 @@ def test_electronic_structure_rejects_unsupported_mode_with_422() -> None:
     assert detail["code"] == "PAULI_MODE_UNSUPPORTED"
     assert detail["stage"] == "preflight"
     assert "Digital VQE" in detail["message"]
+
+
+def test_biomedicine_request_validation_uses_one_structured_422_contract() -> None:
+    cases = (
+        ({"preset": "unknown"}, "BIOMEDICINE_PRESET_UNKNOWN"),
+        ({"preset": "h2_bond_scan", "shots": 0}, "BIOMEDICINE_REQUEST_INVALID"),
+    )
+    for payload, expected_code in cases:
+        response = client.post(
+            "/api/domains/biomedicine/scenarios/electronic_structure/run",
+            json=payload,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["code"] == expected_code
+        assert detail["stage"] == "preflight"
+        assert isinstance(detail["message"], str) and detail["message"]
+
+
+def test_long_biomedicine_run_does_not_block_health_check(
+    tmp_path, monkeypatch
+) -> None:
+    started = threading.Event()
+    release = threading.Event()
+    original_run = app_module.run_electronic_structure
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
+
+    def delayed_run(**kwargs):
+        started.set()
+        if not release.wait(timeout=5):
+            raise TimeoutError("test did not release the delayed run")
+        return original_run(**kwargs)
+
+    monkeypatch.setattr(app_module, "run_electronic_structure", delayed_run)
+
+    async def exercise() -> None:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as async_client:
+            run_task = asyncio.create_task(
+                async_client.post(
+                    "/api/domains/biomedicine/scenarios/electronic_structure/run",
+                    json={
+                        "preset": "h2_bond_scan",
+                        "mode": "digital",
+                        "algorithm": "vqe",
+                        "shots": 16,
+                        "seed": 23,
+                        "layers": 1,
+                        "parameter_budget": 6,
+                        "optimizer_starts": 1,
+                    },
+                )
+            )
+            try:
+                assert await asyncio.wait_for(
+                    asyncio.to_thread(started.wait), timeout=2
+                )
+                health = await asyncio.wait_for(
+                    async_client.get("/api/health"), timeout=2
+                )
+                assert health.status_code == 200
+                assert health.json()["status"] == "ok"
+                frontend = await asyncio.wait_for(
+                    async_client.get("/index.html"), timeout=2
+                )
+                assert frontend.status_code == 200
+                assert "root" in frontend.text
+            finally:
+                release.set()
+            response = await asyncio.wait_for(run_task, timeout=15)
+            assert response.status_code == 200
+
+    asyncio.run(exercise())
 
 
 def test_corrupted_electronic_fixture_returns_422_without_local_path(

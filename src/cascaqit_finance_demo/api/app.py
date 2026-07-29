@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import threading
 import time
 import urllib.error
 import urllib.request
 import webbrowser
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 from typing import Any, Literal, Optional
 from uuid import uuid4
@@ -18,6 +19,8 @@ from uuid import uuid4
 from cascaqit.exceptions import CapabilityError
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -64,14 +67,42 @@ from cascaqit_finance_demo.quantum.problem_executor import (
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIST = PACKAGE_ROOT / "static"
 
-# 报告属于运行数据，不应写入只读的 site-packages。启动脚本会把数据目录指向
-# 离线包根目录；其他调用方式默认写入当前工作目录，环境变量可显式覆盖。
-DATA_DIR = Path(
-    os.environ.get(
-        "CASCAQIT_INDUSTRY_DATA_DIR",
-        os.environ.get("CASCAQIT_FINANCE_DATA_DIR", Path.cwd()),
-    )
-).resolve()
+# 报告属于运行数据，不应写入只读的 site-packages。离线包可通过环境变量把
+# 数据目录指向其便携目录；常规安装默认写入操作系统的用户数据目录。
+def _default_user_data_dir(
+    *,
+    platform_name: Optional[str] = None,  # noqa: UP045
+    environ: Optional[Mapping[str, str]] = None,  # noqa: UP045
+    home: Optional[Path] = None,  # noqa: UP045
+) -> Path:
+    """Return a writable per-user data directory without adding a dependency."""
+
+    current_platform = sys.platform if platform_name is None else platform_name
+    current_environ = os.environ if environ is None else environ
+    user_home = Path.home() if home is None else home
+    if current_platform == "win32":
+        configured_base = current_environ.get("LOCALAPPDATA")
+        base = (
+            Path(configured_base)
+            if configured_base
+            else user_home / "AppData" / "Local"
+        )
+    elif current_platform == "darwin":
+        base = user_home / "Library" / "Application Support"
+    else:
+        configured_base = current_environ.get("XDG_DATA_HOME")
+        base = (
+            Path(configured_base)
+            if configured_base
+            else user_home / ".local" / "share"
+        )
+    return base / "CASColdAtom" / "IndustryQuantumWorkbench"
+
+
+_CONFIGURED_DATA_DIR = os.environ.get("CASCAQIT_INDUSTRY_DATA_DIR") or os.environ.get(
+    "CASCAQIT_FINANCE_DATA_DIR"
+)
+DATA_DIR = Path(_CONFIGURED_DATA_DIR or _default_user_data_dir()).resolve()
 REPORT_DIR = DATA_DIR / "artifacts" / "reports"
 HOST = "127.0.0.1"
 PORT = int(
@@ -143,6 +174,33 @@ async def capability_error_response(
                 "message": str(exc),
                 "stage": exc.stage,
                 "error_id": exc.error_id,
+            }
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_response(
+    request: Request, exc: RequestValidationError
+) -> Response:
+    """Keep biomedicine request validation on the documented diagnostic schema."""
+
+    if not request.url.path.startswith("/api/domains/biomedicine/"):
+        return await request_validation_exception_handler(request, exc)
+    messages = []
+    for issue in exc.errors():
+        location = ".".join(
+            str(item) for item in issue.get("loc", ()) if item != "body"
+        )
+        message = str(issue.get("msg", "invalid request value"))
+        messages.append(f"{location}: {message}" if location else message)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": {
+                "code": "BIOMEDICINE_REQUEST_INVALID",
+                "message": "; ".join(messages) or "请求参数无效。",
+                "stage": "preflight",
             }
         },
     )
@@ -288,7 +346,11 @@ def _biomedicine_request(
         ) from exc
     preset = request.preset or spec.presets[0][0]
     if preset not in {value for value, _label in spec.presets}:
-        raise HTTPException(status_code=422, detail=f"unknown preset: {preset}")
+        raise _biomedicine_error(
+            "BIOMEDICINE_PRESET_UNKNOWN",
+            f"unknown preset: {preset}",
+            "preflight",
+        )
     allowed = {control.key for control in spec.controls}
     unknown = set(request.values) - allowed
     if unknown:

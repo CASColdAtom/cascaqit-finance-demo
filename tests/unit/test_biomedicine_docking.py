@@ -36,6 +36,8 @@ def test_docking_presets_build_conserved_qubo_with_classic_baseline(
 ) -> None:
     scenario = DockingMatchScenario()
     definition = scenario.build_definition(docking_input(preset, {}))
+    fixture = load_docking_fixture()
+    reference = fixture.manifest["reference"]["standard_presets"][preset]
     assert len(definition.problem.variables) == 11
     assert definition.auxiliary_variables == ("slack.coverage",)
     assert len(definition.analog_business_pairs) == 4
@@ -43,8 +45,12 @@ def test_docking_presets_build_conserved_qubo_with_classic_baseline(
     assert definition.geometry_evidence is not None
     assert definition.geometry_evidence.source == "verified_embedding"
     baseline = classic_docking_solution(preset)
+    assert list(definition.problem.variables) == fixture.manifest["variable_order"]
     assert baseline.feasible is True
     assert baseline.coverage >= 2
+    assert baseline.pose_id == reference["pose_id"]
+    assert list(baseline.selected_match_ids) == reference["selected_match_ids"]
+    assert baseline.domain_score == pytest.approx(reference["domain_score"])
 
 
 def test_docking_analysis_recommends_real_hybrid_split() -> None:

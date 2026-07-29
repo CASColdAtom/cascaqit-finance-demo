@@ -28,12 +28,22 @@ def test_presets_build_balanced_one_hot_qubo_and_complete_landscape(
     preset: str,
 ) -> None:
     values = peptide_values(preset, {})
+    fixture = load_peptide_fixture()
     definition = _definition(preset, values)
     analysis = analyze_peptide_landscape(preset, values)
+    reference = fixture.manifest["reference"]["standard_presets"][preset]
     assert len(definition.problem.variables) == 10
     assert len(analysis["domain"]["conformations"]) == 10
     assert analysis["problem"]["coefficientLedger"]["balanced"] is True
     assert analysis["decision"]["recommendedMode"] == "digital"
+    assert list(definition.problem.variables) == fixture.manifest["variable_order"]
+    assert analysis["domain"]["classicGroundIds"] == reference[
+        "ground_conformation_ids"
+    ]
+    ground_energy = min(
+        item["energy"] for item in analysis["domain"]["conformations"]
+    )
+    assert ground_energy == pytest.approx(reference["ground_energy"])
 
 
 def test_calibrated_qaoa_observes_low_energy_feasible_candidate() -> None:

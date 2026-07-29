@@ -4,6 +4,7 @@
   "source": {
     "kind": "project_generated_effective_model",
     "uri": null,
+    "raw_file_sha256": null,
     "license": "project_generated",
     "license_checked_at": "2026-07-30"
   },
@@ -22,13 +23,36 @@
     "local_field": "meV",
     "spin_observable": "dimensionless Pauli expectation"
   },
+  "coordinate_system": {
+    "domain": "two-node effective spin graph without spatial coordinates",
+    "hardware": "not_applicable; effective spin sites are not neutral-atom positions"
+  },
   "logical_order": ["spin.m1", "spin.m2"],
   "artifacts": [
     {"path": "domain.json", "sha256": "997632f18b2c5eccebf3e0465e642d681a4f929b9fc607da4f5ca9334e5fecd7"},
     {"path": "pauli.json", "sha256": "72a25fdb54a7e3df582cb57a3df4ec4e53c0381b731548e5920627c6a6850476"}
   ],
   "reference": {
-    "method": "exact diagonalization of the request-resolved packaged Pauli Hamiltonian"
+    "method": "exact diagonalization of the request-resolved packaged Pauli Hamiltonian",
+    "software": "numpy.linalg.eigh",
+    "software_version": "2.0.2",
+    "standard_presets": {
+      "antiferromagnetic": {
+        "exchange_coupling_mev": 1.2,
+        "local_field_mev": 0.15,
+        "exact_ground_energy_mev": -0.918465843842649
+      },
+      "ligand_field": {
+        "exchange_coupling_mev": 1.2,
+        "local_field_mev": 0.4,
+        "exact_ground_energy_mev": -0.95
+      },
+      "coupling_imbalance": {
+        "exchange_coupling_mev": 1.2,
+        "local_field_mev": 0.15,
+        "exact_ground_energy_mev": -0.8407252408878007
+      }
+    }
   },
   "allowed_claims": [
     "Compare CASCAQit VQE with exact diagonalization of the same effective spin Hamiltonian.",

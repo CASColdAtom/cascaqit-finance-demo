@@ -13,6 +13,7 @@ from cascaqit_biomedicine_demo.audit import (
     finalize_stable_audit,
     local_backend_context,
 )
+from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
 from cascaqit_biomedicine_demo.problem_model import (
     OptimizationProblemDefinition,
     QuboBuilder,
@@ -107,6 +108,7 @@ def _read_object(path: Path) -> tuple[dict[str, Any], bytes]:
 
 def load_docking_fixture() -> DockingFixture:
     manifest, manifest_raw = _read_object(DATA_ROOT / "manifest.json")
+    validate_manifest_contract(manifest)
     loaded: dict[str, dict[str, Any]] = {}
     for artifact in manifest.get("artifacts", ()):
         name = str(artifact["path"])
@@ -118,6 +120,14 @@ def load_docking_fixture() -> DockingFixture:
         loaded[name] = value
     if set(loaded) != {"domain.json", "reference.json"}:
         raise ValueError("docking fixture is incomplete")
+    expected_order = [item["id"] for item in loaded["domain.json"]["matches"]]
+    expected_order.extend(
+        f"select.{item['id'].split('.', 1)[1]}"
+        for item in loaded["domain.json"]["poses"]
+    )
+    expected_order.append(SLACK_VARIABLE)
+    if manifest["variable_order"] != expected_order:
+        raise ValueError("docking fixture variable order is inconsistent")
     domain = loaded["domain.json"]
     match_ids = {str(item["id"]) for item in domain["matches"]}
     pose_ids = {str(item["id"]) for item in domain["poses"]}

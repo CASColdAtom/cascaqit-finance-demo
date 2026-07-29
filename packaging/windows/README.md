@@ -1,4 +1,4 @@
-# 中科酷原金融量子实验台 Windows 离线包
+# 中科酷原行业量子实验台 Windows 离线包
 
 ## 适用环境
 
@@ -26,7 +26,7 @@
 
 ## 常见问题
 
-- 端口被占用：关闭占用 8000 端口的程序，或在 PowerShell 中先执行 `$env:CASCAQIT_FINANCE_PORT="8010"`，再运行 `run.ps1`。
+- 端口被占用：关闭占用 8000 端口的程序，或在 PowerShell 中先执行 `$env:CASCAQIT_INDUSTRY_PORT="8010"`，再运行 `run.ps1`。旧的 `CASCAQIT_FINANCE_PORT` 仍可兼容使用。
 - 安全软件扫描较慢：首次运行会解压 Python、NumPy 和 SciPy，并执行一次 16 shots 的 settlement 自检，等待完成即可。
 - 页面没有自动打开：手动访问运行窗口显示的本地地址。
 - PowerShell 提示禁止运行脚本：确认运行的是 `INSTALL.bat`、`RUN.bat` 或 `VERIFY.bat`，而不是直接运行 `.ps1`。如果 BAT 仍被企业组策略拦截，请联系管理员使用签名脚本版本；不要自行修改全局执行策略。

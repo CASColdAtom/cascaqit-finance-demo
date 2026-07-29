@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from cascaqit_biomedicine_demo.electronic_structure import (
 from cascaqit_biomedicine_demo.fixtures import (
     ELECTRONIC_DATASET_PATHS,
     load_electronic_fixture,
+    validate_manifest_contract,
 )
 from cascaqit_biomedicine_demo.pauli_vqe import (
     build_pauli_hamiltonian,
@@ -75,6 +77,13 @@ def test_h2_scan_contains_three_consistent_reference_points() -> None:
     assert min(scan, key=lambda item: item["exactGroundEnergy"])[
         "bondLengthAngstrom"
     ] == 0.735
+
+
+def test_manifest_contract_rejects_missing_provenance_fields() -> None:
+    manifest = deepcopy(load_electronic_fixture("h2_sto3g_0735").manifest)
+    manifest["source"].pop("input_sha256")
+    with pytest.raises(ValueError, match="raw input checksum"):
+        validate_manifest_contract(manifest)
 
 
 @pytest.mark.parametrize(

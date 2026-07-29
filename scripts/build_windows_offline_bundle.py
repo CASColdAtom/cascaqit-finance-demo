@@ -1,4 +1,4 @@
-"""构建可复制到 Windows x64 的金融 Demo CPython 3.11 离线安装包。
+"""构建可复制到 Windows x64 的行业量子实验台 CPython 3.11 离线安装包。
 
 脚本在 macOS 开发机上完成前端构建、两个本地 wheel 构建、Windows 二进制依赖
 下载、可重定位 Python runtime 准备、版本清单与 SHA256 清单生成，最后输出 zip。
@@ -114,7 +114,7 @@ def _sync_frontend() -> None:
 
 
 def _build_local_wheels(sdk_root: Path, build_root: Path) -> tuple[Path, Path]:
-    """分别构建当前金融 Demo 和指定 CASCAQit 源码的纯 Python wheel。"""
+    """分别构建当前行业实验台和指定 CASCAQit 源码的纯 Python wheel。"""
 
     finance_dir = build_root / "finance"
     sdk_dir = build_root / "sdk"

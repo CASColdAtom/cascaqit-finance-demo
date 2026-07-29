@@ -27,6 +27,8 @@ def test_fixture_defines_three_validated_presets() -> None:
 )
 def test_analysis_builds_exchange_fields_and_exact_reference(preset: str) -> None:
     analysis = analyze_active_center(preset, {})
+    fixture = load_active_center_fixture()
+    reference = fixture.manifest["reference"]["standard_presets"][preset]
     assert {item["id"] for item in analysis["problem"]["terms"]} == {
         "exchange.xx",
         "exchange.yy",
@@ -37,6 +39,9 @@ def test_analysis_builds_exchange_fields_and_exact_reference(preset: str) -> Non
     assert analysis["implementationStatus"] == "available"
     assert analysis["decision"]["recommendedMode"] == "digital"
     assert analysis["domain"]["exactGroundEnergyMeV"] < 0
+    assert analysis["domain"]["exactGroundEnergyMeV"] == pytest.approx(
+        reference["exact_ground_energy_mev"], abs=1e-12
+    )
 
 
 def test_input_changes_hamiltonian_and_analysis_hashes() -> None:

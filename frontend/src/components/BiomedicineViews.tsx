@@ -204,7 +204,7 @@ export function BiomedicineResultView({
               <div key={point.dataset} data-selected={point.selected}>
                 <small>{point.bondLengthAngstrom.toFixed(3)} Å</small>
                 <strong>{point.exactGroundEnergy.toFixed(6)}</strong>
-                <span>HF {point.hartreeFockEnergy.toFixed(6)} Ha</span>
+                <span><QuantumTerm short="HF" title="Hartree-Fock 平均场参考" /> {point.hartreeFockEnergy.toFixed(6)} Ha</span>
               </div>
             ))}
           </div>
@@ -524,7 +524,7 @@ export function BiomedicineMappingView({ analysis }: { analysis: BiomedicineAnal
       {analysis.problem.termGroups?.length ? (
         <div className="split-layout docking-mapping-split">
           <section className="data-section">
-            <div className="subsection-head"><div><span className="section-kicker">DOMAIN TERM GROUPS</span><h3>QUBO 领域分组</h3></div><span className="data-chip">{analysis.problem.termGroups.length} GROUPS</span></div>
+            <div className="subsection-head"><div><span className="section-kicker">DOMAIN TERM GROUPS</span><h3><QuantumText text="QUBO 领域分组" /></h3></div><span className="data-chip">{analysis.problem.termGroups.length} GROUPS</span></div>
             <div className="term-groups">
               {analysis.problem.termGroups.map((group) => (
                 <div key={group.group_id}><span>{group.kind}</span><strong>{group.label}</strong><small>{group.pairs.length ? `${group.pairs.length} conflict pairs` : `${group.variables.length} variables`}</small></div>
@@ -547,13 +547,13 @@ export function BiomedicineMappingView({ analysis }: { analysis: BiomedicineAnal
       ) : null}
       {analysis.problem.coefficientLedger ? (
         <section className="data-section">
-          <div className="subsection-head"><div><span className="section-kicker">COEFFICIENT LEDGER</span><h3>QUBO 贡献账本</h3></div><span className={`data-chip ${analysis.problem.coefficientLedger.balanced ? "source-quantum" : "status-preview"}`}>{analysis.problem.coefficientLedger.balanced ? "BALANCED" : "MISMATCH"}</span></div>
+          <div className="subsection-head"><div><span className="section-kicker">COEFFICIENT LEDGER</span><h3><QuantumText text="QUBO 贡献账本" /></h3></div><span className={`data-chip ${analysis.problem.coefficientLedger.balanced ? "source-quantum" : "status-preview"}`}>{analysis.problem.coefficientLedger.balanced ? "BALANCED" : "MISMATCH"}</span></div>
           <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Contribution</th><th>Group / Rule</th><th>Targets</th><th>Coefficient</th></tr></thead><tbody>{analysis.problem.coefficientLedger.rows.map((row) => <tr key={row.contributionId}><td className="mono">{row.contributionId}</td><td>{row.groupId}<small>{row.sourceRule}</small></td><td className="mono">{row.targets.join(" · ") || "offset"}</td><td>{row.coefficient.toFixed(6)}</td></tr>)}</tbody></table></div>
         </section>
       ) : null}
       {analysis.problem.measurementGroups?.length ? (
         <section className="data-section measurement-groups">
-          <div className="subsection-head"><div><span className="section-kicker">QWC MEASUREMENT</span><h3>Pauli 测量分组</h3></div><span className="data-chip">{compactId(analysis.problem.measurementPlanHash ?? "", 18)}</span></div>
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumText text="QWC MEASUREMENT" /></span><h3>Pauli 测量分组</h3></div><span className="data-chip">{compactId(analysis.problem.measurementPlanHash ?? "", 18)}</span></div>
           <div className="group-grid">{analysis.problem.measurementGroups.map((group) => <div key={group.index}><small>GROUP {group.index + 1}</small><strong>{Object.entries(group.basis).map(([qubit, basis]) => `${basis}(${qubit})`).join(" · ")}</strong><span>{group.termIds.join(" / ")}</span></div>)}</div>
         </section>
       ) : null}
@@ -568,7 +568,7 @@ export function BiomedicineQuantumView({
   run: BiomedicineRunPayload | null;
   mode: Mode;
 }) {
-  if (!run) return <div className="preview-contract quantum-empty"><Radio size={22} /><strong>{MODE_LABELS[mode]}</strong><span>运行可用场景后展示真实线路、QWC counts 和参数历史。</span></div>;
+  if (!run) return <div className="preview-contract quantum-empty"><Radio size={22} /><strong><QuantumText text={MODE_LABELS[mode]} /></strong><span><QuantumText text="运行可用场景后展示真实线路、QWC counts 和参数历史。" /></span></div>;
   if (isDockingRun(run)) return <DockingQuantumView run={run} />;
   if (isPeptideRun(run)) return <PeptideQuantumView run={run} />;
   const counts = Object.entries(run.quantum.counts)
@@ -578,7 +578,7 @@ export function BiomedicineQuantumView({
   const history = run.quantum.parameterHistory.map((item) => ({ ...item, selected: item.objective === best }));
   return (
     <div className="view-stack biomed-view">
-      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small>VQE / HARDWARE-EFFICIENT</small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>PAULI TERMS</small><strong>{run.quantum.summary.pauliTerms}</strong></span><span><small>QWC GROUPS</small><strong>{run.quantum.summary.measurementGroups}</strong></span><span><small>SHOTS / GROUP</small><strong>{run.quantum.summary.shotsPerGroup}</strong></span></div></div>
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="VQE / HARDWARE-EFFICIENT" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>PAULI TERMS</small><strong>{run.quantum.summary.pauliTerms}</strong></span><span><small><QuantumText text="QWC GROUPS" /></small><strong>{run.quantum.summary.measurementGroups}</strong></span><span><small>SHOTS / GROUP</small><strong>{run.quantum.summary.shotsPerGroup}</strong></span></div></div>
       <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 Ansatz 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
       <div className="split-layout sampling-split">
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>末端采样分布</h3></div></div><CountsChart counts={counts} /></section>
@@ -603,7 +603,7 @@ export function BiomedicineQuantumView({
 function PeptideQuantumView({ run }: { run: PeptideRunPayload }) {
   return (
     <div className="view-stack biomed-view peptide-quantum-view">
-      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small>QAOA / ONE-HOT QUBO</small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / ONE-HOT QUBO" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
       <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
       <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>构象选择态分布</h3></div></div><CountsChart counts={run.quantum.counts} /></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
     </div>
@@ -616,7 +616,7 @@ function DockingQuantumView({ run }: { run: DockingRunPayload }) {
   return (
     <div className="view-stack biomed-view docking-quantum-view">
       <div className="experiment-banner">
-        <div className="experiment-mode"><span className="mode-pulse" /><div><small>QAOA / D-A-D</small><strong>{quantum.mode.toUpperCase()}</strong></div></div>
+        <div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / D-A-D" /></small><strong>{quantum.mode.toUpperCase()}</strong></div></div>
         <div className="experiment-telemetry">
           <span><small>QUBITS</small><strong>{quantum.summary.qubits}</strong></span>
           <span><small>ANALOG TERMS</small><strong>{quantum.summary.analogTerms}</strong></span>

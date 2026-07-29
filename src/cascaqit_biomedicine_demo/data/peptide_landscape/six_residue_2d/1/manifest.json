@@ -1,10 +1,22 @@
 {
   "dataset_id":"peptide.six-residue.square-lattice",
   "version":"1",
-  "source":{"kind":"project_generated_enumeration","uri":null,"license":"project_generated","license_checked_at":"2026-07-30"},
+  "source":{"kind":"project_generated_enumeration","uri":null,"raw_file_sha256":null,"license":"project_generated","license_checked_at":"2026-07-30"},
   "generation":{"tool":"deterministic self-avoiding walk enumeration","tool_version":"peptide-fixture-v1","parameters":{"length":6,"lattice":"square_2d","symmetry":"D4 plus translation"}},
   "units":{"energy":"dimensionless coarse-grained score","coordinates":"lattice unit"},
+  "coordinate_system":{"domain":"two-dimensional integer square lattice","normalization":"translation and D4 symmetry canonicalization"},
+  "variable_order":["conf.c00","conf.c01","conf.c02","conf.c03","conf.c04","conf.c05","conf.c06","conf.c07","conf.c08","conf.c09"],
   "artifacts":[{"path":"domain.json","sha256":"6fc87e6f7feabc04907ed08541a7cac25cd43cd4c9f08068e5ea82a8cc8c3e56"}],
+  "reference":{
+    "method":"complete enumeration of the packaged finite conformation landscape",
+    "software":"CPython deterministic enumeration",
+    "software_version":"3.9.6",
+    "standard_presets":{
+      "hydrophobic_core":{"ground_energy":-1.1,"ground_conformation_ids":["c00"]},
+      "charged_competition":{"ground_energy":-1.4,"ground_conformation_ids":["c00","c02"]},
+      "contact_limited":{"ground_energy":-1.1,"ground_conformation_ids":["c03"]}
+    }
+  },
   "allowed_claims":[
     "Demonstrate Digital QAOA sampling over a finite two-dimensional self-avoiding conformation library.",
     "Compare observed low-energy candidates with the complete enumerated landscape."
