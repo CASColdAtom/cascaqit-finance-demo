@@ -50,10 +50,43 @@ describe("CircuitDiagram", () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByRole("img", { name: "digital QAOA 逻辑层" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "digital QAOA 变分逻辑层" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "通用门" })).toBeNull();
     expect(document.querySelector(".circuit-svg")).toBeNull();
     expect(screen.getByText("U1")).toBeTruthy();
     expect(screen.getByText("RX1")).toBeTruthy();
+  });
+
+  it("shows the actual VQE ansatz instead of QAOA layers", () => {
+    const quantum = payload(4);
+    quantum.algorithm = "vqe";
+    quantum.layers = ["|0>", "RY", "CX", "M"];
+    quantum.ansatz = {
+      kind: "hardware_efficient",
+      layers: 1,
+      parameterNames: ["theta_0", "theta_1", "theta_2", "theta_3"],
+      parameterCount: 4,
+      circuitHash: "circuit-hash",
+      ansatzHash: "ansatz-hash",
+      definition: {
+        definition_kind: "hardware_efficient",
+        entanglement: "linear",
+        rotation_axes: ["ry"],
+        schema_version: "1.0",
+      },
+    };
+
+    render(
+      <I18nProvider initialLanguage="zh">
+        <CircuitDiagram quantum={quantum} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("img", { name: "digital VQE 变分逻辑层" })).toBeTruthy();
+    expect(screen.getByText("|0>")).toBeTruthy();
+    expect(screen.getByText("RY")).toBeTruthy();
+    expect(screen.getByText("CX")).toBeTruthy();
+    expect(screen.getByText(/4 参数/)).toBeTruthy();
+    expect(screen.queryByText("U1")).toBeNull();
   });
 });

@@ -5,7 +5,7 @@
 1. 调用场景验证输入并构造带业务语义的 Problem；
 2. 让编译器分析目标机对 Digital、Hybrid、Analog 三种模式的物理可行性；
 3. 将编译器项映射与金融 ``term_groups`` 交叉核对，给出模式建议；
-4. 以 QAOA（Digital/Hybrid）或 QAA（Analog）编译程序并扫描参数；
+4. 按运行计划选择 QAOA、VQE 或 QAA，并执行参数评估或连续优化；
 5. 对采样候选做业务解码和约束复核，并与经典基线分开保存；
 6. 记录后端、seed、shots、耗时和报告路径等审计证据。
 
@@ -24,7 +24,7 @@ from time import perf_counter
 from typing import Any, Literal
 
 import numpy as np
-from cascaqit.algorithms import OptimizerConfig
+from cascaqit.algorithms import HardwareEfficientAnsatz, OptimizerConfig
 from cascaqit.exceptions import CapabilityError
 from cascaqit.problems import ProblemCompiler
 from cascaqit.simulators import LocalBackend, SimulationOptions
@@ -32,19 +32,167 @@ from cascaqit.targets import MockNeutralAtomTarget, TargetSpec
 
 from cascaqit_finance_demo.domain.models import ExecutionEvidence
 from cascaqit_finance_demo.domain.problem_api import (
+    FinanceAlgorithmPlan,
     FinanceExperimentResult,
+    FinanceLayerCalibrationResult,
     FinanceProblemDefinition,
     FinanceRepeatedExperimentResult,
     FinanceScenario,
+    LayerPolicy,
     ModeDecision,
     ModeDecisionRow,
+    ProblemAlgorithm,
     ProblemMode,
+    RequestedAlgorithm,
     ScenarioAnalysis,
 )
 
 ParameterSearchStrategy = Literal[
     "preset", "grid", "seeded_sample", "continuous"
 ]
+
+
+@dataclass(frozen=True)
+class FinanceAlgorithmPolicy:
+    """把用户选择解析为唯一、可执行且可审计的算法计划。"""
+
+    def resolve(
+        self,
+        definition: FinanceProblemDefinition,
+        *,
+        mode: ProblemMode,
+        algorithm: RequestedAlgorithm,
+        layer_policy: LayerPolicy,
+        layers: int,
+        max_layers: int,
+        min_improvement: float,
+        search_strategy: ParameterSearchStrategy,
+        parameter_budget: int,
+        optimizer_starts: int,
+        explicit_parameters: bool,
+    ) -> FinanceAlgorithmPlan:
+        """校验模式、算法、层数和搜索方式，不执行隐式算法降级。"""
+        if algorithm not in {"recommended", "qaoa", "vqe", "qaa"}:
+            raise ValueError(f"unsupported algorithm: {algorithm!r}")
+        if layer_policy not in {"fixed", "adaptive"}:
+            raise ValueError(f"unsupported layer policy: {layer_policy!r}")
+        recommended: ProblemAlgorithm = (
+            "qaa" if mode == "analog" else "qaoa"
+        )
+        resolved: ProblemAlgorithm = (
+            recommended if algorithm == "recommended" else algorithm
+        )
+        available: tuple[ProblemAlgorithm, ...]
+        if mode == "digital":
+            available = tuple(definition.digital_algorithms)
+        elif mode == "hybrid":
+            available = ("qaoa",)
+        else:
+            available = ("qaa",)
+        if resolved not in available:
+            raise ValueError(
+                f"algorithm {resolved!r} is unavailable for {definition.case_id} "
+                f"in {mode} mode; available algorithms: {', '.join(available)}."
+            )
+
+        if not isinstance(layers, int) or isinstance(layers, bool) or layers < 1:
+            raise ValueError("layers must be a positive integer.")
+        if (
+            not isinstance(max_layers, int)
+            or isinstance(max_layers, bool)
+            or max_layers < 1
+        ):
+            raise ValueError("max_layers must be a positive integer.")
+        threshold = float(min_improvement)
+        if not math.isfinite(threshold) or threshold < 0.0:
+            raise ValueError("min_improvement must be finite and non-negative.")
+
+        ansatz = None
+        if resolved == "vqe":
+            vqe_config = definition.vqe_ansatz
+            if vqe_config is None:
+                raise RuntimeError("VQE algorithm lost its scenario ansatz contract.")
+            ansatz = HardwareEfficientAnsatz(
+                rotation_axes=vqe_config.rotation_axes,
+                entanglement=vqe_config.entanglement,
+            )
+
+        if resolved == "qaa":
+            maximum = 1
+        elif resolved == "vqe":
+            maximum = vqe_config.max_layers
+        elif mode == "hybrid":
+            maximum = 2
+        else:
+            maximum = 3
+        if layer_policy == "fixed":
+            if layers > maximum:
+                raise ValueError(
+                    f"{mode} {resolved} supports fixed layers from 1 to {maximum}."
+                )
+            resolved_max_layers = layers
+        else:
+            if resolved == "qaa":
+                raise ValueError("Analog QAA does not support adaptive layers.")
+            if max_layers > maximum:
+                raise ValueError(
+                    f"{mode} {resolved} supports adaptive max_layers "
+                    f"from 1 to {maximum}."
+                )
+            if search_strategy != "continuous" or explicit_parameters:
+                raise ValueError(
+                    "adaptive layers require continuous optimization without explicit "
+                    "parameter sets."
+                )
+            resolved_max_layers = max_layers
+
+        if (
+            resolved == "vqe"
+            and search_strategy != "continuous"
+            and not explicit_parameters
+        ):
+            raise ValueError("VQE currently requires continuous optimization.")
+        effective_search_strategy = (
+            "explicit" if explicit_parameters else search_strategy
+        )
+        if effective_search_strategy == "continuous":
+            if resolved == "vqe":
+                variables = getattr(definition.problem, "variables", ())
+                parameter_count = (
+                    len(variables)
+                    * len(vqe_config.rotation_axes)
+                    * resolved_max_layers
+                )
+            elif resolved == "qaoa":
+                parameter_count = 2 * resolved_max_layers
+            else:
+                parameter_count = 2
+            minimum_budget = parameter_count + 2
+            if parameter_budget < minimum_budget:
+                raise ValueError(
+                    f"continuous {resolved} with up to {resolved_max_layers} layers "
+                    f"requires parameter_budget >= {minimum_budget}; received "
+                    f"{parameter_budget}."
+                )
+        return FinanceAlgorithmPlan(
+            requested_algorithm=algorithm,
+            resolved_algorithm=resolved,
+            problem_hash=definition.problem.stable_hash(),
+            layer_policy=layer_policy,
+            requested_layers=layers,
+            max_layers=resolved_max_layers,
+            min_improvement=threshold,
+            search_strategy=effective_search_strategy,
+            parameter_budget=parameter_budget,
+            optimizer_method=(
+                "COBYLA" if effective_search_strategy == "continuous" else None
+            ),
+            per_start_evaluation_budget=(
+                parameter_budget if effective_search_strategy == "continuous" else None
+            ),
+            optimizer_starts=optimizer_starts,
+            ansatz=ansatz,
+        )
 
 
 @dataclass(frozen=True)
@@ -165,6 +313,9 @@ class FinanceModeAdvisor:
                 mode=mode,
                 feasibility=physical[mode],
                 recommended=recommended,
+                published_digital_algorithms=(
+                    definition.published_digital_algorithms
+                ),
                 evidence=evidence,
                 unexpected_analog_term_ids=unexpected_by_mode.get(mode, ()),
                 analog_suitable=analog_suitable,
@@ -269,6 +420,7 @@ class FinanceModeAdvisor:
         mode: ProblemMode,
         feasibility: Any,
         recommended: ProblemMode,
+        published_digital_algorithms: tuple[Literal["qaoa", "vqe"], ...],
         evidence: _AnalogBusinessEvidence,
         unexpected_analog_term_ids: tuple[str, ...],
         analog_suitable: bool,
@@ -306,6 +458,11 @@ class FinanceModeAdvisor:
         return ModeDecisionRow(
             mode=mode,
             algorithm="qaa" if mode == "analog" else "qaoa",
+            available_algorithms=(
+                tuple(published_digital_algorithms)
+                if mode == "digital"
+                else (("qaoa",) if mode == "hybrid" else ("qaa",))
+            ),
             status=status,
             compiler_feasible=compiler_feasible,
             business_suitable=suitable,
@@ -394,11 +551,13 @@ class ScenarioExecutor:
         target: TargetSpec | None = None,
         compiler: ProblemCompiler | None = None,
         advisor: FinanceModeAdvisor | None = None,
+        algorithm_policy: FinanceAlgorithmPolicy | None = None,
     ) -> None:
         """注入目标机、Problem 编译器和模式顾问；缺省使用离线中性原子目标。"""
         self.target = target or MockNeutralAtomTarget.local_ahs_v0_1()
         self.compiler = compiler or ProblemCompiler()
         self.advisor = advisor or FinanceModeAdvisor()
+        self.algorithm_policy = algorithm_policy or FinanceAlgorithmPolicy()
 
     def analyze(self, scenario: FinanceScenario, case_input: Any) -> ScenarioAnalysis:
         """验证输入并生成不触发执行的 Problem 分析和模式建议。
@@ -423,8 +582,12 @@ class ScenarioExecutor:
         case_input: Any,
         *,
         mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended",
+        algorithm: RequestedAlgorithm = "recommended",
+        layer_policy: LayerPolicy = "fixed",
         parameter_sets: Sequence[Mapping[str, float]] | None = None,
         layers: int = 1,
+        max_layers: int = 3,
+        min_improvement: float = 0.0,
         search_strategy: ParameterSearchStrategy = "preset",
         parameter_budget: int = 2,
         optimizer_starts: int = 1,
@@ -435,8 +598,9 @@ class ScenarioExecutor:
         """按指定或推荐模式执行场景，并返回业务结果与完整审计证据。
 
         ``mode='recommended'`` 使用模式顾问结论；显式模式仍必须同时通过编译
-        可行性和业务适配检查。Digital 可以选择 QAOA 层数与参数搜索方法，
-        Hybrid 当前只支持一层，Analog 使用固定的一层执行语义。
+        可行性和业务适配检查。算法策略再校验 QAOA、VQE、QAA 与最终模式、
+        场景和层数策略的组合。固定层数执行一次优化；自动选层由 CASCAQit 从
+        一层开始连续执行，并按期望目标改善和早停规则选出结果。
 
         离散策略逐点执行；``continuous`` 使用 CASCAQit 的 SciPy 适配器做有界
         COBYLA 多起点优化。两者都保留全部真实目标评估。最佳采样候选若违反
@@ -450,6 +614,10 @@ class ScenarioExecutor:
         if search_strategy != "continuous" and optimizer_starts != 1:
             raise ValueError(
                 "optimizer_starts is available only with continuous search."
+            )
+        if parameter_sets is not None and optimizer_starts != 1:
+            raise ValueError(
+                "optimizer_starts is unavailable with explicit parameter sets."
             )
         scenario_analysis = self.analyze(scenario, case_input)
         selected_mode = (
@@ -465,13 +633,18 @@ class ScenarioExecutor:
             raise ValueError(decision.reason)
 
         definition = scenario_analysis.definition
-        # QAA 对应完整 Analog 退火；Digital 和 D-A-D Hybrid 都走 QAOA 优化协议。
-        compiled = self.compiler.compile(
-            definition.problem,
+        plan = self.algorithm_policy.resolve(
+            definition,
             mode=selected_mode,
-            algorithm="qaa" if selected_mode == "analog" else "qaoa",
-            target=self.target,
+            algorithm=algorithm,
+            layer_policy=layer_policy,
             layers=layers,
+            max_layers=max_layers,
+            min_improvement=min_improvement,
+            search_strategy=search_strategy,
+            parameter_budget=parameter_budget,
+            optimizer_starts=optimizer_starts,
+            explicit_parameters=parameter_sets is not None,
         )
         # 高级调用方可以显式给出参数点；普通 API 则由受约束的搜索策略生成。
         # 两条路径都进入同一个 compiled.optimize()，不会改变 Problem 或解码器。
@@ -480,7 +653,7 @@ class ScenarioExecutor:
             points = None
             optimizer = build_optimizer_config(
                 mode=selected_mode,
-                layers=layers,
+                layers=plan.max_layers,
                 evaluation_budget=parameter_budget,
                 starts=optimizer_starts,
                 seed=seed,
@@ -489,7 +662,7 @@ class ScenarioExecutor:
         elif parameter_sets is None:
             points = generate_parameter_sets(
                 selected_mode,
-                layers=layers,
+                layers=plan.requested_layers,
                 strategy=search_strategy,
                 budget=parameter_budget,
                 seed=seed,
@@ -517,19 +690,74 @@ class ScenarioExecutor:
                 seed=seed,
             )
         started = perf_counter()
-        execution = compiled.optimize(
-            parameter_sets=points,
-            optimizer=optimizer,
-            initial_parameters=(
-                None
-                if optimizer is None
-                else default_parameter_sets(selected_mode, layers=layers)[0]
-            ),
-            shots=shots,
-            seed=seed,
-            backend=backend,
-            options=options,
-        )
+        layer_experiment = None
+        if plan.layer_policy == "adaptive":
+            if optimizer is None:
+                raise RuntimeError("adaptive layer execution lost its optimizer.")
+            layer_experiment = self.compiler.optimize_layers(
+                definition.problem,
+                mode=selected_mode,
+                algorithm=plan.resolved_algorithm,
+                target=self.target,
+                max_layers=plan.max_layers,
+                optimizer=optimizer,
+                ansatz=plan.ansatz,
+                min_improvement=plan.min_improvement,
+                patience=1,
+                initial_parameters=(
+                    default_parameter_sets(selected_mode, layers=1)[0]
+                    if plan.resolved_algorithm == "qaoa"
+                    else None
+                ),
+                shots=shots,
+                seed=seed,
+                backend=backend,
+                options=options,
+            )
+            execution = layer_experiment.selected_execution
+        else:
+            compiled = self.compiler.compile(
+                definition.problem,
+                mode=selected_mode,
+                algorithm=plan.resolved_algorithm,
+                target=self.target,
+                layers=plan.requested_layers,
+                ansatz=plan.ansatz,
+            )
+            execution = compiled.optimize(
+                parameter_sets=points,
+                optimizer=optimizer,
+                initial_parameters=(
+                    None
+                    if optimizer is None or plan.resolved_algorithm == "vqe"
+                    else default_parameter_sets(
+                        selected_mode,
+                        layers=plan.requested_layers,
+                    )[0]
+                ),
+                shots=shots,
+                seed=seed,
+                backend=backend,
+                options=options,
+            )
+        if execution.problem_hash != plan.problem_hash:
+            raise RuntimeError(
+                "algorithm plan and execution reference different Problems."
+            )
+        if plan.optimizer_method is not None:
+            optimization = execution.optimization
+            if optimization is None:
+                raise RuntimeError("algorithm plan requires a missing optimization.")
+            actual_optimizer = optimization.optimizer
+            if (
+                actual_optimizer.method != plan.optimizer_method
+                or actual_optimizer.max_evaluations
+                != plan.per_start_evaluation_budget
+                or actual_optimizer.starts != plan.optimizer_starts
+            ):
+                raise RuntimeError(
+                    "algorithm plan does not match the executed optimizer."
+                )
         wall_time = perf_counter() - started
 
         # 后端候选只提供位串和能量；金融指标与可行性必须由场景重新计算。
@@ -554,10 +782,14 @@ class ScenarioExecutor:
         if report_path is not None:
             saved_report = report_path.expanduser().resolve()
             saved_report.parent.mkdir(parents=True, exist_ok=True)
-            execution.report(
+            report_source = layer_experiment or execution
+            report_source.report(
                 saved_report,
                 language="zh",
-                title=f"{definition.title} · {selected_mode}",
+                title=(
+                    f"{definition.title} · {selected_mode} · "
+                    f"{plan.resolved_algorithm}"
+                ),
             )
         evidence = ExecutionEvidence(
             backend="LocalBackend",
@@ -573,6 +805,7 @@ class ScenarioExecutor:
         return FinanceExperimentResult(
             case_id=definition.case_id,
             mode=selected_mode,
+            algorithm_plan=plan,
             definition=definition,
             analysis=scenario_analysis,
             execution=execution,
@@ -580,12 +813,35 @@ class ScenarioExecutor:
             baseline_solution=baseline_solution,
             displayed_solution=displayed,
             evidence=evidence,
+            layer_experiment=layer_experiment,
             report_path=saved_report,
             metadata={
-                "layers": layers,
+                "layers": (
+                    layer_experiment.selected_layers
+                    if layer_experiment is not None
+                    else plan.requested_layers
+                ),
+                "layer_policy": plan.layer_policy,
+                "requested_algorithm": plan.requested_algorithm,
+                "algorithm": plan.resolved_algorithm,
+                "max_layers": plan.max_layers,
+                "executed_layers": (
+                    tuple(step.layers for step in layer_experiment.steps)
+                    if layer_experiment is not None
+                    else (plan.requested_layers,)
+                ),
+                "layer_stop_reason": (
+                    layer_experiment.stop_reason
+                    if layer_experiment is not None
+                    else "fixed"
+                ),
                 "search_strategy": resolved_strategy,
                 "parameter_budget": parameter_budget,
-                "parameter_set_count": len(execution.parameter_history),
+                "parameter_set_count": (
+                    layer_experiment.total_evaluation_count
+                    if layer_experiment is not None
+                    else len(execution.parameter_history)
+                ),
                 "optimizer_starts": optimizer_starts if optimizer is not None else None,
                 "optimizer_initialization": (
                     "validated_preset_then_seeded_random"
@@ -598,6 +854,128 @@ class ScenarioExecutor:
                 ),
                 "optimality_claim": execution.optimality_claim,
             },
+        )
+
+    def calibrate_layers(
+        self,
+        scenario: FinanceScenario,
+        case_input: Any,
+        *,
+        mode: Literal["recommended", "digital", "hybrid"] = "recommended",
+        algorithm: RequestedAlgorithm = "recommended",
+        max_layers: int = 3,
+        repeats: int = 3,
+        confidence_level: float = 0.95,
+        min_improvement: float = 0.0,
+        parameter_budget: int = 12,
+        optimizer_starts: int = 1,
+        shots: int = 64,
+        seed: int = 23,
+        report_path: Path | None = None,
+    ) -> FinanceLayerCalibrationResult:
+        """用配对重复实验校准推荐层数，并复核选中层的金融约束。
+
+        每个 repeat 在相邻层之间保持配对 seed 和层间参数迁移。层数选择完全
+        采用 CASCAQit 的 Student-t 改善置信区间；金融可行率只作为发布条件，
+        不反向篡改算法选出的层数。
+        """
+        if repeats < 2:
+            raise ValueError("layer calibration repeats must be at least two.")
+        if shots < 1:
+            raise ValueError("shots must be positive.")
+        if seed < 0:
+            raise ValueError("seed must be non-negative.")
+        scenario_analysis = self.analyze(scenario, case_input)
+        selected_mode = (
+            scenario_analysis.mode_decision.recommended_mode
+            if mode == "recommended"
+            else mode
+        )
+        if selected_mode == "analog":
+            raise ValueError("Analog QAA does not support layer calibration.")
+        decision = scenario_analysis.mode_decision.for_mode(selected_mode)
+        if not decision.compiler_feasible or decision.status == "unsuitable":
+            raise ValueError(decision.reason)
+        definition = scenario_analysis.definition
+        plan = self.algorithm_policy.resolve(
+            definition,
+            mode=selected_mode,
+            algorithm=algorithm,
+            layer_policy="adaptive",
+            layers=1,
+            max_layers=max_layers,
+            min_improvement=min_improvement,
+            search_strategy="continuous",
+            parameter_budget=parameter_budget,
+            optimizer_starts=optimizer_starts,
+            explicit_parameters=False,
+        )
+        optimizer = replace(
+            build_optimizer_config(
+                mode=selected_mode,
+                layers=plan.max_layers,
+                evaluation_budget=parameter_budget,
+                starts=optimizer_starts,
+                seed=seed,
+            ),
+            seed=None,
+        )
+        backend = LocalBackend(
+            seed=seed,
+            target=self.target,
+            analog_time_steps=8,
+            created_at="2026-07-24T00:00:00+00:00",
+        )
+        options = None
+        if selected_mode == "hybrid":
+            options = SimulationOptions(
+                dtype="complex128",
+                integrator="fixed_step_krylov",
+                max_steps=8,
+                seed=seed,
+            )
+        experiment = self.compiler.optimize_layers_repeated(
+            definition.problem,
+            mode=selected_mode,
+            algorithm=plan.resolved_algorithm,
+            target=self.target,
+            max_layers=plan.max_layers,
+            repeats=repeats,
+            optimizer=optimizer,
+            ansatz=plan.ansatz,
+            confidence_level=confidence_level,
+            min_improvement=plan.min_improvement,
+            patience=1,
+            shots=shots,
+            seed=seed,
+            backend=backend,
+            options=options,
+        )
+        if report_path is not None:
+            saved_report = report_path.expanduser().resolve()
+            saved_report.parent.mkdir(parents=True, exist_ok=True)
+            experiment.report(
+                saved_report,
+                language="zh",
+                title=(
+                    f"{definition.title} · {selected_mode} · "
+                    f"{plan.resolved_algorithm} 层数校准"
+                ),
+            )
+        candidates = tuple(
+            scenario.decode(
+                case_input,
+                definition,
+                run.execution.best_observed_candidate,
+            )
+            for run in experiment.selected_statistics.runs
+        )
+        return FinanceLayerCalibrationResult(
+            mode=selected_mode,
+            algorithm_plan=plan,
+            analysis=scenario_analysis,
+            experiment=experiment,
+            business_candidates=candidates,
         )
 
     def run_repeated(
@@ -677,9 +1055,9 @@ def default_parameter_sets(
 ) -> tuple[dict[str, float], ...]:
     """返回适合现场演示的小规模确定性参数扫描，不依赖在线优化器。
 
-    这些点是固定演示配置，不是针对每个金融实例训练得到的最优参数。Analog
+    这些点是固定快速运行配置，不是针对每个金融实例训练得到的最优参数。Analog
     扫描退火时间和最大 Rabi 驱动；Digital 把同一组 cost/mixer 角度扩展到
-    指定层数，Hybrid 当前只允许一层。
+    指定层数；Hybrid 使用相同参数结构，并由算法策略限制为最多两层。
     """
     _validate_search_shape(mode, layers=layers, budget=2)
     if mode == "analog":
@@ -709,8 +1087,8 @@ def generate_parameter_sets(
 
     ``preset`` 保留两组人工校验过的演示参数；``grid`` 用于观察一层 Digital
     QAOA 的二维目标面；``seeded_sample`` 面向多层 Digital QAOA，在固定 seed
-    下生成完全一致的参数序列。当前 Hybrid 和 Analog 仍只开放预设点，避免把
-    尚未实现的多层 Hybrid 或连续优化伪装成可用能力。
+    下生成完全一致的参数序列。Hybrid 和 Analog 只开放预设点或连续优化；
+    Hybrid 多层由算法策略限制为最多两层。
     """
     _validate_search_shape(mode, layers=layers, budget=budget)
     if strategy not in {"preset", "grid", "seeded_sample"}:
@@ -800,8 +1178,10 @@ def _validate_search_shape(mode: ProblemMode, *, layers: int, budget: int) -> No
         raise ValueError("layers must be a positive integer.")
     if mode == "digital" and layers > 3:
         raise ValueError("Digital mode supports layers from 1 to 3.")
-    if mode != "digital" and layers != 1:
-        raise ValueError(f"{mode.capitalize()} currently supports layers=1 only.")
+    if mode == "hybrid" and layers > 2:
+        raise ValueError("Hybrid mode supports layers from 1 to 2.")
+    if mode == "analog" and layers != 1:
+        raise ValueError("Analog currently supports layers=1 only.")
     if not isinstance(budget, int) or isinstance(budget, bool) or not 1 <= budget <= 24:
         raise ValueError("parameter budget must be between 1 and 24.")
 

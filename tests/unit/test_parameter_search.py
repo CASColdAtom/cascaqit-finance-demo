@@ -130,7 +130,7 @@ def test_discrete_search_rejects_optimizer_starts() -> None:
 @pytest.mark.parametrize(
     ("mode", "layers", "strategy", "budget"),
     [
-        ("hybrid", 2, "preset", 2),
+        ("hybrid", 3, "preset", 2),
         ("analog", 1, "seeded_sample", 2),
         ("digital", 2, "grid", 4),
         ("digital", 1, "preset", 3),

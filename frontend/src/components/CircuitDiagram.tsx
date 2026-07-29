@@ -2,7 +2,7 @@ import { CircuitBoard } from "lucide-react";
 import type { QuantumPayload } from "../types";
 import { useI18n } from "../i18n";
 
-/** 展示后端返回的 QAOA 逻辑层，不在客户界面展开底层通用门分解。 */
+/** 展示后端返回的 QAOA 或 VQE 逻辑层，不在客户界面展开底层门分解。 */
 export function CircuitDiagram({ quantum }: { quantum: QuantumPayload }) {
   const { t } = useI18n();
   return (
@@ -10,12 +10,15 @@ export function CircuitDiagram({ quantum }: { quantum: QuantumPayload }) {
       <div className="subsection-head">
         <div>
           <span className="section-kicker">
-            <CircuitBoard size={14} aria-hidden="true" /> QAOA
+            <CircuitBoard size={14} aria-hidden="true" /> {quantum.algorithm.toUpperCase()}
           </span>
           <h3>{t("logicalLayers")}</h3>
         </div>
+        <span className="data-chip">
+          p = {quantum.layerEvidence?.selectedLayers ?? quantum.layerCount} · {quantum.ansatz?.parameterCount ?? quantum.layerCount * 2} {t("parameterCount")}
+        </span>
       </div>
-      <div className="layer-rail" role="img" aria-label={`${quantum.mode} ${t("logicalLayers")}`}>
+      <div className="layer-rail" role="img" aria-label={`${quantum.mode} ${quantum.algorithm.toUpperCase()} ${t("logicalLayers")}`}>
         {quantum.layers.map((layer, index) => (
           <div className={`layer-node layer-${layer.toLowerCase()}`} key={`${layer}-${index}`}>
             <small>{String(index + 1).padStart(2, "0")}</small>

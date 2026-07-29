@@ -96,6 +96,7 @@ def analysis_payload(
                 {
                     "mode": row.mode,
                     "algorithm": row.algorithm,
+                    "availableAlgorithms": list(row.available_algorithms),
                     "status": row.status,
                     "compilerFeasible": row.compiler_feasible,
                     "businessSuitable": row.business_suitable,
@@ -1016,8 +1017,33 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
     sites = result.execution.context.analysis.mapping_plan.layout.sites
     term_mapping = result.execution.context.term_mapping
     layer_count = int(result.metadata.get("layers", 1))
-    if mode == "hybrid":
-        logical_layers = ["H", "U1", "A", "U2", "RX1", "M"]
+    algorithm = result.execution.algorithm
+    if algorithm == "vqe":
+        logical_layers = ["|0>"]
+        ansatz = result.execution.context.ansatz
+        definition = None if ansatz is None else ansatz.definition
+        axes = (
+            ("ry",)
+            if not isinstance(definition, dict)
+            else tuple(definition.get("rotation_axes", ("ry",)))
+        )
+        for layer_index in range(layer_count):
+            suffix = "" if layer_count == 1 else f"[{layer_index + 1}]"
+            logical_layers.extend(
+                [
+                    *(f"{axis.upper()}{suffix}" for axis in axes),
+                    f"CX{suffix}",
+                ]
+            )
+        logical_layers.append("M")
+    elif mode == "hybrid":
+        logical_layers = ["H"]
+        for layer_index in range(layer_count):
+            suffix = "" if layer_count == 1 else f"[{layer_index + 1}]"
+            logical_layers.extend(
+                [f"U1{suffix}", f"A{suffix}", f"U2{suffix}", f"RX1{suffix}"]
+            )
+        logical_layers.append("M")
     elif mode == "digital":
         logical_layers = ["H"]
         for layer_index in range(layer_count):
@@ -1051,15 +1077,73 @@ def _quantum_payload(result: Any) -> dict[str, Any]:
                 None if termination is None else termination.backend_execution_count
             ),
         }
+    ansatz = result.execution.context.ansatz
+    ansatz_payload = None
+    if ansatz is not None:
+        ansatz_data = ansatz.to_dict()
+        ansatz_payload = {
+            "kind": ansatz.ansatz_kind,
+            "layers": ansatz.layers,
+            "parameterNames": list(ansatz.parameter_names),
+            "parameterCount": len(ansatz.parameter_names),
+            "circuitHash": ansatz.circuit_hash,
+            "ansatzHash": ansatz.stable_hash(),
+            "definition": ansatz_data.get("definition"),
+        }
+    layer_experiment = result.layer_experiment
+    layer_evidence = None
+    if layer_experiment is not None:
+        layer_evidence = {
+            "policy": "adaptive",
+            "selectedLayers": layer_experiment.selected_layers,
+            "executedLayers": [step.layers for step in layer_experiment.steps],
+            "maxLayers": layer_experiment.max_layers,
+            "minImprovement": layer_experiment.min_improvement,
+            "stopReason": layer_experiment.stop_reason,
+            "totalEvaluationCount": layer_experiment.total_evaluation_count,
+            "steps": [
+                {
+                    "layers": step.layers,
+                    "objective": step.execution.objective_value,
+                    "improvementFromIncumbent": step.improvement_from_incumbent,
+                    "materialImprovement": step.material_improvement,
+                    "evaluationCount": len(step.execution.parameter_history),
+                    "selected": step.layers == layer_experiment.selected_layers,
+                }
+                for step in layer_experiment.steps
+            ],
+        }
+    else:
+        layer_evidence = {
+            "policy": "fixed",
+            "selectedLayers": layer_count,
+            "executedLayers": [layer_count],
+            "maxLayers": layer_count,
+            "minImprovement": 0.0,
+            "stopReason": "fixed",
+            "totalEvaluationCount": len(result.execution.parameter_history),
+            "steps": [
+                {
+                    "layers": layer_count,
+                    "objective": result.execution.objective_value,
+                    "improvementFromIncumbent": None,
+                    "materialImprovement": True,
+                    "evaluationCount": len(result.execution.parameter_history),
+                    "selected": True,
+                }
+            ],
+        }
     return {
         "mode": mode,
-        "algorithm": result.execution.algorithm,
+        "algorithm": algorithm,
         "topology": result.execution.topology,
         "layerCount": layer_count,
         "searchStrategy": str(result.metadata.get("search_strategy", "explicit")),
         "evaluationCount": len(result.execution.parameter_history),
         "selectedEvaluationIndex": result.execution.selected_evaluation_index,
         "optimizer": optimizer,
+        "ansatz": ansatz_payload,
+        "layerEvidence": layer_evidence,
         "blocks": blocks,
         "layers": logical_layers,
         "circuit": _flatten_circuits(circuits),

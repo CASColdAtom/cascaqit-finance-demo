@@ -56,7 +56,11 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     assert profiles["portfolio"] == {
         "shots": 32,
         "seed": 23,
+        "algorithm": "recommended",
+        "layerPolicy": "fixed",
         "layers": 1,
+        "maxLayers": 3,
+        "minImprovement": 0.0,
         "searchStrategy": "continuous",
         "parameterBudget": 12,
         "optimizerStarts": 2,
@@ -65,16 +69,37 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     assert profiles["liquidity"] == {
         "shots": 128,
         "seed": 23,
+        "algorithm": "recommended",
+        "layerPolicy": "fixed",
         "layers": 1,
+        "maxLayers": 3,
+        "minImprovement": 0.0,
         "searchStrategy": "preset",
         "parameterBudget": 2,
+        "optimizerStarts": 1,
+        "repeats": 1,
+    }
+    assert profiles["collateral"] == {
+        "shots": 64,
+        "seed": 23,
+        "algorithm": "recommended",
+        "layerPolicy": "fixed",
+        "layers": 1,
+        "maxLayers": 3,
+        "minImprovement": 0.0,
+        "searchStrategy": "continuous",
+        "parameterBudget": 12,
         "optimizerStarts": 1,
         "repeats": 1,
     }
     assert profiles["credit_limits"] == {
         "shots": 128,
         "seed": 23,
+        "algorithm": "recommended",
+        "layerPolicy": "fixed",
         "layers": 2,
+        "maxLayers": 3,
+        "minImprovement": 0.0,
         "searchStrategy": "preset",
         "parameterBudget": 2,
         "optimizerStarts": 1,
@@ -83,12 +108,25 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
 
 
 @pytest.mark.parametrize(
-    ("case_id", "expected_layers"),
-    [("liquidity", 1), ("credit_limits", 2)],
+    (
+        "case_id",
+        "expected_shots",
+        "expected_layers",
+        "expected_search",
+        "expected_budget",
+    ),
+    [
+        ("collateral", 64, 1, "continuous", 12),
+        ("liquidity", 128, 1, "preset", 2),
+        ("credit_limits", 128, 2, "preset", 2),
+    ],
 )
 def test_run_uses_scenario_execution_profile_when_fields_are_omitted(
     case_id: str,
+    expected_shots: int,
     expected_layers: int,
+    expected_search: str,
+    expected_budget: int,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """验证脚本调用省略执行字段时与 Web UI 使用同一套推荐值。"""
@@ -114,11 +152,60 @@ def test_run_uses_scenario_execution_profile_when_fields_are_omitted(
 
     assert response.status_code == 200
     assert response.json()["run"] == {"recorded": True}
-    assert captured["shots"] == 128
+    assert captured["shots"] == expected_shots
     assert captured["seed"] == 23
     assert captured["layers"] == expected_layers
-    assert captured["search_strategy"] == "preset"
-    assert captured["parameter_budget"] == 2
+    assert captured["search_strategy"] == expected_search
+    assert captured["parameter_budget"] == expected_budget
+
+
+@pytest.mark.parametrize(
+    ("case_id", "expected_budget", "expected_max_layers"),
+    [
+        ("portfolio", 14, 1),
+        ("collateral", 12, 1),
+        ("liquidity", 18, 1),
+        ("credit_limits", 16, 1),
+    ],
+)
+def test_explicit_vqe_uses_an_algorithm_specific_execution_profile(
+    case_id: str,
+    expected_budget: int,
+    expected_max_layers: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """只指定 VQE 时必须派生可执行的连续优化配置，不能继承 QAOA 默认值。"""
+    captured: dict[str, object] = {}
+
+    def record_run(
+        self: ScenarioExecutor,
+        scenario: object,
+        case_input: object,
+        **kwargs: object,
+    ) -> object:
+        captured.update(kwargs)
+        return SimpleNamespace(analysis=self.analyze(scenario, case_input))
+
+    monkeypatch.setattr(app_module.ScenarioExecutor, "run", record_run)
+    monkeypatch.setattr(
+        app_module,
+        "execution_payload",
+        lambda case_id, case_input, result: {"recorded": True},
+    )
+
+    response = client.post(
+        f"/api/scenarios/{case_id}/run",
+        json={"algorithm": "vqe"},
+    )
+
+    assert response.status_code == 200
+    assert captured["algorithm"] == "vqe"
+    assert captured["layers"] == 1
+    assert captured["max_layers"] == expected_max_layers
+    assert captured["search_strategy"] == "continuous"
+    assert captured["parameter_budget"] == expected_budget
+    assert captured["optimizer_starts"] == 1
+    assert captured["shots"] == 64
 
 
 def test_analysis_recommends_digital_after_fraud_conflicts_disappear() -> None:
@@ -404,6 +491,86 @@ def test_continuous_multistart_run_exposes_optimizer_evidence() -> None:
 
 
 @pytest.mark.parametrize(
+    ("case_id", "budget", "parameter_count", "entanglement"),
+    [
+        ("collateral", 12, 8, "linear"),
+        ("portfolio", 14, 12, "circular"),
+    ],
+)
+def test_vqe_api_stays_internal_until_each_scenario_calibration_passes(
+    case_id: str,
+    budget: int,
+    parameter_count: int,
+    entanglement: str,
+) -> None:
+    """页面只发布已校准算法，但显式 VQE 请求仍进入真实执行链路。"""
+    analysis = client.post(
+        f"/api/scenarios/{case_id}/analyze",
+        json={"preset": "base", "values": {}},
+    ).json()["analysis"]
+    digital = next(
+        row for row in analysis["decision"]["modes"] if row["mode"] == "digital"
+    )
+    assert digital["algorithm"] == "qaoa"
+    assert digital["availableAlgorithms"] == ["qaoa"]
+
+    response = client.post(
+        f"/api/scenarios/{case_id}/run",
+        json={
+            "preset": "base",
+            "mode": "digital",
+            "algorithm": "vqe",
+            "shots": 2,
+            "seed": 7,
+        },
+    )
+
+    assert response.status_code == 200
+    quantum = response.json()["run"]["quantum"]
+    assert quantum["algorithm"] == "vqe"
+    assert quantum["ansatz"]["kind"] == "hardware_efficient"
+    assert quantum["ansatz"]["definition"] == {
+        "definition_kind": "hardware_efficient",
+        "entanglement": entanglement,
+        "rotation_axes": ["ry"],
+        "schema_version": "cascaqit.algorithms.vqe_ansatz.v1",
+    }
+    assert quantum["ansatz"]["parameterCount"] == parameter_count
+    assert quantum["optimizer"]["perStartEvaluationBudget"] == budget
+    assert quantum["layers"] == ["|0>", "RY", "CX", "M"]
+
+
+def test_adaptive_qaoa_api_exposes_layer_selection_evidence() -> None:
+    """自动选层响应必须保留逐层目标值、改善、早停和总评估成本。"""
+    response = client.post(
+        "/api/scenarios/collateral/run",
+        json={
+            "preset": "base",
+            "mode": "digital",
+            "algorithm": "qaoa",
+            "layer_policy": "adaptive",
+            "max_layers": 2,
+            "shots": 2,
+            "seed": 11,
+            "search_strategy": "continuous",
+            "parameter_budget": 6,
+            "optimizer_starts": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    quantum = response.json()["run"]["quantum"]
+    evidence = quantum["layerEvidence"]
+    assert evidence["policy"] == "adaptive"
+    assert evidence["executedLayers"] in ([1], [1, 2])
+    assert evidence["selectedLayers"] == quantum["layerCount"]
+    assert evidence["totalEvaluationCount"] == sum(
+        step["evaluationCount"] for step in evidence["steps"]
+    )
+    assert sum(step["selected"] for step in evidence["steps"]) == 1
+
+
+@pytest.mark.parametrize(
     ("case_id", "preset", "mode", "search_strategy", "expected_budget"),
     [
         ("settlement", "base", "hybrid", "continuous", 4),
@@ -477,7 +644,7 @@ def test_repeated_run_statistics_use_quantum_candidates_only() -> None:
     [
         {
             "mode": "hybrid",
-            "layers": 2,
+            "layers": 3,
             "search_strategy": "preset",
             "parameter_budget": 2,
         },

@@ -21,6 +21,7 @@ import {
   AtomChart,
   BusinessChart,
   CountsChart,
+  LayerObjectiveChart,
   MatrixHeatmap,
   ParameterChart,
   ScenarioChart,
@@ -293,6 +294,20 @@ export function QuantumView({ run, mode }: { run: RunPayload | null; mode: Mode 
               <tbody>{run.statistics.runs.map((item) => <tr key={item.index} data-selected={item.selected}><td>#{item.index + 1}</td><td>{item.seed}</td><td>{item.quantumCandidateFeasible ? "PASS" : "FAIL"}</td><td>{item.objective.toFixed(4)}</td><td>{item.evaluationCount}</td><td>{item.wallTimeSeconds.toFixed(3)}s</td></tr>)}</tbody>
             </table>
           </div>
+        </section>
+      ) : null}
+      {run.quantum.layerEvidence?.policy === "adaptive" ? (
+        <section className="data-section chart-section layer-evidence-section">
+          <div className="subsection-head">
+            <div>
+              <span className="section-kicker">LAYER SELECTION</span>
+              <h3>{t("layerSelection")}</h3>
+            </div>
+            <span className="data-chip">
+              p = {run.quantum.layerEvidence.selectedLayers} / {run.quantum.layerEvidence.stopReason}
+            </span>
+          </div>
+          <LayerObjectiveChart evidence={run.quantum.layerEvidence} />
         </section>
       ) : null}
       {run.quantum.blocks.length ? <div className="dad-timeline" aria-label={t("dadTimeline")}>{run.quantum.blocks.map((block, index) => <div key={`${block}-${index}`} data-kind={block}><small>{String(index + 1).padStart(2, "0")}</small><strong>{block.toUpperCase()}</strong></div>)}</div> : null}

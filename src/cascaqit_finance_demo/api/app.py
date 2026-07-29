@@ -60,9 +60,15 @@ class RunRequest(ScenarioRequest):
     """与业务输入分离的可选执行参数；省略项使用场景推荐配置。"""
 
     mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended"
+    algorithm: Optional[  # noqa: UP045
+        Literal["recommended", "qaoa", "vqe", "qaa"]
+    ] = None
+    layer_policy: Optional[Literal["fixed", "adaptive"]] = None  # noqa: UP045
     shots: Optional[int] = Field(default=None, ge=1, le=1024)  # noqa: UP045
     seed: Optional[int] = Field(default=None, ge=0)  # noqa: UP045
     layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
+    max_layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
+    min_improvement: Optional[float] = Field(default=None, ge=0.0)  # noqa: UP045
     search_strategy: Optional[  # noqa: UP045
         Literal["preset", "grid", "seeded_sample", "continuous"]
     ] = None
@@ -205,10 +211,22 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
     preset, case_input = _request_input(case_id, request)
     # 推荐配置由场景目录统一维护。API 调用方可以只覆盖关心的字段，其余字段
     # 继续沿用已验收值，避免 Web UI 与脚本调用产生两套隐式默认值。
-    profile = SCENARIO_SPECS[case_id].recommended_execution
+    spec = SCENARIO_SPECS[case_id]
+    requested_algorithm = request.algorithm or spec.recommended_execution.algorithm
+    profile = spec.execution_for(requested_algorithm)
     shots = request.shots if request.shots is not None else profile.shots
     seed = request.seed if request.seed is not None else profile.seed
     layers = request.layers if request.layers is not None else profile.layers
+    algorithm = request.algorithm or profile.algorithm
+    layer_policy = request.layer_policy or profile.layer_policy
+    max_layers = (
+        request.max_layers if request.max_layers is not None else profile.max_layers
+    )
+    min_improvement = (
+        request.min_improvement
+        if request.min_improvement is not None
+        else profile.min_improvement
+    )
     search_strategy = request.search_strategy or profile.search_strategy
     if request.parameter_budget is not None:
         parameter_budget = request.parameter_budget
@@ -244,7 +262,11 @@ async def run_scenario(case_id: str, request: RunRequest) -> dict[str, Any]:
         )
         run_options = {
             "mode": selected_mode,
+            "algorithm": algorithm,
+            "layer_policy": layer_policy,
             "layers": layers,
+            "max_layers": max_layers,
+            "min_improvement": min_improvement,
             "search_strategy": search_strategy,
             "parameter_budget": parameter_budget,
             "optimizer_starts": optimizer_starts,

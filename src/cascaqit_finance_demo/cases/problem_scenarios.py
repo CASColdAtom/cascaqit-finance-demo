@@ -31,6 +31,7 @@ from cascaqit_finance_demo.domain.problem_api import (
     FinanceGeometryEvidence,
     FinanceProblemDefinition,
     FinanceTermGroup,
+    FinanceVQEAnsatzConfig,
     coefficient_contributions_from_problem,
 )
 
@@ -143,6 +144,15 @@ class PortfolioScenario:
                 FinanceTermGroup("slack", "辅助罚项", "auxiliary_penalty", auxiliary),
             ),
             coefficient_contributions=coefficient_contributions_from_problem(problem),
+            # 稠密协方差让首尾变量也存在直接耦合。单层 circular CX 使逻辑顺序
+            # 形成闭环，同时把参数数控制在 12 个，适配当前最多 24 次评估。
+            digital_algorithms=("qaoa", "vqe"),
+            published_digital_algorithms=("qaoa",),
+            vqe_ansatz=FinanceVQEAnsatzConfig(
+                rotation_axes=("ry",),
+                entanglement="circular",
+                max_layers=1,
+            ),
         )
 
     def decode(

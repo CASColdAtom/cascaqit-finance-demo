@@ -10,6 +10,8 @@ from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 
 ControlKind = Literal["range", "select"]
 SearchStrategy = Literal["preset", "grid", "seeded_sample", "continuous"]
+Algorithm = Literal["recommended", "qaoa", "vqe", "qaa"]
+LayerPolicy = Literal["fixed", "adaptive"]
 
 
 @dataclass(frozen=True)
@@ -47,18 +49,26 @@ class ExecutionProfile:
 
     shots: int = 32
     seed: int = 23
+    algorithm: Algorithm = "recommended"
+    layer_policy: LayerPolicy = "fixed"
     layers: int = 1
+    max_layers: int = 3
+    min_improvement: float = 0.0
     search_strategy: SearchStrategy = "preset"
     parameter_budget: int = 2
     optimizer_starts: int = 1
     repeats: int = 1
 
-    def to_dict(self) -> dict[str, int | str]:
+    def to_dict(self) -> dict[str, int | float | str]:
         """使用前端约定的驼峰字段输出推荐配置。"""
         return {
             "shots": self.shots,
             "seed": self.seed,
+            "algorithm": self.algorithm,
+            "layerPolicy": self.layer_policy,
             "layers": self.layers,
+            "maxLayers": self.max_layers,
+            "minImprovement": self.min_improvement,
             "searchStrategy": self.search_strategy,
             "parameterBudget": self.parameter_budget,
             "optimizerStarts": self.optimizer_starts,
@@ -80,6 +90,13 @@ class ScenarioSpec:
     presets: tuple[tuple[str, str], ...]
     controls: tuple[ControlSpec, ...]
     recommended_execution: ExecutionProfile = ExecutionProfile()
+    vqe_execution: ExecutionProfile | None = None
+
+    def execution_for(self, algorithm: Algorithm) -> ExecutionProfile:
+        """返回算法专属默认值，避免 VQE 继承不兼容的 QAOA 参数策略。"""
+        if algorithm == "vqe" and self.vqe_execution is not None:
+            return self.vqe_execution
+        return self.recommended_execution
 
     def to_dict(
         self, *, values: dict[str, Any], recommended_mode: str
@@ -153,6 +170,13 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             parameter_budget=12,
             optimizer_starts=2,
         ),
+        vqe_execution=ExecutionProfile(
+            shots=64,
+            algorithm="vqe",
+            max_layers=1,
+            search_strategy="continuous",
+            parameter_budget=14,
+        ),
     ),
     "settlement": ScenarioSpec(
         "settlement",
@@ -207,9 +231,21 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("value_weight", "业务价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
         ),
-        # “市场波动”预设在 32 shots 下偶尔没有观测到可行候选；64 shots
-        # 能稳定覆盖三个抵押品预设，额外运行成本可以忽略。
-        ExecutionProfile(shots=64),
+        # 三个预设使用 seeds 7/19/23 校准后，单起点 12 次 COBYLA 评估均直接
+        # 产生可行业务候选，单次本地等待约 0.4 秒，因此连续优化可作为默认路径。
+        ExecutionProfile(
+            shots=64,
+            search_strategy="continuous",
+            parameter_budget=12,
+        ),
+        vqe_execution=ExecutionProfile(
+            shots=64,
+            algorithm="vqe",
+            # 该默认预算只覆盖 p=1；p=2 需要调用方同时把预算提高到至少 18。
+            max_layers=1,
+            search_strategy="continuous",
+            parameter_budget=12,
+        ),
     ),
     "liquidity": ScenarioSpec(
         "liquidity",
@@ -230,6 +266,13 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         # 32/64 shots 在固定种子下可能没有采到可行方案；128 shots 已通过
         # 默认业务约束复核，同时仍保持现场可接受的运行时间。
         ExecutionProfile(shots=128),
+        vqe_execution=ExecutionProfile(
+            shots=64,
+            algorithm="vqe",
+            max_layers=1,
+            search_strategy="continuous",
+            parameter_budget=18,
+        ),
     ),
     "credit_limits": ScenarioSpec(
         "credit_limits",
@@ -253,6 +296,13 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
         # 一层预设点在默认授信约束下没有采到可行方案。两层使用相同的固定
         # 参数语义即可得到可行业务候选，不需要把随机搜索伪装成优化器。
         ExecutionProfile(shots=128, layers=2),
+        vqe_execution=ExecutionProfile(
+            shots=64,
+            algorithm="vqe",
+            max_layers=1,
+            search_strategy="continuous",
+            parameter_budget=16,
+        ),
     ),
     "derivatives": ScenarioSpec(
         "derivatives",

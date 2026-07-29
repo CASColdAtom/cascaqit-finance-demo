@@ -220,7 +220,7 @@ Analog 部分只承担当前几何和 Target 能表达的贡献。其余逻辑�
 
 当前 Hybrid Analog block 是固定 cost 演化：Rabi 为零，Detuning 和 Phase 可以是常量。因此波形较平可能是协议本身的事实，不一定是图表故障。完整 Analog QAA 才使用随时间变化的 Rabi 和 Detuning 退火曲线。
 
-当前编译器只支持一层 D-A-D，不包含通用多层 Hybrid、非对易 Trotter 分解、自动图嵌入或生产硬件调度。
+当前金融入口支持 `p=1~2` 的 D-A-D，每层都包含 Analog cost 和 Digital residual/mixer。默认仍使用一层；当前不包含任意深度 Hybrid、非对易 Trotter 分解或生产硬件调度。
 
 ### 本地模拟器意味着什么
 
@@ -260,7 +260,7 @@ CASCAQit 的 Problem IR 保存可编译的数学结构，金融 Demo 的 `Financ
 | mode | algorithm | 产物 | 当前规则 |
 |---|---|---|---|
 | `digital` | `qaoa` | `Circuit` | 全部逻辑项由通用门表达 |
-| `hybrid` | `qaoa` | `HybridProgram` | 一层 D-A-D，Analog 与 Digital contribution 都非空 |
+| `hybrid` | `qaoa` | `HybridProgram` | `p=1~2` 的 D-A-D，Analog 与 Digital contribution 都非空 |
 | `analog` | `qaa` | `AHSProgram` | 完整 Hamiltonian 必须由 AHS 表达，不能隐藏数字项 |
 
 三种模式共享 logical order（逻辑变量顺序）。这点很重要：相同位置的 bit 在不同模式下仍代表同一个业务变量，模式对比才有意义。

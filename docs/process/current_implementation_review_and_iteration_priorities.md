@@ -17,7 +17,7 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 | Hybrid 证据 | 交易结算与反欺诈各有 3/3 core 冲突覆盖；使用 `provided` 参考布局；漏边、补边和异常 Analog 二体项均为 0 |
 | 系数证据 | 六个 QUBO 场景记录目标与罚项的原始贡献；校验 QUBO 聚合、QUBO 到 Ising 变换及 Analog/Digital 分配守恒；图类场景不伪造 QUBO 账本 |
 | Analog 场景 | 当前产品先完成 `3 x 3` 压力重估，绝对 P&L 生成 MWIS 权重；权重进入局域失谐，近邻边进入 interaction，经典定价与量子情景选择分离 |
-| 变分执行 | Digital 支持 QAOA `p=1~3`、离散搜索和连续优化；Hybrid/Analog 支持一层预设参数或连续优化；连续优化支持 1～3 个起点 |
+| 变分执行 | Digital QAOA 支持 `p=1~3`，Hybrid QAOA 支持 `p=1~2`，两者支持固定层数、自动选层和连续优化；Analog QAA 使用固定一层；投资组合、抵押品、流动性和授信 VQE 可由显式 API 运行但未向页面发布 |
 | 执行配置 | 后端目录提供 shots、seed、层数、搜索、预算、起点数和重复次数；API 与 UI 共用同一配置 |
 | 重复统计 | 每次重新分析、编译、优化和采样；只统计量子候选可行率、目标分布、95% Student-t 置信区间、评估次数和耗时 |
 | 结果与审计 | 保留量子候选、经典基线、实际展示来源、counts、参数历史和四段 hash；摘要显示 mode、seed、shots、耗时，结构化载荷保留完整执行事实 |
@@ -31,19 +31,19 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 | 投资组合 | Digital | 32 shots，`p=1`，COBYLA 每起点 12 次，2 个起点 | `3/3` 可行 | `best_observed` |
 | 交易结算 | Hybrid | 32 shots，1 层，2 个预设点 | `3/3` 可行 | `best_observed` |
 | 调查编排 | Hybrid | 32 shots，1 层，2 个预设点 | `3/3` 可行 | `best_observed` |
-| 抵押品 | Digital | 64 shots，`p=1`，2 个预设点 | `3/3` 可行 | `best_observed` |
+| 抵押品 | Digital | 64 shots，`p=1`，COBYLA 单起点 12 次 | `3/3` 可行 | `best_observed` |
 | 流动性 | Digital | 128 shots，`p=1`，2 个预设点 | `3/3` 可行 | `best_observed` |
 | 授信额度 | Digital | 128 shots，`p=2`，2 个预设点 | `3/3` 可行 | `best_observed` |
 | 衍生品风险情景 | Analog | 32 shots，1 层，2 个预设点 | `3/3` 可行 | `best_observed` |
 
-运行时间受 Python、CPU 负载和模拟器设置影响，本轮完整 57 次执行约 165 秒，只用于确认现场等待量级，不作为性能基准。
+运行时间受 Python、CPU 负载和模拟器设置影响，VQE 场景扩展后按最终推荐配置完成 57 次执行，共 169.49 秒，只用于确认现场等待量级，不作为性能基准。
 
 ## 本阶段验证
 
 - 19 个标准预设各执行 3 次：`57 passed, 0 failed`，成功来源均为量子 `business_candidate`。
-- Python 全量测试：`134 passed`；改动后的四个衍生品预设各重复运行 3 次，`12/12` 个量子候选可行且展示来源均为 `best_observed`。
+- Python 全量测试：`168 passed`；新增用例覆盖算法策略、Digital 自动选层、四场景 VQE 真实 Ansatz、场景级预算与层数边界、Hybrid 两层、QAOA/VQE 同源证据和 API 发布边界。
 - Ruff：`src`、`tests`、`scripts` 全部通过。
-- React：TypeScript 检查通过，`20 tests passed`，生产构建通过。
+- React：TypeScript 检查通过，`23 tests passed`，生产构建通过，依赖审计为 `0 vulnerabilities`。
 - Python wheel：构建通过，内置静态资源已同步。
 - 文档风格检查：README 与 docs 共 19 个 Markdown 文件，0 warnings。
 
@@ -58,10 +58,11 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ### P1
 
-1. **展开逐业务边映射。** 页面和导出报告增加业务 pair、两端原子坐标、距离、参考 interaction、mapped term 和覆盖状态，避免只看汇总卡。
-2. **把金融映射证据写入 CASCAQit 标准 HTML。** 当前完整证据主要在 React 页面，导出报告还缺金融 term group、几何来源和拒绝原因。
-3. **增加 ideal/noisy 对照。** 用于展示采样质量与噪声敏感性，并持续明确这是本地模型，不是真机噪声测量。
-4. **研究约束保持 mixer。** 只用于恢复被删除的严格预设，不以经典回退替代量子候选；VQE 不作为统一替换方案。
+1. **改进 VQE 的约束可行率。** 当前抵押品为 `3/9`，投资组合单起点为 `11/12`，流动性为 `1/3`，授信为 `1/6`。增加投资组合评估预算没有改善可行率，双起点反而降为 `8/12`。下一步应研究约束保持 Ansatz 和有限 shots 下的发布级选择规则；未通过校准前继续隐藏页面选项。
+2. **细化 QAOA 推荐深度。** 当前自动选层已经可运行，但场景目录仍使用统一层数。先判断是否需要按预设保存推荐深度，再对全部标准预设做配对重复校准。
+3. **校准 Hybrid `p=2`。** 当前结构、参数和系数守恒已通过，交易结算固定参数候选仍不可行。使用配对重复实验确认两层是否有稳定改善，未通过前保持 `p=1` 默认值。
+4. **研究约束保持 mixer。** 只用于改善严格约束问题的量子候选，不以经典回退替代，也不修改现有 QUBO 罚项。
+5. **展开逐业务边映射并写入标准 HTML。** 页面和导出报告增加业务 pair、原子坐标、距离、mapped term 和覆盖状态。
 
 ### P2
 
@@ -71,4 +72,4 @@ Demo 已接通从金融输入、统一 Problem、模式分析、Digital/Hybrid/A
 
 ## 下一阶段建议
 
-下一阶段先在 Windows 实机验收新离线包，并完成 CASCAQit 公开安装链；算法侧继续展开逐业务边映射，再把金融映射证据写入标准 HTML 报告。被删除的严格预设继续保持删除，直到约束保持量子策略能够稳定产生可行候选。
+下一阶段只继续算法质量：优先为投资组合设计固定持仓数的约束保持 Ansatz，再评估授信和流动性的辅助位处理；随后完成 QAOA 与 Hybrid 的按预设配对校准。模拟器性能、多核/GPU、新金融场景和 QUBO 罚项调整不在该阶段范围内。

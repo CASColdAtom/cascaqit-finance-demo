@@ -17,6 +17,7 @@ vi.mock("./components/charts/Charts", () => ({
   CountsChart: () => null,
   MatrixHeatmap: () => null,
   ParameterChart: () => null,
+  LayerObjectiveChart: () => null,
   ScenarioChart: () => null,
   WaveformChart: () => null,
 }));
@@ -146,9 +147,77 @@ describe("App", () => {
       expect.any(AbortSignal),
     );
     expect(screen.queryByText("运行后显示场景结构")).toBeNull();
-    expect((screen.getByLabelText("QAOA 层数") as HTMLSelectElement).value).toBe("2");
+    expect((screen.getByLabelText("变分层数") as HTMLSelectElement).value).toBe("2");
     expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("128");
     expect(screen.getByText("推荐执行配置")).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "VQE" })).toBeNull();
+  });
+
+  it("does not publish collateral VQE before calibration passes", async () => {
+    const collateralScenario: ScenarioSpec = {
+      ...scenario,
+      caseId: "collateral",
+      shortTitle: "抵押品",
+      title: "抵押品分配优化",
+      values: {},
+      recommendedExecution: {
+        shots: 32,
+        seed: 23,
+        layers: 1,
+        searchStrategy: "preset",
+        parameterBudget: 2,
+      },
+    };
+    const collateralAnalysis: AnalysisPayload = {
+      ...analysis,
+      caseId: "collateral",
+      problem: {
+        ...analysis.problem,
+        id: "finance.collateral",
+        variables: Array.from({ length: 8 }, (_, index) => `x_${index}`),
+      },
+      decision: {
+        ...analysis.decision,
+        modes: analysis.decision.modes.map((row) => ({
+          ...row,
+          availableAlgorithms: ["qaoa"],
+        })),
+      },
+    };
+    api.getScenarios.mockResolvedValueOnce([collateralScenario]);
+    api.analyzeScenario.mockResolvedValueOnce({
+      scenario: collateralScenario,
+      preset: "base",
+      analysis: collateralAnalysis,
+    });
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "抵押品分配优化" });
+    await screen.findByText("资产相关性矩阵");
+    expect(screen.queryByRole("option", { name: "VQE" })).toBeNull();
+    expect((screen.getByLabelText("变分算法") as HTMLSelectElement).value).toBe(
+      "recommended",
+    );
+  });
+
+  it("switches from fixed layers to a bounded adaptive search", async () => {
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "多资产投资组合优化" });
+    await screen.findByText("资产相关性矩阵");
+    fireEvent.change(screen.getByLabelText("层数方式"), {
+      target: { value: "adaptive" },
+    });
+
+    expect(screen.queryByLabelText("变分层数")).toBeNull();
+    expect((screen.getByLabelText("最大层数") as HTMLSelectElement).value).toBe("3");
+    expect((screen.getByLabelText("参数搜索") as HTMLSelectElement).value).toBe(
+      "continuous",
+    );
+    expect((screen.getByLabelText("参数搜索") as HTMLSelectElement).disabled).toBe(
+      true,
+    );
   });
 
   it("uses a safe profile when an older catalog omits recommendedExecution", async () => {
@@ -164,7 +233,7 @@ describe("App", () => {
 
     await screen.findByRole("heading", { name: "多资产投资组合优化" });
     expect((screen.getByLabelText("Shots") as HTMLSelectElement).value).toBe("32");
-    expect((screen.getByLabelText("QAOA 层数") as HTMLSelectElement).value).toBe("1");
+    expect((screen.getByLabelText("变分层数") as HTMLSelectElement).value).toBe("1");
   });
 
   it("keeps Problem mapping usable with the previous analysis schema", async () => {

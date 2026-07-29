@@ -7,8 +7,10 @@ import { TelemetryHeader } from "./components/TelemetryHeader";
 import { viewTabs, type ViewId } from "./components/viewTabs";
 import { I18nProvider, useI18n } from "./i18n";
 import type {
+  Algorithm,
   AnalysisPayload,
   ExecutionProfile,
+  LayerPolicy,
   Mode,
   RunPayload,
   RunRequest,
@@ -36,7 +38,11 @@ const AuditView = lazy(() =>
 const DEFAULT_EXECUTION_PROFILE: ExecutionProfile = {
   shots: 32,
   seed: 23,
+  algorithm: "recommended",
+  layerPolicy: "fixed",
   layers: 1,
+  maxLayers: 3,
+  minImprovement: 0,
   searchStrategy: "preset",
   parameterBudget: 2,
   optimizerStarts: 1,
@@ -72,9 +78,13 @@ function Workbench() {
   const [values, setValues] = useState<Record<string, string | number | boolean>>({});
   const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
   const [mode, setMode] = useState<Mode>("digital");
+  const [algorithm, setAlgorithm] = useState<Algorithm>("recommended");
+  const [layerPolicy, setLayerPolicy] = useState<LayerPolicy>("fixed");
   const [shots, setShots] = useState(32);
   const [seed, setSeed] = useState(23);
   const [layers, setLayers] = useState(1);
+  const [maxLayers, setMaxLayers] = useState(3);
+  const [minImprovement, setMinImprovement] = useState(0);
   const [searchStrategy, setSearchStrategy] = useState<SearchStrategy>("preset");
   const [parameterBudget, setParameterBudget] = useState(2);
   const [optimizerStarts, setOptimizerStarts] = useState(1);
@@ -109,7 +119,11 @@ function Workbench() {
   function applyExecutionProfile(profile: ExecutionProfile) {
     setShots(profile.shots);
     setSeed(profile.seed);
+    setAlgorithm(profile.algorithm ?? "recommended");
+    setLayerPolicy(profile.layerPolicy ?? "fixed");
     setLayers(profile.layers);
+    setMaxLayers(profile.maxLayers ?? 3);
+    setMinImprovement(profile.minImprovement ?? 0);
     setSearchStrategy(profile.searchStrategy);
     setParameterBudget(profile.parameterBudget);
     setOptimizerStarts(profile.optimizerStarts ?? 1);
@@ -179,29 +193,60 @@ function Workbench() {
 
   const currentRequest = useMemo<RunRequest | null>(() => {
     if (!activeId || !preset) return null;
+    const resolvedAlgorithm =
+      algorithm === "recommended"
+        ? mode === "analog"
+          ? "qaa"
+          : "qaoa"
+        : algorithm;
+    const effectiveLayers = mode === "analog" ? 1 : layers;
+    const effectiveMaxLayers =
+      mode === "analog"
+        ? 1
+        : Math.min(maxLayers, resolvedAlgorithm === "vqe" || mode === "hybrid" ? 2 : 3);
+    const effectiveSearchStrategy =
+      layerPolicy === "adaptive" || resolvedAlgorithm === "vqe"
+        ? "continuous"
+        : mode === "digital" || searchStrategy === "continuous"
+          ? searchStrategy
+          : "preset";
+    const parameterLayers = layerPolicy === "adaptive" ? effectiveMaxLayers : effectiveLayers;
+    const parameterCount =
+      resolvedAlgorithm === "vqe"
+        ? (analysis?.problem.variables.length ?? 1) * parameterLayers
+        : resolvedAlgorithm === "qaoa"
+          ? 2 * parameterLayers
+          : 2;
+    const continuousMinimum = parameterCount + 2;
     return {
       preset,
       values,
       mode,
+      algorithm,
+      layer_policy: mode === "analog" ? "fixed" : layerPolicy,
       shots,
       seed,
-      layers: mode === "digital" ? layers : 1,
-      search_strategy:
-        mode === "digital" || searchStrategy === "continuous"
-          ? searchStrategy
-          : "preset",
+      layers: effectiveLayers,
+      max_layers: effectiveMaxLayers,
+      min_improvement: minImprovement,
+      search_strategy: effectiveSearchStrategy,
       parameter_budget:
-        searchStrategy === "continuous"
-          ? Math.max(parameterBudget, 4)
-          : mode === "digital" && searchStrategy !== "preset"
+        effectiveSearchStrategy === "continuous"
+          ? Math.max(parameterBudget, continuousMinimum)
+          : mode === "digital" && effectiveSearchStrategy !== "preset"
           ? parameterBudget
           : Math.min(parameterBudget, 2),
-      optimizer_starts: searchStrategy === "continuous" ? optimizerStarts : 1,
+      optimizer_starts: effectiveSearchStrategy === "continuous" ? optimizerStarts : 1,
       repeats,
     };
   }, [
     activeId,
+    algorithm,
+    analysis,
+    layerPolicy,
     layers,
+    maxLayers,
+    minImprovement,
     mode,
     optimizerStarts,
     parameterBudget,
@@ -222,7 +267,11 @@ function Workbench() {
       mode === recommendedMode &&
       currentRequest.shots === profile.shots &&
       currentRequest.seed === profile.seed &&
+      currentRequest.algorithm === (profile.algorithm ?? "recommended") &&
+      currentRequest.layer_policy === (profile.layerPolicy ?? "fixed") &&
       currentRequest.layers === profile.layers &&
+      currentRequest.max_layers === (profile.maxLayers ?? 3) &&
+      currentRequest.min_improvement === (profile.minImprovement ?? 0) &&
       currentRequest.search_strategy === profile.searchStrategy &&
       currentRequest.parameter_budget === profile.parameterBudget &&
       currentRequest.optimizer_starts === (profile.optimizerStarts ?? 1) &&
@@ -329,9 +378,12 @@ function Workbench() {
           values={values}
           analysis={analysis}
           mode={mode}
+          algorithm={algorithm}
+          layerPolicy={layerPolicy}
           shots={shots}
           seed={seed}
           layers={layers}
+          maxLayers={maxLayers}
           searchStrategy={searchStrategy}
           parameterBudget={parameterBudget}
           optimizerStarts={optimizerStarts}
@@ -346,6 +398,8 @@ function Workbench() {
           }}
           onMode={(value) => {
             setMode(value);
+            setAlgorithm("recommended");
+            if (value === "analog") setLayerPolicy("fixed");
             if (
               value !== "digital" &&
               searchStrategy !== "preset" &&
@@ -357,12 +411,29 @@ function Workbench() {
           }}
           onShots={setShots}
           onSeed={setSeed}
+          onAlgorithm={(value) => {
+            setAlgorithm(value);
+            if (value === "vqe") {
+              setSearchStrategy("continuous");
+              setLayers((current) => Math.min(current, 2));
+              setMaxLayers((current) => Math.min(current, 2));
+              setParameterBudget((current) => Math.max(current, 12));
+            }
+          }}
+          onLayerPolicy={(value) => {
+            setLayerPolicy(value);
+            if (value === "adaptive") {
+              setSearchStrategy("continuous");
+              setParameterBudget((current) => Math.max(current, 8));
+            }
+          }}
           onLayers={(value) => {
             setLayers(value);
             if (value !== 1 && searchStrategy === "grid") {
               setSearchStrategy("seeded_sample");
             }
           }}
+          onMaxLayers={setMaxLayers}
           onSearchStrategy={(value) => {
             setSearchStrategy(value);
             if (value === "preset") setParameterBudget((current) => Math.min(current, 2));

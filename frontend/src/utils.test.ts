@@ -6,9 +6,13 @@ describe("executionSignature", () => {
     const base = {
       preset: "base",
       mode: "digital" as const,
+      algorithm: "qaoa" as const,
+      layer_policy: "fixed" as const,
       shots: 32,
       seed: 23,
       layers: 2,
+      max_layers: 3,
+      min_improvement: 0,
       search_strategy: "seeded_sample" as const,
       parameter_budget: 8,
     };
@@ -30,9 +34,13 @@ describe("executionSignature", () => {
       preset: "base",
       values: { risk_weight: 0.5 },
       mode: "digital" as const,
+      algorithm: "qaoa" as const,
+      layer_policy: "fixed" as const,
       shots: 32,
       seed: 23,
       layers: 1,
+      max_layers: 3,
+      min_improvement: 0,
       search_strategy: "preset" as const,
       parameter_budget: 2,
     };

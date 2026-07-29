@@ -8,10 +8,12 @@
 
 | 主链 | 场景 | 选择依据 |
 |---|---|---|
-| Digital QAOA | 多资产投资组合、抵押品分配、日内流动性调度、企业授信额度配置 | 稠密或带符号耦合、全局容量、方向依赖和辅助变量占主导 |
+| Digital QAOA/VQE | 多资产投资组合、抵押品分配、日内流动性调度、企业授信额度配置 | QAOA 是公开算法；VQE 在四个场景中保留为内部对照实验 |
 | Analog QAA/AHS | 衍生品风险情景压缩 | 风险情景可以形成带二维位置的局域冗余图，完整子问题可由 AHS 表达 |
 | Hybrid D-A-D QAOA | 交易结算批次、反欺诈调查编排 | 局域冲突是问题主体之一，同时存在必须保留的全局、方向或资源约束 |
 | Classic | 衍生品估值 | 定价和 Greeks 继续使用成熟经典算法，量子 counts 不参与价格计算 |
+
+金融执行器已经支持算法与层数策略：Digital QAOA 可运行 `p=1~3`，Hybrid QAOA 可运行 `p=1~2`，两者都支持固定层数和自动选层。投资组合、抵押品、流动性和授信 Digital VQE 已接通编译、连续优化、采样和业务解码。抵押品最多允许 `p=2`；其余三个场景因参数规模限制为 `p=1`。固定 seed 校准均未达到页面发布门槛，因此 VQE 只保留显式 API。
 
 这里展示的是中性原子程序模型的适配性：原子几何和 Rydberg interaction 直接承担局域冲突，AHS 展示连续控制，D-A-D 在同一量子态中组合原生相互作用与通用门。Demo 不声明量子加速、量子优势、全局最优或真实硬件可执行性。
 
@@ -23,11 +25,11 @@
 
 | mode | algorithm | 产物 | 最适合的问题 |
 |---|---|---|---|
-| `digital` | `qaoa` | `Circuit` | 任意稠密或带符号 QUBO、全局约束、方向依赖 |
+| `digital` | `qaoa` 或 `vqe` | `Circuit` | QAOA 用于公开运行；VQE 用于四个 Digital 场景的硬件高效 Ansatz 对照 |
 | `analog` | `qaa` | `AHSProgram` | 完整 Hamiltonian 可由二维布局、Rydberg interaction 和局域控制表达的问题 |
 | `hybrid` | `qaoa` | `HybridProgram` | 可验证的局域子 Hamiltonian，加具有独立业务含义的 Digital residual |
 
-Digital、Analog 和 Hybrid 共用 Canonical Problem、logical order、Hamiltonian、mapping plan 和 decoder。D-A-D 是 Hybrid 的 block 拓扑，AHS 是 Analog 的程序模型，都不是算法名称。
+Digital、Analog 和 Hybrid 共用 Canonical Problem、logical order、Hamiltonian、mapping plan 和 decoder。D-A-D 是 Hybrid 的 block 拓扑，AHS 是 Analog 的程序模型，都不是算法名称。算法选择、层数和参数优化规则见 [QAOA 与 VQE 算法优化设计](qaoa_vqe_algorithm_optimization_design.md)。
 
 ### 2.2 编译可行不等于业务适配
 
@@ -98,7 +100,7 @@ React Workbench
                  -> ProblemCompiler.analyze()
                  -> FinanceModeAdvisor
                  -> ProblemCompiler.compile(mode, algorithm, target)
-                      +-> Digital QAOA -> Circuit
+                      +-> Digital QAOA/VQE -> Circuit
                       +-> Hybrid QAOA  -> HybridProgram / D-A-D
                       +-> Analog QAA   -> AHSProgram
                  -> LocalBackend
@@ -288,7 +290,11 @@ result = executor.run(
 
 金融层的 `mode="recommended"` 先执行裁决，再向 CASCAQit 传入显式 `mode + algorithm`。用户显式选择的模式只有在状态不是 `unsuitable` 时才能执行。
 
-场景目录还提供推荐执行配置，包括 shots、seed、QAOA 层数、搜索方式、评估预算、优化起点数和重复次数。API 请求省略字段时使用场景配置，React 工作台切换场景或预设时加载同一配置，避免脚本和页面维护两套默认值。推荐模式必须通过编译门禁；若三种模式都不可执行，模式顾问返回 `FINANCE_NO_EXECUTABLE_MODE`，不会把 Digital 当作无条件兜底。
+场景目录还提供推荐执行配置，包括 shots、seed、算法、层数策略、搜索方式、评估预算、优化起点数和重复次数。API 请求省略字段时使用场景配置，React 工作台切换场景或预设时加载同一配置，避免脚本和页面维护两套默认值。推荐模式必须通过编译门禁；若三种模式都不可执行，模式顾问返回 `FINANCE_NO_EXECUTABLE_MODE`，不会把 Digital 当作无条件兜底。
+
+`FinanceProblemDefinition.digital_algorithms` 声明后端真实可执行算法，`published_digital_algorithms` 声明已经通过校准、允许页面选择的算法。模式分析的 `availableAlgorithms` 只返回后者。算法策略仍按前者校验显式 API 请求，因此内部 VQE 试验不需要伪装成公开能力。
+
+`FinanceProblemDefinition.vqe_ansatz` 保存场景级旋转轴、纠缠拓扑和最大层数。投资组合使用 `RY + circular CX` 对应稠密协方差结构；抵押品、流动性和授信使用 `RY + linear CX`。API 目录另存算法专属执行配置，用户只指定 `algorithm="vqe"` 时会得到合法的连续优化预算，不会继承 QAOA 的固定参数或过小预算。
 
 统一结果包含：
 
@@ -315,7 +321,7 @@ result = executor.run(
 
 三种实验视图遵循固定规则：
 
-- Digital：客户界面只展示 QAOA 逻辑层，底层 `Circuit` 仍由编译器生成并保留在 API 结果中；counts 位于逻辑层下方。
+- Digital：客户界面当前只发布 QAOA，展示实际选中层数和逻辑层；底层 `Circuit` 仍由编译器生成并保留在 API 结果中，counts 位于逻辑层下方。显式 VQE 响应返回 `|0> / RY / CX / M`、Ansatz hash 和参数信息，不复用 QAOA 表示。
 - Analog：原子阵列与合并波形并列，坐标轴等比例，counts 位于下方，不显示数字线路。
 - Hybrid：同时展示 D-A-D、完整 Analog 业务组、Digital residual、业务边到 interaction 的映射和末端 counts。
 
@@ -332,6 +338,10 @@ result = executor.run(
 ### 已完成：Analog 场景与产品重估联动
 
 九格情景的价格、P&L 和 Greeks 由同一领域入口生成，绝对 P&L 归一化后写入 `MWISProblemIR`。编译测试逐节点核对 MWIS 权重与 AHS 局域失谐 addressing，并确认 Analog 没有 Digital residual。价格链与量子情景链继续在类型、接口和页面中分离。
+
+### 已完成：变分算法编排
+
+运行请求可以指定 `algorithm`、固定或自动层数、最大层数和改善阈值。自动选层直接调用 CASCAQit `optimize_layers()`，发布校准调用 `optimize_layers_repeated()`，业务解码只读取选中执行。交易结算和反欺诈的 Hybrid `p=2` 已通过 D-A-D 结构、四参数、counts 和系数守恒验收，默认仍保持 `p=1`。四个 Digital 场景的 VQE 真实执行链均已接通，但校准未通过公开门槛。
 
 ### P2：界面与报告收口
 

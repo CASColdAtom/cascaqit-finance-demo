@@ -166,9 +166,12 @@ function renderPanel(
         values={scenario.values}
         analysis={analysis}
         mode={overrides.mode ?? "hybrid"}
+        algorithm="recommended"
+        layerPolicy="fixed"
         shots={32}
         seed={23}
         layers={1}
+        maxLayers={2}
         searchStrategy="preset"
         parameterBudget={2}
         optimizerStarts={1}
@@ -179,9 +182,12 @@ function renderPanel(
         onPreset={vi.fn()}
         onValue={vi.fn()}
         onMode={onMode}
+        onAlgorithm={vi.fn()}
+        onLayerPolicy={vi.fn()}
         onShots={vi.fn()}
         onSeed={vi.fn()}
         onLayers={onLayers}
+        onMaxLayers={vi.fn()}
         onSearchStrategy={onSearchStrategy}
         onParameterBudget={vi.fn()}
         onOptimizerStarts={vi.fn()}
@@ -248,10 +254,10 @@ describe("ControlPanel", () => {
     expect(screen.getByText("自定义执行配置")).toBeTruthy();
   });
 
-  it("shows QAOA search controls only for Digital mode", () => {
+  it("shows variational search controls for Digital mode", () => {
     const { onLayers, onSearchStrategy } = renderPanel({ mode: "digital" });
 
-    fireEvent.change(screen.getByLabelText("QAOA 层数"), {
+    fireEvent.change(screen.getByLabelText("变分层数"), {
       target: { value: "2" },
     });
     fireEvent.change(screen.getByLabelText("参数搜索"), {
@@ -262,7 +268,8 @@ describe("ControlPanel", () => {
     expect(onSearchStrategy).toHaveBeenCalledWith("seeded_sample");
     cleanup();
     renderPanel({ mode: "hybrid" });
-    expect(screen.queryByLabelText("QAOA 层数")).toBeNull();
+    expect(screen.getByLabelText("变分层数")).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "p = 3" })).toBeNull();
   });
 
   it("prevents duplicate execution while a run is active", () => {

@@ -3,6 +3,7 @@
 - [客户演示技术讲解手册](customer_demo_technical_guide.md)：面向金融和量子计算初学者，解释业务建模、QUBO、Digital/Hybrid/Analog 原理、七个场景、页面解读、演示话术和当前限制。
 - [逐场景讲解与页面解读](scenario_presentation_guide.md)：逐项说明七个场景的业务问题、输入、输出、建模、算法选择、页面元素，并结合实际运行截图讲解固定配置结果。
 - [金融 Demo 架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
+- [QAOA 与 VQE 算法优化设计](qaoa_vqe_algorithm_optimization_design.md)：说明 QAOA 自动选层、连续优化、四个 Digital 场景的 VQE 契约和发布门槛。
 - [金融 Demo 场景与界面设计](finance_demo_design.md)：当前七个场景的输入、结果、页面内容、运行方式和解释边界。
 
 当前实现记录：
@@ -11,6 +12,7 @@
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。
 - [参数优化与重复统计实现报告](process/parameter_optimization_and_repeated_statistics_report.md)：记录连续 COBYLA、多起点、量子候选统计和 19 个标准预设的三次独立运行结果。
+- [变分算法迭代报告](process/variational_algorithm_iteration_report.md)：记录 QAOA 自动选层、Hybrid 两层验收、四个场景的 VQE 校准和页面发布结论。
 - [衍生品重估风险图实现报告](process/derivative_revaluation_risk_graph_report.md)：记录九格压力重估、MWIS 风险权重、Analog 局域失谐映射和四类产品验收结果。
 - [Problem 映射旧前端热修复报告](process/problem_mapping_stale_frontend_hotfix_report.md)：记录旧响应字段兜底、入口禁缓存和升级后强制刷新边界。
 - [量子实验与审计界面收敛报告](process/quantum_audit_interface_convergence_report.md)：记录 QAOA 逻辑层与执行上下文摘要的展示范围。

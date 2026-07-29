@@ -26,6 +26,7 @@ from cascaqit_finance_demo.domain.models import CaseIssue, ConstraintCheck
 from cascaqit_finance_demo.domain.problem_api import (
     FinanceProblemDefinition,
     FinanceTermGroup,
+    FinanceVQEAnsatzConfig,
     coefficient_contributions_from_problem,
 )
 from cascaqit_finance_demo.domain.qubo_builder import (
@@ -328,6 +329,10 @@ class ConstrainedSelectionCase:
         conflicts = tuple(
             (by_id[left], by_id[right]) for left, right in case_input.conflicts
         )
+        # 三个选择类场景都允许内部 VQE 对照。抵押品没有辅助位，16 个参数的
+        # p=2 仍能进入当前 24 次评估上限；授信和流动性含 6/8 个辅助位，p=2
+        # 会让参数量超过预算，因此先严格限制为单层。
+        vqe_max_layers = 2 if self.case_id == "collateral" else 1
         return FinanceProblemDefinition(
             case_id=self.case_id,
             title=self.title,
@@ -358,6 +363,15 @@ class ConstrainedSelectionCase:
                 FinanceTermGroup("slack", "辅助变量", "auxiliary_penalty", auxiliary),
             ),
             coefficient_contributions=coefficient_contributions_from_problem(problem),
+            digital_algorithms=("qaoa", "vqe"),
+            # 新场景先接通显式 API 并执行固定 seed 校准。任何 VQE 配置在可行率
+            # 和等待时间通过发布门槛前，都不能进入客户页面的算法选择列表。
+            published_digital_algorithms=("qaoa",),
+            vqe_ansatz=FinanceVQEAnsatzConfig(
+                rotation_axes=("ry",),
+                entanglement="linear",
+                max_layers=vqe_max_layers,
+            ),
         )
 
     def decode(

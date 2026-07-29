@@ -1,4 +1,7 @@
 export type Mode = "digital" | "hybrid" | "analog";
+export type Algorithm = "recommended" | "qaoa" | "vqe" | "qaa";
+export type ResolvedAlgorithm = Exclude<Algorithm, "recommended">;
+export type LayerPolicy = "fixed" | "adaptive";
 export type SearchStrategy = "preset" | "grid" | "seeded_sample" | "continuous";
 export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
@@ -22,7 +25,11 @@ export interface ControlSpec {
 export interface ExecutionProfile {
   shots: number;
   seed: number;
+  algorithm?: Algorithm;
+  layerPolicy?: LayerPolicy;
   layers: number;
+  maxLayers?: number;
+  minImprovement?: number;
   searchStrategy: SearchStrategy;
   parameterBudget: number;
   optimizerStarts?: number;
@@ -55,7 +62,8 @@ export interface InputRow {
 
 export interface ModeDecisionRow {
   mode: Mode;
-  algorithm: "qaoa" | "qaa";
+  algorithm: ResolvedAlgorithm;
+  availableAlgorithms?: ResolvedAlgorithm[];
   status: ModeStatus;
   compilerFeasible: boolean;
   businessSuitable: boolean;
@@ -303,7 +311,7 @@ export interface WavePoint {
 
 export interface QuantumPayload {
   mode: Mode;
-  algorithm: string;
+  algorithm: ResolvedAlgorithm;
   topology: string | null;
   layerCount: number;
   searchStrategy: SearchStrategy | "explicit";
@@ -319,6 +327,37 @@ export interface QuantumPayload {
     terminationReason: string | null;
     backendExecutionCount: number | null;
   } | null;
+  ansatz?: {
+    kind: string;
+    layers: number;
+    parameterNames: string[];
+    parameterCount: number;
+    circuitHash: string;
+    ansatzHash: string;
+    definition: {
+      definition_kind: string;
+      entanglement: string;
+      rotation_axes: string[];
+      schema_version: string;
+    } | null;
+  } | null;
+  layerEvidence?: {
+    policy: LayerPolicy;
+    selectedLayers: number;
+    executedLayers: number[];
+    maxLayers: number;
+    minImprovement: number;
+    stopReason: "fixed" | "max_layers_reached" | "patience_exhausted";
+    totalEvaluationCount: number;
+    steps: Array<{
+      layers: number;
+      objective: number;
+      improvementFromIncumbent: number | null;
+      materialImprovement: boolean;
+      evaluationCount: number;
+      selected: boolean;
+    }>;
+  };
   blocks: string[];
   layers: string[];
   circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
@@ -416,9 +455,13 @@ export interface ScenarioRequest {
 
 export interface RunRequest extends ScenarioRequest {
   mode: Mode;
+  algorithm: Algorithm;
+  layer_policy: LayerPolicy;
   shots: number;
   seed: number;
   layers: number;
+  max_layers: number;
+  min_improvement: number;
   search_strategy: SearchStrategy;
   parameter_budget: number;
   optimizer_starts?: number;

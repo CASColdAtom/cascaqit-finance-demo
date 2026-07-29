@@ -1,8 +1,10 @@
 import { ChevronDown, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import type {
+  Algorithm,
   AnalysisPayload,
   ControlSpec,
+  LayerPolicy,
   Mode,
   ScenarioSpec,
   SearchStrategy,
@@ -16,9 +18,12 @@ interface ControlPanelProps {
   values: Record<string, string | number | boolean>;
   analysis: AnalysisPayload | null;
   mode: Mode;
+  algorithm: Algorithm;
+  layerPolicy: LayerPolicy;
   shots: number;
   seed: number;
   layers: number;
+  maxLayers: number;
   searchStrategy: SearchStrategy;
   parameterBudget: number;
   optimizerStarts: number;
@@ -29,9 +34,12 @@ interface ControlPanelProps {
   onPreset: (value: string) => void;
   onValue: (key: string, value: string | number) => void;
   onMode: (mode: Mode) => void;
+  onAlgorithm: (algorithm: Algorithm) => void;
+  onLayerPolicy: (policy: LayerPolicy) => void;
   onShots: (value: number) => void;
   onSeed: (value: number) => void;
   onLayers: (value: number) => void;
+  onMaxLayers: (value: number) => void;
   onSearchStrategy: (value: SearchStrategy) => void;
   onParameterBudget: (value: number) => void;
   onOptimizerStarts: (value: number) => void;
@@ -93,6 +101,33 @@ export function ControlPanel(props: ControlPanelProps) {
   const { t, tx } = useI18n();
   const modes = props.analysis?.decision.modes ?? [];
   const selectedMode = modes.find((item) => item.mode === props.mode);
+  const availableAlgorithms = selectedMode?.availableAlgorithms ?? [
+    selectedMode?.algorithm ?? (props.mode === "analog" ? "qaa" : "qaoa"),
+  ];
+  const resolvedAlgorithm =
+    props.algorithm === "recommended"
+      ? props.mode === "analog"
+        ? "qaa"
+        : "qaoa"
+      : props.algorithm;
+  const maximumLayers = resolvedAlgorithm === "vqe" || props.mode === "hybrid" ? 2 : 3;
+  const activeLayers = props.layerPolicy === "adaptive" ? props.maxLayers : props.layers;
+  const parameterCount =
+    resolvedAlgorithm === "vqe"
+      ? (props.analysis?.problem.variables.length ?? 1) * activeLayers
+      : resolvedAlgorithm === "qaoa"
+        ? 2 * activeLayers
+        : 2;
+  const minimumContinuousBudget = parameterCount + 2;
+  const budgetOptions = (
+    props.searchStrategy === "preset"
+      ? [1, 2]
+      : props.searchStrategy === "continuous"
+        ? [4, 8, 12, 16, 24]
+        : [2, 4, 8, 12, 16, 24]
+  ).filter(
+    (value) => props.searchStrategy !== "continuous" || value >= minimumContinuousBudget,
+  );
   const [expanded, setExpanded] = useState(false);
   return (
     <aside className="control-panel-react" data-expanded={expanded}>
@@ -179,6 +214,36 @@ export function ControlPanel(props: ControlPanelProps) {
           </div>
 
           <div className="compact-controls">
+            {props.mode === "digital" ? (
+              <label>
+                <span>{t("algorithm")}</span>
+                <select
+                  value={props.algorithm}
+                  onChange={(event) => props.onAlgorithm(event.target.value as Algorithm)}
+                >
+                  <option value="recommended">{t("recommendedAlgorithm")}</option>
+                  {availableAlgorithms.map((candidate) => (
+                    <option key={candidate} value={candidate}>
+                      {candidate.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {props.mode !== "analog" ? (
+              <label>
+                <span>{t("layerPolicy")}</span>
+                <select
+                  value={props.layerPolicy}
+                  onChange={(event) =>
+                    props.onLayerPolicy(event.target.value as LayerPolicy)
+                  }
+                >
+                  <option value="fixed">{t("fixedLayers")}</option>
+                  <option value="adaptive">{t("adaptiveLayers")}</option>
+                </select>
+              </label>
+            ) : null}
             <label>
               <span>Shots</span>
               <select value={props.shots} onChange={(event) => props.onShots(Number(event.target.value))}>
@@ -196,15 +261,28 @@ export function ControlPanel(props: ControlPanelProps) {
               </select>
             </label>
             <>
-              {props.mode === "digital" ? (
+              {props.mode !== "analog" && props.layerPolicy === "fixed" ? (
                 <label>
-                  <span>{t("qaoaLayers")}</span>
+                  <span>{t("ansatzLayers")}</span>
                   <select
                     value={props.layers}
                     onChange={(event) => props.onLayers(Number(event.target.value))}
                   >
-                    {[1, 2, 3].map((value) => (
+                    {Array.from({ length: maximumLayers }, (_, index) => index + 1).map((value) => (
                       <option key={value} value={value}>p = {value}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {props.mode !== "analog" && props.layerPolicy === "adaptive" ? (
+                <label>
+                  <span>{t("maximumLayers")}</span>
+                  <select
+                    value={Math.min(props.maxLayers, maximumLayers)}
+                    onChange={(event) => props.onMaxLayers(Number(event.target.value))}
+                  >
+                    {Array.from({ length: maximumLayers }, (_, index) => index + 1).map((value) => (
+                      <option key={value} value={value}>p ≤ {value}</option>
                     ))}
                   </select>
                 </label>
@@ -213,12 +291,15 @@ export function ControlPanel(props: ControlPanelProps) {
                   <span>{t("searchMethod")}</span>
                   <select
                     value={props.searchStrategy}
+                    disabled={props.layerPolicy === "adaptive" || resolvedAlgorithm === "vqe"}
                     onChange={(event) =>
                       props.onSearchStrategy(event.target.value as SearchStrategy)
                     }
                   >
-                    <option value="preset">{t("presetSearch")}</option>
-                    {props.mode === "digital" ? (
+                    {props.layerPolicy !== "adaptive" && resolvedAlgorithm !== "vqe" ? (
+                      <option value="preset">{t("presetSearch")}</option>
+                    ) : null}
+                    {props.mode === "digital" && props.layerPolicy !== "adaptive" && resolvedAlgorithm !== "vqe" ? (
                       <>
                         <option value="grid" disabled={props.layers !== 1}>
                           {t("gridSearch")}
@@ -235,12 +316,7 @@ export function ControlPanel(props: ControlPanelProps) {
                     value={props.parameterBudget}
                     onChange={(event) => props.onParameterBudget(Number(event.target.value))}
                   >
-                    {(props.searchStrategy === "preset"
-                      ? [1, 2]
-                      : props.searchStrategy === "continuous"
-                        ? [4, 8, 12, 16, 24]
-                        : [2, 4, 8, 12, 16, 24]
-                    ).map((value) => (
+                    {budgetOptions.map((value) => (
                       <option key={value} value={value}>{value}</option>
                     ))}
                   </select>

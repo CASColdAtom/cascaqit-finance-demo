@@ -30,6 +30,9 @@ from cascaqit.problems import (
 )
 
 ProblemMode = Literal["digital", "hybrid", "analog"]
+ProblemAlgorithm = Literal["qaoa", "vqe", "qaa"]
+RequestedAlgorithm = Literal["recommended", "qaoa", "vqe", "qaa"]
+LayerPolicy = Literal["fixed", "adaptive"]
 ModeStatus = Literal["recommended", "comparable", "unsuitable"]
 ProblemKind = Literal["qubo", "graph", "mwis", "ising"]
 GeometrySource = Literal["business_native", "verified_embedding"]
@@ -43,6 +46,41 @@ TermKind = Literal[
 ]
 CoefficientTermKind = Literal["offset", "linear", "quadratic"]
 CoefficientRole = Literal["objective", "constraint", "auxiliary"]
+VQERotationAxis = Literal["rx", "ry", "rz"]
+VQEEntanglement = Literal["linear", "circular"]
+
+
+@dataclass(frozen=True)
+class FinanceVQEAnsatzConfig:
+    """金融场景允许使用的硬件高效 VQE Ansatz 契约。
+
+    配置属于场景定义，而不是执行器的全局默认值。不同 Problem 的变量数量、
+    目标稠密度和辅助位结构不同，必须显式声明纠缠拓扑与层数上限，避免用户选择
+    VQE 后被静默套用一条与场景无关的线路。
+    """
+
+    rotation_axes: tuple[VQERotationAxis, ...] = ("ry",)
+    entanglement: VQEEntanglement = "linear"
+    max_layers: int = 1
+
+    def __post_init__(self) -> None:
+        """验证配置能直接构造 CASCAQit ``HardwareEfficientAnsatz``。"""
+        axes = tuple(self.rotation_axes)
+        if not axes:
+            raise ValueError("VQE rotation_axes must not be empty.")
+        if len(axes) != len(set(axes)):
+            raise ValueError("VQE rotation_axes must not contain duplicates.")
+        if any(axis not in {"rx", "ry", "rz"} for axis in axes):
+            raise ValueError("VQE rotation_axes supports only rx, ry, and rz.")
+        if self.entanglement not in {"linear", "circular"}:
+            raise ValueError("VQE entanglement must be linear or circular.")
+        if (
+            not isinstance(self.max_layers, int)
+            or isinstance(self.max_layers, bool)
+            or self.max_layers < 1
+        ):
+            raise ValueError("VQE max_layers must be a positive integer.")
+        object.__setattr__(self, "rotation_axes", axes)
 
 
 @dataclass(frozen=True)
@@ -207,6 +245,9 @@ class FinanceProblemDefinition:
     term_groups: tuple[FinanceTermGroup, ...] = ()
     coefficient_contributions: tuple[FinanceCoefficientContribution, ...] = ()
     analog_candidate_group_ids: tuple[str, ...] = ()
+    digital_algorithms: tuple[Literal["qaoa", "vqe"], ...] = ("qaoa",)
+    published_digital_algorithms: tuple[Literal["qaoa", "vqe"], ...] = ("qaoa",)
+    vqe_ansatz: FinanceVQEAnsatzConfig | None = None
     geometry_evidence: FinanceGeometryEvidence | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -221,6 +262,48 @@ class FinanceProblemDefinition:
         object.__setattr__(
             self, "analog_candidate_group_ids", tuple(self.analog_candidate_group_ids)
         )
+        object.__setattr__(self, "digital_algorithms", tuple(self.digital_algorithms))
+        object.__setattr__(
+            self,
+            "published_digital_algorithms",
+            tuple(self.published_digital_algorithms),
+        )
+        if not self.digital_algorithms:
+            raise ValueError("digital_algorithms must not be empty.")
+        if len(self.digital_algorithms) != len(set(self.digital_algorithms)):
+            raise ValueError("digital_algorithms must not contain duplicates.")
+        if any(item not in {"qaoa", "vqe"} for item in self.digital_algorithms):
+            raise ValueError("digital_algorithms supports only qaoa and vqe.")
+        if "qaoa" not in self.digital_algorithms:
+            raise ValueError("digital_algorithms must retain qaoa as the default.")
+        if not self.published_digital_algorithms:
+            raise ValueError("published_digital_algorithms must not be empty.")
+        if len(self.published_digital_algorithms) != len(
+            set(self.published_digital_algorithms)
+        ):
+            raise ValueError(
+                "published_digital_algorithms must not contain duplicates."
+            )
+        if not set(self.published_digital_algorithms) <= set(self.digital_algorithms):
+            raise ValueError(
+                "published_digital_algorithms must be a subset of digital_algorithms."
+            )
+        if "qaoa" not in self.published_digital_algorithms:
+            raise ValueError(
+                "published_digital_algorithms must retain qaoa as the default."
+            )
+        if self.vqe_ansatz is not None and not isinstance(
+            self.vqe_ansatz, FinanceVQEAnsatzConfig
+        ):
+            raise TypeError("vqe_ansatz must be FinanceVQEAnsatzConfig or None.")
+        if "vqe" in self.digital_algorithms and self.vqe_ansatz is None:
+            raise ValueError(
+                "VQE-enabled definitions must declare a vqe_ansatz configuration."
+            )
+        if "vqe" not in self.digital_algorithms and self.vqe_ansatz is not None:
+            raise ValueError(
+                "vqe_ansatz requires vqe in digital_algorithms."
+            )
         group_ids = tuple(group.group_id for group in self.term_groups)
         if len(group_ids) != len(set(group_ids)):
             raise ValueError("term group IDs must be unique.")
@@ -318,7 +401,8 @@ class ModeDecisionRow:
     """一种执行模式的编译可行性、业务适配性和项分配统计。"""
 
     mode: ProblemMode
-    algorithm: Literal["qaoa", "qaa"]
+    algorithm: ProblemAlgorithm
+    available_algorithms: tuple[ProblemAlgorithm, ...]
     status: ModeStatus
     compiler_feasible: bool
     business_suitable: bool
@@ -364,11 +448,35 @@ class ScenarioAnalysis:
 
 
 @dataclass(frozen=True)
+class FinanceAlgorithmPlan:
+    """一次运行经过校验的算法、层数和参数优化计划。
+
+    请求值和最终算法分开保存，便于审计 ``recommended`` 的解析结果。Ansatz
+    保留 CASCAQit 的不可变定义，页面只能展示后端返回的真实结构。
+    """
+
+    requested_algorithm: RequestedAlgorithm
+    resolved_algorithm: ProblemAlgorithm
+    problem_hash: str
+    layer_policy: LayerPolicy
+    requested_layers: int
+    max_layers: int
+    min_improvement: float
+    search_strategy: str
+    parameter_budget: int
+    optimizer_method: str | None
+    per_start_evaluation_budget: int | None
+    optimizer_starts: int
+    ansatz: Any | None = None
+
+
+@dataclass(frozen=True)
 class FinanceExperimentResult:
     """一次场景运行产生的业务结果、量子执行事实、基线和审计证据。"""
 
     case_id: str
     mode: ProblemMode
+    algorithm_plan: FinanceAlgorithmPlan
     definition: FinanceProblemDefinition
     analysis: ScenarioAnalysis
     execution: Any
@@ -376,6 +484,7 @@ class FinanceExperimentResult:
     baseline_solution: Any | None
     displayed_solution: Any
     evidence: Any
+    layer_experiment: Any | None = None
     report_path: Path | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -393,6 +502,30 @@ class FinanceRepeatedExperimentResult:
     runs: tuple[FinanceExperimentResult, ...]
     representative_index: int
     confidence_level: float = 0.95
+
+
+@dataclass(frozen=True)
+class FinanceLayerCalibrationResult:
+    """发布前配对重复选层及选中层的业务约束复核结果。"""
+
+    mode: ProblemMode
+    algorithm_plan: FinanceAlgorithmPlan
+    analysis: ScenarioAnalysis
+    experiment: Any
+    business_candidates: tuple[Any, ...]
+
+    @property
+    def feasible_count(self) -> int:
+        """返回选中层中通过原始金融约束复核的量子候选数量。"""
+        return sum(
+            bool(getattr(candidate, "feasible", True))
+            for candidate in self.business_candidates
+        )
+
+    @property
+    def feasible_rate(self) -> float:
+        """返回选中层的量子候选可行率，不读取经典基线。"""
+        return self.feasible_count / len(self.business_candidates)
 
 
 class FinanceScenario(Protocol):

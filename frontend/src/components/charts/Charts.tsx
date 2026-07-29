@@ -844,3 +844,62 @@ export function ParameterChart({ history }: { history: QuantumPayload["parameter
     />
   );
 }
+
+export function LayerObjectiveChart({
+  evidence,
+}: {
+  evidence: NonNullable<QuantumPayload["layerEvidence"]>;
+}) {
+  const { t } = useI18n();
+  return (
+    <ReactECharts
+      className="chart-canvas compact-chart"
+      option={{
+        ...common,
+        tooltip: {
+          ...tooltip,
+          formatter: (raw: unknown) => {
+            const point = raw as {
+              data?: {
+                value: number;
+                layers: number;
+                evaluationCount: number;
+                selected: boolean;
+              };
+            };
+            const data = point.data;
+            if (!data) return "";
+            return [
+              `p = ${data.layers}`,
+              `objective: ${data.value.toFixed(6)}`,
+              `${t("evaluationBudget")}: ${data.evaluationCount}`,
+              data.selected ? t("selectedLayer") : "",
+            ].filter(Boolean).join("<br/>");
+          },
+        },
+        grid: { left: 58, right: 20, top: 22, bottom: 42 },
+        xAxis: {
+          ...axis,
+          type: "category",
+          data: evidence.steps.map((step) => `p=${step.layers}`),
+          name: t("ansatzLayers"),
+        },
+        yAxis: { ...axis, type: "value", name: "objective", scale: true },
+        series: [
+          {
+            type: "line",
+            data: evidence.steps.map((step) => ({
+              value: step.objective,
+              layers: step.layers,
+              evaluationCount: step.evaluationCount,
+              selected: step.selected,
+              itemStyle: { color: step.selected ? palette.green : palette.cyan },
+              symbolSize: step.selected ? 12 : 8,
+            })),
+            lineStyle: { color: palette.cyan, width: 2 },
+          },
+        ],
+      }}
+    />
+  );
+}
