@@ -39,6 +39,11 @@ from cascaqit_biomedicine_demo.electronic_structure import (
     analyze_electronic_structure,
     run_electronic_structure,
 )
+from cascaqit_biomedicine_demo.peptide_landscape import (
+    analyze_peptide_landscape,
+    peptide_values,
+    run_peptide_landscape,
+)
 from cascaqit_finance_demo.api.catalog import (
     SCENARIO_SPECS,
     build_case_input,
@@ -262,6 +267,11 @@ def _biomedicine_request(
             values = active_center_values(preset, request.values)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+    elif case_id == "peptide_landscape":
+        try:
+            values = peptide_values(preset, request.values)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     else:
         values = {**spec.values, **request.values}
     return preset, values
@@ -283,6 +293,8 @@ def analyze_domain_scenario(
         analysis = analyze_docking_match(preset, values)
     elif case_id == "active_center":
         analysis = analyze_active_center(preset, values)
+    elif case_id == "peptide_landscape":
+        analysis = analyze_peptide_landscape(preset, values)
     else:
         analysis = preview_analysis(case_id)
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
@@ -315,8 +327,7 @@ async def run_domain_scenario(
             raise HTTPException(
                 status_code=422,
                 detail=(
-                    "构象匹配的覆盖与构象约束需要 Digital residual，"
-                    "不支持纯 Analog。"
+                    "构象匹配的覆盖与构象约束需要 Digital residual，不支持纯 Analog。"
                 ),
             )
         if request.algorithm not in {None, "recommended", "qaoa"}:
@@ -350,6 +361,30 @@ async def run_domain_scenario(
                 search_strategy=strategy,
                 parameter_budget=budget,
                 optimizer_starts=starts,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        scenario = spec.to_dict()
+        scenario["values"] = values
+        return {"scenario": scenario, "preset": preset, "run": run}
+    if case_id == "peptide_landscape":
+        if request.mode not in {"recommended", "digital"}:
+            raise HTTPException(status_code=422, detail="小肽能景只支持 Digital QAOA。")
+        if request.algorithm not in {None, "recommended", "qaoa"}:
+            raise HTTPException(status_code=422, detail="小肽能景只支持 QAOA。")
+        profile = spec.recommended_execution
+        try:
+            run = await run_in_threadpool(
+                run_peptide_landscape,
+                preset=preset,
+                values=values,
+                shots=request.shots or int(profile["shots"]),
+                seed=request.seed if request.seed is not None else int(profile["seed"]),
+                layers=request.layers or int(profile["layers"]),
+                parameter_budget=request.parameter_budget
+                or int(profile["parameterBudget"]),
+                optimizer_starts=request.optimizer_starts
+                or int(profile["optimizerStarts"]),
             )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc

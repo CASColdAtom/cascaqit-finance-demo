@@ -359,9 +359,7 @@ def test_hybrid_and_analog_expose_atoms_waveforms_and_real_term_mapping() -> Non
         assert quantum["termMapping"]
         assert sum(item["count"] for item in quantum["counts"]) == 8
         if case_id == "settlement":
-            ledger = response.json()["run"]["analysis"]["problem"][
-                "coefficientLedger"
-            ]
+            ledger = response.json()["run"]["analysis"]["problem"]["coefficientLedger"]
             conflict = next(
                 row
                 for row in ledger["rows"]
@@ -629,9 +627,7 @@ def test_repeated_run_statistics_use_quantum_candidates_only() -> None:
     assert statistics["feasibleCount"] == sum(
         item["quantumCandidateFeasible"] for item in statistics["runs"]
     )
-    assert statistics["feasibleRate"] == pytest.approx(
-        statistics["feasibleCount"] / 3
-    )
+    assert statistics["feasibleRate"] == pytest.approx(statistics["feasibleCount"] / 3)
     assert statistics["successSource"] == "quantum_business_candidate"
     assert statistics["objective"]["confidenceLevel"] == 0.95
     assert statistics["totalEvaluationCount"] == sum(

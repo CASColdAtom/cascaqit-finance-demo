@@ -179,9 +179,10 @@ def test_analog_risk_grid_runs_without_changing_price() -> None:
     assert sum(result.execution.result.counts.values()) == 8
     assert price_before == price_after
     assert "reference_price" not in result.execution.to_dict()
-    assert tuple(
-        item.scenario_id for item in result.business_candidate.selected_scenarios
-    ) == result.business_candidate.selected_scenario_ids
+    assert (
+        tuple(item.scenario_id for item in result.business_candidate.selected_scenarios)
+        == result.business_candidate.selected_scenario_ids
+    )
     payload = execution_payload("derivatives", case_input, result)
     assert payload["business"]["pricing"]["reference_price"] == pytest.approx(
         price_before.reference_price

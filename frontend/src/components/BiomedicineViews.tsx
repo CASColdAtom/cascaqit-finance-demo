@@ -19,6 +19,7 @@ import type {
   DockingSolutionPayload,
   ElectronicStructureRunPayload,
   Mode,
+  PeptideRunPayload,
 } from "../types";
 import { compactId, MODE_LABELS } from "../utils";
 import { AtomChart, CountsChart, ParameterChart, WaveformChart } from "./charts/Charts";
@@ -29,6 +30,10 @@ function isDockingRun(run: BiomedicineRunPayload): run is DockingRunPayload {
 
 function isActiveCenterRun(run: BiomedicineRunPayload): run is ActiveCenterRunPayload {
   return run.domain.kind === "active_center_result";
+}
+
+function isPeptideRun(run: BiomedicineRunPayload): run is PeptideRunPayload {
+  return run.domain.kind === "peptide_landscape_result";
 }
 
 function StructureDiagram({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
@@ -138,6 +143,7 @@ export function BiomedicineResultView({
   }
   if (isDockingRun(run)) return <DockingResultView analysis={analysis} run={run} />;
   if (isActiveCenterRun(run)) return <ActiveCenterResultView analysis={analysis} run={run} />;
+  if (isPeptideRun(run)) return <PeptideResultView analysis={analysis} run={run} />;
   const result = run.domain;
   return (
     <div className="view-stack biomed-view">
@@ -167,6 +173,35 @@ export function BiomedicineResultView({
           ))}
         </div>
         <p className="subsection-note">{result.estimatorNote}</p>
+      </section>
+      <BoundaryList values={analysis.dataset.limitations} />
+    </div>
+  );
+}
+
+function PeptideResultView({ analysis, run }: { analysis: BiomedicineAnalysisPayload; run: PeptideRunPayload }) {
+  const candidate = run.domain.quantumCandidate;
+  const minimum = run.domain.classicGroundConformations[0]?.energy ?? 0;
+  const maximum = Math.max(...run.domain.fullLandscape.map((item) => item.energy));
+  const span = Math.max(0.1, maximum - minimum);
+  return (
+    <div className="view-stack biomed-view peptide-result-view">
+      <div className="biomed-metric-band">
+        <div data-pass={candidate.feasible}><small>QUANTUM CANDIDATE</small><strong>{candidate.conformationId ?? "NONE"}</strong><span>{candidate.feasible ? "observed feasible" : "no classic fallback"}</span></div>
+        <div><small>COARSE ENERGY</small><strong>{candidate.energy?.toFixed(3) ?? "N/A"}</strong><span>dimensionless</span></div>
+        <div><small>GROUND DEGENERACY</small><strong>{run.domain.classicGroundConformations.length}</strong><span>{run.domain.classicGroundConformations.map((item) => item.id).join(" / ")}</span></div>
+        <div data-pass={run.domain.energyGapFromGround === 0}><small>GAP FROM GROUND</small><strong>{run.domain.energyGapFromGround?.toFixed(3) ?? "N/A"}</strong><span>observed vs enumeration</span></div>
+      </div>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> COMPLETE CLASSIC LANDSCAPE</span><h3>量子候选与完整离散能景</h3></div><span className="data-chip source-quantum">{run.domain.observedFeasibleCount} OBSERVED</span></div>
+        <div className="peptide-landscape-list">
+          {run.domain.fullLandscape.map((item) => (
+            <div key={item.id} data-selected={item.id === candidate.conformationId} data-ground={item.energy === minimum}>
+              <strong>{item.id}</strong><i><b style={{ width: `${Math.max(3, ((maximum - item.energy) / span) * 100)}%` }} /></i><span>{item.energy.toFixed(3)}</span><small>{item.contactCount} contacts</small>
+            </div>
+          ))}
+        </div>
+        <p className="subsection-note">{run.domain.interpretation}</p>
       </section>
       <BoundaryList values={analysis.dataset.limitations} />
     </div>
@@ -389,6 +424,7 @@ export function BiomedicineQuantumView({
 }) {
   if (!run) return <div className="preview-contract quantum-empty"><Radio size={22} /><strong>{MODE_LABELS[mode]}</strong><span>运行可用场景后展示真实线路、QWC counts 和参数历史。</span></div>;
   if (isDockingRun(run)) return <DockingQuantumView run={run} />;
+  if (isPeptideRun(run)) return <PeptideQuantumView run={run} />;
   const counts = Object.entries(run.quantum.counts)
     .sort((left, right) => right[1] - left[1])
     .map(([state, count], index) => ({ state, count, rank: index + 1 }));
@@ -402,6 +438,16 @@ export function BiomedicineQuantumView({
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>末端采样分布</h3></div></div><CountsChart counts={counts} /></section>
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>VQE 参数目标值</h3></div></div><ParameterChart history={history} /></section>
       </div>
+    </div>
+  );
+}
+
+function PeptideQuantumView({ run }: { run: PeptideRunPayload }) {
+  return (
+    <div className="view-stack biomed-view peptide-quantum-view">
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small>QAOA / ONE-HOT QUBO</small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
+      <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
+      <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>构象选择态分布</h3></div></div><CountsChart counts={run.quantum.counts} /></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
     </div>
   );
 }
@@ -460,7 +506,17 @@ export function BiomedicineAuditView({
           ["Result", run.audit.resultHash],
           ["Presentation", run.audit.resultPresentationHash],
         ]
-      : [
+      : isPeptideRun(run)
+        ? [
+            ["Manifest", run.audit.manifestHash],
+            ["Problem", run.audit.problemHash],
+            ["Hamiltonian", run.audit.hamiltonianHash],
+            ["Analysis", run.audit.analysisHash],
+            ["Ansatz", run.audit.ansatzHash],
+            ["Execution", run.audit.executionHash],
+            ["Result", run.audit.resultHash],
+          ]
+        : [
           ["Manifest", run.audit.manifestHash],
           ["Hamiltonian", run.audit.hamiltonianHash],
           ["Analysis", run.audit.analysisHash],

@@ -1,0 +1,14 @@
+{
+  "dataset_id":"peptide.six-residue.square-lattice",
+  "version":"1",
+  "source":{"kind":"project_generated_enumeration","uri":null,"license":"project_generated"},
+  "generation":{"tool":"deterministic self-avoiding walk enumeration","tool_version":"peptide-fixture-v1","parameters":{"length":6,"lattice":"square_2d","symmetry":"D4 plus translation"}},
+  "units":{"energy":"dimensionless coarse-grained score","coordinates":"lattice unit"},
+  "artifacts":[{"path":"domain.json","sha256":"6fc87e6f7feabc04907ed08541a7cac25cd43cd4c9f08068e5ea82a8cc8c3e56"}],
+  "limitations":[
+    "This is a finite two-dimensional coarse-grained conformation library, not a real protein structure prediction.",
+    "Contact scores are educational dimensionless model values, not molecular free energies.",
+    "The experiment does not model folding kinetics, solvent, side-chain geometry, or biological function.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

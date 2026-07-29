@@ -234,9 +234,17 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "在有限二维自回避构象库中展示粗粒化接触能与低能候选。",
         "route",
         "emerald",
-        (("hydrophobic_core", "疏水核心"), ("charged_competition", "带电竞争")),
         (
-            _select("sequence", "短肽序列", (("HPPHHP", "HPPHHP"),)),
+            ("hydrophobic_core", "疏水核心"),
+            ("charged_competition", "带电竞争"),
+            ("contact_limited", "接触受限"),
+        ),
+        (
+            _select(
+                "sequence",
+                "短肽序列",
+                (("HPPHHP", "HPPHHP"), ("+-P-+H", "+-P-+H"), ("HPHPPH", "HPHPPH")),
+            ),
             _range("contact_weight", "接触能权重", 0.5, 2.0, 0.1),
         ),
         {"sequence": "HPPHHP", "contact_weight": 1.0},
@@ -244,9 +252,9 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "problem",
         "conformation_landscape",
         "peptide-landscape",
-        ("structure_preview", "qubo_design"),
-        "preview",
-        _QAOA_PROFILE,
+        ("analysis", "digital_qaoa", "classic_landscape", "audit"),
+        "available",
+        {**_QAOA_PROFILE, "shots": 256, "seed": 7, "parameterBudget": 24},
     ),
 }
 

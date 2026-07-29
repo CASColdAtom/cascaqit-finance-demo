@@ -57,13 +57,25 @@ def test_docking_analysis_exposes_hybrid_gate_and_offline_source() -> None:
     assert payload["dataset"]["license"] == "CC0-1.0"
 
 
-def test_remaining_preview_scenario_rejects_execution_before_backend_work() -> None:
+def test_peptide_landscape_run_keeps_quantum_and_classic_landscape_separate() -> None:
     run = client.post(
         "/api/domains/biomedicine/scenarios/peptide_landscape/run",
-        json={},
+        json={
+            "preset": "hydrophobic_core",
+            "mode": "digital",
+            "algorithm": "qaoa",
+            "shots": 256,
+            "seed": 7,
+            "layers": 1,
+            "parameter_budget": 24,
+            "optimizer_starts": 1,
+        },
     )
-    assert run.status_code == 422
-    assert run.json()["detail"]["code"] == "BIOMEDICINE_EXECUTOR_NOT_IMPLEMENTED"
+    assert run.status_code == 200
+    domain = run.json()["run"]["domain"]
+    assert domain["quantumCandidate"]["feasible"] is True
+    assert len(domain["fullLandscape"]) == 10
+    assert domain["classicGroundConformations"]
 
 
 def test_active_center_analysis_and_run_expose_one_hamiltonian_chain() -> None:

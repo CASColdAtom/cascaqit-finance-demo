@@ -494,6 +494,7 @@ const scenarioEnglish: Record<
     presets: {
       hydrophobic_core: "Hydrophobic Core",
       charged_competition: "Charge Competition",
+      contact_limited: "Contact Limited",
     },
     controls: {
       sequence: "Peptide Sequence",

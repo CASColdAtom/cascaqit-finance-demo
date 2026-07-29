@@ -167,7 +167,7 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
       await waitForAnalysis(page);
     }
     const runButton = page.locator(".run-button");
-    const shouldBeDisabled = caseId === "peptide_landscape";
+    const shouldBeDisabled = false;
     if ((await runButton.isDisabled()) !== shouldBeDisabled) {
       throw new Error(`${name}/${caseId}: unexpected run button enabled state`);
     }
@@ -256,6 +256,35 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     throw new Error(`${name}: active-center quantum view contains no painted canvas`);
   }
   result.activeCenterQuantum = activeCenterQuantum;
+
+  await page.locator(".scenario-item", { hasText: "小肽能景" }).click();
+  await page.waitForURL("**/biomedicine/peptide_landscape");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  await page.locator(".run-button").click();
+  await page.locator(".peptide-result-view").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const peptideText = await page.locator(".peptide-result-view").innerText();
+  for (const expected of ["QUANTUM CANDIDATE", "COMPLETE CLASSIC LANDSCAPE", "c00"]) {
+    if (!peptideText.includes(expected)) {
+      throw new Error(`${name}: peptide result is missing ${expected}`);
+    }
+  }
+  result.peptideRun = await assertLayout(page, `${name}/peptide-run`);
+  await page.screenshot({
+    path: path.join(outputDir, `peptide-result-${name}.png`),
+    fullPage: true,
+  });
+
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await waitForPaintedCanvas(page, ".peptide-quantum-view canvas");
+  result.peptideQuantum = await assertLayout(page, `${name}/peptide-quantum`);
 
   await page.locator(".scenario-item", { hasText: "电子结构" }).click();
   await page.waitForURL("**/biomedicine/electronic_structure");

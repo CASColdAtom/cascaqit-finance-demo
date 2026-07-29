@@ -2011,6 +2011,35 @@ code,
   background: var(--green);
 }
 
+.peptide-landscape-list {
+  display: grid;
+  padding: 12px 16px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.peptide-landscape-list > div {
+  display: grid;
+  min-height: 38px;
+  grid-template-columns: 42px minmax(80px, 1fr) 64px 82px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.peptide-landscape-list strong,
+.peptide-landscape-list span,
+.peptide-landscape-list small {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+}
+
+.peptide-landscape-list span,
+.peptide-landscape-list small { color: var(--muted); }
+.peptide-landscape-list i { height: 6px; overflow: hidden; background: #0d1312; }
+.peptide-landscape-list b { display: block; height: 100%; background: var(--accent); }
+.peptide-landscape-list [data-ground="true"] strong { color: var(--green); }
+.peptide-landscape-list [data-selected="true"] { background: rgba(40, 210, 219, 0.05); }
+
 .docking-comparison {
   min-height: 330px;
 }

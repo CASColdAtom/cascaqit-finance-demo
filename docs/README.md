@@ -13,6 +13,7 @@
 - [生物医药第一阶段实现报告](process/biomedicine_phase_1_implementation_report.md)：记录统一行业外壳、四场景目录、H2 Pauli VQE、浏览器验收、当前结构预览边界和后续执行链顺序。
 - [生物医药第二阶段实现报告](process/biomedicine_phase_2_docking_report.md)：记录 1HSG 离线派生数据、构象匹配 QUBO、Hybrid 门禁、三类结果分离、固定 seed 校准和浏览器验收。
 - [生物医药第三阶段实现报告](process/biomedicine_phase_3_active_center_report.md)：记录双金属有效自旋 fixture、Digital VQE、QWC 观测量、精确对角化、固定 seed 校准和三视口验收。
+- [生物医药第四阶段实现报告](process/biomedicine_phase_4_peptide_landscape_report.md)：记录二维自回避构象库、one-hot QUBO、Digital QAOA、完整经典能景和四场景联调验收。
 - [前后端分离金融工作台实现报告](process/problem_api_workbench_implementation_report.md)：记录 FastAPI + React 结构、七场景执行、状态隔离、自动验证和人工验收缺口。
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。

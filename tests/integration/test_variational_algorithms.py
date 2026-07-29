@@ -111,11 +111,14 @@ def test_adaptive_qaoa_keeps_all_layers_and_decodes_selected_execution() -> None
     assert result.execution is experiment.selected_execution
     assert result.metadata["layers"] == experiment.selected_layers
     assert result.metadata["parameter_set_count"] == experiment.total_evaluation_count
-    assert result.business_candidate.bitstring == scenario.decode(
-        scenario.default_input(),
-        result.definition,
-        experiment.selected_execution.best_observed_candidate,
-    ).bitstring
+    assert (
+        result.business_candidate.bitstring
+        == scenario.decode(
+            scenario.default_input(),
+            result.definition,
+            experiment.selected_execution.best_observed_candidate,
+        ).bitstring
+    )
 
 
 def test_layer_calibration_uses_paired_repeats_and_quantum_candidates() -> None:

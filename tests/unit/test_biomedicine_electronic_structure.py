@@ -26,7 +26,7 @@ def test_catalog_declares_four_biomedicine_scenarios_and_truthful_status() -> No
     )
     assert {
         item.implementation_status for item in BIOMEDICINE_SCENARIO_SPECS.values()
-    } == {"available", "preview"}
+    } == {"available"}
 
 
 def test_h2_fixture_checksums_and_reference_energy_match_pauli_matrix() -> None:

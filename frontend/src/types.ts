@@ -355,6 +355,14 @@ export interface BiomedicineAnalysisPayload {
     activeSpace?: string;
     mapping?: string;
     sequence?: string;
+    conformations?: Array<{
+      id: string;
+      coordinates: number[][];
+      contacts: number[][];
+      energy: number;
+      contactCount: number;
+    }>;
+    classicGroundIds?: string[];
     structure?: {
       pdb_id: string;
       title: string;
@@ -796,9 +804,82 @@ export interface DockingRunPayload {
   };
 }
 
+export interface PeptideSolutionPayload {
+  bitstring: string;
+  conformationId: string | null;
+  energy: number | null;
+  contactCount: number;
+  coordinates: number[][];
+  contacts: number[][];
+  feasible: boolean;
+  count?: number;
+}
+
+export interface PeptideRunPayload {
+  kind: "biomedicine";
+  analysis: BiomedicineAnalysisPayload;
+  domain: {
+    kind: "peptide_landscape_result";
+    quantumCandidate: PeptideSolutionPayload;
+    topObservedFeasible: PeptideSolutionPayload[];
+    observedFeasibleCount: number;
+    classicGroundConformations: Array<{
+      id: string;
+      coordinates: number[][];
+      contacts: number[][];
+      energy: number;
+      contactCount: number;
+    }>;
+    fullLandscape: Array<{
+      id: string;
+      coordinates: number[][];
+      contacts: number[][];
+      energy: number;
+      contactCount: number;
+    }>;
+    energyGapFromGround: number | null;
+    interpretation: string;
+  };
+  quantum: {
+    kind: "problem_qaoa";
+    mode: "digital";
+    algorithm: "qaoa";
+    summary: { qubits: number; shots: number; evaluations: number; feasibleObserved: number };
+    circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
+    counts: Array<{ state: string; count: number; rank: number }>;
+    parameterHistory: Array<{
+      index: number;
+      objective: number;
+      parameters: Record<string, number>;
+      selected: boolean;
+    }>;
+  };
+  audit: {
+    domainId: "biomedicine";
+    caseId: "peptide_landscape";
+    datasetId: string;
+    datasetVersion: string;
+    manifestHash: string;
+    problemHash: string;
+    hamiltonianHash: string;
+    analysisHash: string;
+    ansatzHash: string;
+    executionHash: string;
+    resultHash: string;
+    seed: number;
+    shots: number;
+    hardwareExecution: false;
+    cloudExecution: false;
+    networkAccessed: false;
+    wallTimeSeconds: number;
+    optimalityClaim: string;
+  };
+}
+
 export type BiomedicineRunPayload =
   | ElectronicStructureRunPayload
   | ActiveCenterRunPayload
+  | PeptideRunPayload
   | DockingRunPayload;
 
 export type WorkbenchRunPayload = RunPayload | BiomedicineRunPayload;

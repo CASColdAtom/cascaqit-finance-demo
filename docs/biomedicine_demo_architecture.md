@@ -11,7 +11,7 @@
 | 执行链 | 场景 | CASCAQit 入口 |
 |---|---|---|
 | Pauli/VQE | 小分子电子结构、金属活性中心有效模型 | `PauliHamiltonian`、`VQE`、`LocalBackend` |
-| 组合优化 | 分子对接、小肽离散构象能景 | `QUBOProblemIR`、`ProblemCompiler`、`LocalBackend` |
+| 组合优化 | 分子对接、小肽离散构象能景 | `QUBOProblemIR`、`QAOA` / `ProblemCompiler`、`LocalBackend` |
 
 Pauli Hamiltonian 不是 QUBO。应用不能为了统一接口把电子结构问题改写成没有化学意义的 Ising 优化，也不能把分子对接的经典评分解释成电子能量。两条链在应用服务层共享输入签名、运行配置、结果摘要和审计记录，不在领域建模层强行合并。
 
@@ -92,11 +92,13 @@ src/
     electronic_structure.py
     fixtures.py
     pauli_vqe.py
+    peptide_landscape.py
     problem_model.py
     data/
       docking_match/
       electronic_structure/
       active_center/
+      peptide_landscape/
   cascaqit_finance_demo/
     api/app.py                 # 统一行业 API 外壳与金融兼容入口
     static/                    # 统一 React 生产构建
@@ -106,7 +108,7 @@ src/
 
 第三阶段已提取不依赖金融类型的 `pauli_vqe.py`，由电子结构与金属活性中心共同复用 Hamiltonian 构造、稳定哈希、精确对角化和自旋扇区聚合。金属活性中心没有继续扩展金融执行器依赖。
 
-构象匹配仍暂时复用 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`。该执行器以结构协议工作，但模块位置和内部结果名仍带金融命名。直接移动文件会保留 `Finance*` 返回类型并产生包初始化循环，不构成真实解耦。因此组合优化共享执行核心的类型提取保留为显式债务，必须在第四个小肽 QUBO 场景接入时完成；生物医药领域模型不得反向继承 `Finance*` 类型。
+小肽场景直接使用 CASCAQit `QAOA`、生物医药自有 `OptimizationProblemDefinition` 和贡献账本，没有新增金融类型依赖。构象匹配因 Hybrid 编译证据仍暂时复用 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`；直接移动文件会保留 `Finance*` 返回类型并产生包初始化循环，不构成真实解耦。这项兼容债务不影响四个领域模型的独立性，但后续应把 Hybrid 编译结果契约提取到领域中性包。
 
 前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建继续复制到现有 `cascaqit_finance_demo/static/`，由统一 FastAPI 应用托管。Python 项目新增 `cascaqit-industry-api` 和 `cascaqit-industry-demo` 入口，金融入口继续保留以兼容已有部署。
 
@@ -284,6 +286,8 @@ PauliHamiltonian
 
 ### 8.2 执行
 
+构象匹配需要 Hybrid 编译证据，通过领域适配器进入 `ProblemCompiler` 和现有场景执行器：
+
 ```text
 QUBOProblemIR
   -> ProblemCompiler.compile(mode, algorithm, target)
@@ -293,6 +297,17 @@ QUBOProblemIR
   -> candidate decoding
   -> original-domain validation
   -> bounded classic comparison
+```
+
+小肽场景只开放 Digital QAOA，不需要构造 Analog core 或 Hybrid residual，直接把领域中性 `QUBOProblemIR` 交给 CASCAQit `QAOA`：
+
+```text
+QUBOProblemIR
+  -> CASCAQit QAOA
+  -> parameter optimization
+  -> final sampling
+  -> one-hot feasible candidate decoding
+  -> complete finite classic landscape comparison
 ```
 
 ### 8.3 系数账本
@@ -526,7 +541,7 @@ source checksum
 
 ### 第四阶段：小肽能景
 
-- 提取领域中性的组合优化执行契约；
+- 使用生物医药自有 QUBO 契约直接接入 CASCAQit QAOA；
 - 构造离散小肽能景和 Digital QAOA；
 - 完成四场景统一导航、结果和审计体验。
 
