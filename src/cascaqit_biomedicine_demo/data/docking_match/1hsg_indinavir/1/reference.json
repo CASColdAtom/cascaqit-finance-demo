@@ -1,0 +1,13 @@
+{
+  "classic_method": "complete enumeration of the packaged binary model",
+  "reference_kind": "co_crystal_derived_discrete_interactions",
+  "reference_pose_id": "pose.crystal",
+  "reference_match_ids": ["match.c0", "match.c2"],
+  "prohibited_interpretations": [
+    "binding_free_energy",
+    "Kd",
+    "Ki",
+    "IC50",
+    "drug_efficacy"
+  ]
+}

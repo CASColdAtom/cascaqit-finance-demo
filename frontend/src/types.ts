@@ -65,6 +65,21 @@ export interface WorkbenchModeDecisionRow {
   availableAlgorithms?: ResolvedAlgorithm[];
   status: ModeStatus;
   reason: string;
+  compilerFeasible?: boolean;
+  businessSuitable?: boolean;
+  diagnosticCodes?: string[];
+  analogTermCount?: number;
+  digitalTermCount?: number;
+  analogBusinessPairs?: string[][];
+  coveredGroupIds?: string[];
+  missingContributionIds?: string[];
+  unexpectedAnalogTermIds?: string[];
+  unexpectedInteractionPairs?: string[][];
+  geometryStatus?: "verified" | "missing" | "distorted";
+  geometrySource?: "business_native" | "verified_embedding" | null;
+  layoutPolicy?: string;
+  declaredContributionCount?: number;
+  coveredContributionCount?: number;
 }
 
 export interface InputRow {
@@ -259,6 +274,9 @@ export interface BiomedicineStructureEdge {
   score?: number;
   order?: number;
   lengthAngstrom?: number;
+  matchId?: string;
+  poseId?: string;
+  critical?: boolean;
 }
 
 export interface BiomedicineAnalysisPayload {
@@ -273,6 +291,9 @@ export interface BiomedicineAnalysisPayload {
     manifestHash: string;
     sourceKind: string;
     license: string;
+    sourceUri?: string;
+    sourceChecksum?: string;
+    licensePolicyUri?: string;
     limitations: string[];
   };
   problem: {
@@ -293,6 +314,28 @@ export interface BiomedicineAnalysisPayload {
       basis: Record<string, string>;
       termIds: string[];
     }>;
+    termGroups?: Array<{
+      group_id: string;
+      label: string;
+      kind: string;
+      variables: string[];
+      pairs: string[][];
+    }>;
+    coefficientLedger?: {
+      balanced: boolean;
+      contributionCount: number;
+      canonicalTermCount: number;
+      rows: Array<{
+        contributionId: string;
+        groupId: string;
+        sourceRule: string;
+        role: string;
+        termKind: string;
+        targets: string[];
+        coefficient: number;
+        canonicalTermId: string;
+      }>;
+    };
   };
   resource: Record<string, number | string | boolean>;
   decision: {
@@ -312,6 +355,40 @@ export interface BiomedicineAnalysisPayload {
     activeSpace?: string;
     mapping?: string;
     sequence?: string;
+    structure?: {
+      pdb_id: string;
+      title: string;
+      ligand_component_id: string;
+      ligand_name: string;
+      protein_chains: string[];
+      pocket_residues: string[];
+    };
+    poses?: Array<{
+      id: string;
+      label: string;
+      strain: number;
+      reference: boolean;
+    }>;
+    matches?: Array<{
+      id: string;
+      pose_id: string;
+      ligand_feature: string;
+      pocket_feature: string;
+      interaction: string;
+      quality: number;
+      distance_deviation: number;
+      angle_deviation: number;
+      critical: boolean;
+      reference: boolean;
+    }>;
+    conflicts?: Array<{
+      left: string;
+      right: string;
+      rule: string;
+      evidence: string;
+    }>;
+    minimumCoverage?: number;
+    weights?: Record<string, string | number>;
     atoms?: BiomedicineStructureNode[];
     bonds?: BiomedicineStructureEdge[];
     nodes?: BiomedicineStructureNode[];
@@ -321,6 +398,10 @@ export interface BiomedicineAnalysisPayload {
       method: string;
       exact_ground_energy_hartree: number;
       hartree_fock_energy_hartree: number;
+    } | {
+      pose_id: string;
+      match_ids: string[];
+      interpretation: string;
     };
   };
 }
@@ -516,7 +597,7 @@ export interface RunPayload {
   statistics?: RepeatedRunStatistics;
 }
 
-export interface BiomedicineRunPayload {
+export interface ElectronicStructureRunPayload {
   kind: "biomedicine";
   analysis: BiomedicineAnalysisPayload;
   domain: {
@@ -588,6 +669,96 @@ export interface BiomedicineRunPayload {
     wallTimeSeconds: number;
   };
 }
+
+export interface DockingSolutionPayload {
+  source: "quantum_observed" | "complete_enumeration" | "co_crystal_reference";
+  bitstring: string;
+  poseId: string | null;
+  selectedMatchIds: string[];
+  modelObjective: number;
+  domainScore: number;
+  coverage: number;
+  referenceOverlap: number;
+  feasible: boolean;
+  checks: Array<{
+    id: string;
+    label: string;
+    passed: boolean;
+    actual: string | number;
+    expected: string | number;
+  }>;
+}
+
+export interface DockingRunPayload {
+  kind: "biomedicine";
+  analysis: BiomedicineAnalysisPayload;
+  domain: {
+    kind: "docking_match_result";
+    quantumCandidate: DockingSolutionPayload;
+    classicOptimum: DockingSolutionPayload;
+    coCrystalReference: DockingSolutionPayload;
+    topObservedFeasible: DockingSolutionPayload[];
+    observedFeasibleCount: number;
+    interpretation: string;
+  };
+  quantum: {
+    kind: "problem_qaoa";
+    mode: "digital" | "hybrid";
+    algorithm: "qaoa";
+    topology: string | null;
+    layerCount: number;
+    blocks: string[];
+    layers: string[];
+    circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
+    atoms: AtomPoint[];
+    waveforms: Record<"rabi" | "detuning" | "phase", WavePoint[]>;
+    counts: Array<{ state: string; count: number; rank: number }>;
+    parameterHistory: Array<{
+      index: number;
+      objective: number;
+      parameters: Record<string, number>;
+      selected: boolean;
+    }>;
+    termMapping: Array<{
+      termId: string;
+      operator: string;
+      targets: string[];
+      logical: number;
+      analog: number;
+      digital: number;
+      implementation: string;
+    }>;
+    summary: {
+      analogTerms: number;
+      digitalTerms: number;
+      qubits: number;
+      shots: number;
+      evaluations: number;
+    };
+  };
+  audit: {
+    domainId: "biomedicine";
+    caseId: "docking_match";
+    datasetId: string;
+    datasetVersion: string;
+    manifestHash: string;
+    problemHash: string;
+    analysisHash: string;
+    compileHash: string;
+    executionHash: string;
+    resultHash: string;
+    resultPresentationHash: string;
+    seed: number;
+    shots: number;
+    hardwareExecution: false;
+    cloudExecution: false;
+    networkAccessed: false;
+    wallTimeSeconds: number;
+    optimalityClaim: string;
+  };
+}
+
+export type BiomedicineRunPayload = ElectronicStructureRunPayload | DockingRunPayload;
 
 export type WorkbenchRunPayload = RunPayload | BiomedicineRunPayload;
 

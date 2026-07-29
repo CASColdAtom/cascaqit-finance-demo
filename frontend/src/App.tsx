@@ -475,7 +475,9 @@ function Workbench() {
   const financeRun = run && !isBiomedicineRun(run) ? (run as RunPayload) : null;
   const displayedShots = run
     ? isBiomedicineRun(run)
-      ? run.audit.shotsPerGroup
+      ? "shots" in run.audit
+        ? run.audit.shots
+        : run.audit.shotsPerGroup
       : run.audit.shots
     : null;
 

@@ -1448,7 +1448,8 @@ code,
   font-size: 0.6rem;
 }
 
-.experiment-header {
+.experiment-header,
+.experiment-banner {
   display: flex;
   min-height: 78px;
   align-items: center;
@@ -1945,6 +1946,175 @@ code,
   color: var(--green);
 }
 
+.docking-comparison {
+  min-height: 330px;
+}
+
+.docking-solution-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.docking-solution {
+  display: grid;
+  min-width: 0;
+  min-height: 250px;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.docking-solution > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.docking-solution small,
+.docking-solution span,
+.docking-solution dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+}
+
+.docking-solution > strong {
+  overflow-wrap: anywhere;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.docking-solution[data-tone="classic"] > strong {
+  color: var(--green);
+}
+
+.docking-solution[data-tone="reference"] > strong {
+  color: var(--amber);
+}
+
+.docking-solution dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--line);
+}
+
+.docking-solution dl > div {
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  background: #0d1312;
+}
+
+.docking-solution dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.docking-solution[data-feasible="false"] dd:last-child {
+  color: var(--red);
+}
+
+.match-token-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.match-token-list span {
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background: #0d1312;
+}
+
+.docking-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.docking-check-grid > div {
+  display: grid;
+  min-width: 0;
+  min-height: 86px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-content: center;
+  gap: 5px 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.docking-check-grid svg {
+  color: var(--red);
+}
+
+.docking-check-grid [data-pass="true"] svg {
+  color: var(--green);
+}
+
+.docking-check-grid strong {
+  overflow-wrap: anywhere;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.docking-check-grid span {
+  grid-column: 2;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+}
+
+.docking-mapping-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hybrid-gate-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.hybrid-gate-list > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 84px 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hybrid-gate-list strong,
+.hybrid-gate-list span,
+.hybrid-gate-list small {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.61rem;
+}
+
+.hybrid-gate-list span,
+.hybrid-gate-list small {
+  color: var(--muted);
+}
+
+.hybrid-gate-list [data-status="recommended"] strong {
+  color: var(--green);
+}
+
 .status-preview {
   color: var(--amber) !important;
 }
@@ -2219,6 +2389,14 @@ code,
   .audit-grid {
     grid-template-columns: 1fr;
   }
+
+  .docking-solution-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .docking-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -2399,7 +2577,8 @@ code,
     font-size: 0.64rem;
   }
 
-  .experiment-header {
+  .experiment-header,
+  .experiment-banner {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -2496,6 +2675,18 @@ code,
 
   .biomed-metric-band {
     grid-template-columns: 1fr;
+  }
+
+  .docking-check-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hybrid-gate-list > div {
+    grid-template-columns: 70px minmax(0, 1fr);
+  }
+
+  .hybrid-gate-list small {
+    grid-column: 1 / -1;
   }
 
   .biomed-metric-band > div {

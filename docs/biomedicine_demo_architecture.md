@@ -87,16 +87,21 @@ flowchart LR
 src/
   cascaqit_biomedicine_demo/
     catalog.py
+    docking.py
     electronic_structure.py
     fixtures.py
+    problem_model.py
     data/
+      docking_match/
       electronic_structure/
   cascaqit_finance_demo/
     api/app.py                 # 统一行业 API 外壳与金融兼容入口
     static/                    # 统一 React 生产构建
 ```
 
-`cascaqit_finance_demo` 在生物医药建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或旧 API。生物医药目录、fixture 和执行器不依赖金融领域类型。只有两个领域出现经过测试的稳定重复逻辑后，才提取公共包；本阶段不做大范围公共层重构。
+`cascaqit_finance_demo` 在生物医药建设期间保持可运行，不直接重命名已有 `FinanceProblemDefinition`、`FinanceModeAdvisor` 或旧 API。生物医药的 fixture、QUBO builder、贡献账本、TermGroup、GeometryEvidence、ProblemDefinition 和解码结果均为独立类型，不依赖 `Finance*` 领域类型。
+
+第二阶段的构象匹配执行适配器暂时复用现有 `cascaqit_finance_demo.quantum.problem_executor.ScenarioExecutor`。该执行器以结构协议工作，但模块位置和内部结果名仍带金融命名。这是明确的过渡债务：接入第三个生物医药执行场景前，应把编译、模式门禁、LocalBackend、参数搜索和量子证据提取到领域中性的共享包，并让金融与生物医药适配器共同回归；不得让新的生物医药领域模型反向继承 `Finance*` 类型。
 
 前端沿用当前 `frontend/` 工程和构建方式，统一展示“中科酷原行业量子实验台”品牌，并增加金融/生物医药领域切换、领域场景目录和领域视图。生产构建继续复制到现有 `cascaqit_finance_demo/static/`，由统一 FastAPI 应用托管。Python 项目新增 `cascaqit-industry-api` 和 `cascaqit-industry-demo` 入口，金融入口继续保留以兼容已有部署。
 

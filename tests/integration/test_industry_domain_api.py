@@ -38,19 +38,62 @@ def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     assert payload["analysis"]["resource"]["measurementGroups"] == 2
 
 
-def test_preview_scenario_rejects_execution_before_backend_work() -> None:
+def test_docking_analysis_exposes_hybrid_gate_and_offline_source() -> None:
     analysis = client.post(
         "/api/domains/biomedicine/scenarios/docking_match/analyze",
         json={},
     )
+    assert analysis.status_code == 200
+    payload = analysis.json()["analysis"]
+    assert payload["implementationStatus"] == "available"
+    assert payload["problem"]["type"] == "qubo"
+    assert payload["decision"]["recommendedMode"] == "hybrid"
+    hybrid = next(
+        item for item in payload["decision"]["modes"] if item["mode"] == "hybrid"
+    )
+    assert hybrid["geometryStatus"] == "verified"
+    assert hybrid["analogTermCount"] > 0
+    assert hybrid["digitalTermCount"] > 0
+    assert payload["dataset"]["license"] == "CC0-1.0"
+
+
+def test_remaining_preview_scenario_rejects_execution_before_backend_work() -> None:
     run = client.post(
-        "/api/domains/biomedicine/scenarios/docking_match/run",
+        "/api/domains/biomedicine/scenarios/active_center/run",
         json={},
     )
-    assert analysis.status_code == 200
-    assert analysis.json()["analysis"]["implementationStatus"] == "preview"
     assert run.status_code == 422
     assert run.json()["detail"]["code"] == "BIOMEDICINE_EXECUTOR_NOT_IMPLEMENTED"
+
+
+def test_docking_run_keeps_quantum_classic_and_reference_results_separate() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/docking_match/run",
+        json={
+            "preset": "reference_pose",
+            "mode": "hybrid",
+            "algorithm": "qaoa",
+            "shots": 128,
+            "seed": 7,
+            "layers": 1,
+            "search_strategy": "continuous",
+            "parameter_budget": 12,
+            "optimizer_starts": 1,
+        },
+    )
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["domain"]["quantumCandidate"]["feasible"] is True
+    assert run["domain"]["quantumCandidate"]["source"] == "quantum_observed"
+    assert run["domain"]["classicOptimum"]["source"] == "complete_enumeration"
+    assert run["domain"]["coCrystalReference"]["source"] == "co_crystal_reference"
+    assert run["quantum"]["blocks"] == [
+        "digital",
+        "analog",
+        "digital",
+        "measure",
+    ]
+    assert run["audit"]["domainId"] == "biomedicine"
 
 
 def test_legacy_finance_catalog_remains_seven_scenarios() -> None:

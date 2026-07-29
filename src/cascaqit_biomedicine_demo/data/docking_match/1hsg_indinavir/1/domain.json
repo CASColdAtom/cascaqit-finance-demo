@@ -1,0 +1,170 @@
+{
+  "structure": {
+    "pdb_id": "1HSG",
+    "title": "HIV protease complexed with L-735,524",
+    "ligand_component_id": "MK1",
+    "ligand_name": "INDINAVIR",
+    "protein_chains": ["A", "B"],
+    "pocket_residues": ["Asp25:A", "Asp25:B", "Ile50:A", "Ile50:B"]
+  },
+  "poses": [
+    {
+      "id": "pose.crystal",
+      "label": "共晶派生构象",
+      "strain": 0.12,
+      "reference": true
+    },
+    {
+      "id": "pose.rotated",
+      "label": "旋转候选构象",
+      "strain": 0.38,
+      "reference": false
+    }
+  ],
+  "matches": [
+    {
+      "id": "match.c0",
+      "pose_id": "pose.crystal",
+      "ligand_feature": "MK1.O2",
+      "pocket_feature": "Asp25:A.carboxylate",
+      "interaction": "hydrogen_bond",
+      "quality": 0.96,
+      "distance_deviation": 0.08,
+      "angle_deviation": 0.05,
+      "critical": true,
+      "reference": true
+    },
+    {
+      "id": "match.c1",
+      "pose_id": "pose.crystal",
+      "ligand_feature": "MK1.O2",
+      "pocket_feature": "Asp25:B.carboxylate",
+      "interaction": "hydrogen_bond",
+      "quality": 0.72,
+      "distance_deviation": 0.24,
+      "angle_deviation": 0.18,
+      "critical": false,
+      "reference": false
+    },
+    {
+      "id": "match.c2",
+      "pose_id": "pose.crystal",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Ile50:A.hydrophobic",
+      "interaction": "hydrophobic",
+      "quality": 0.88,
+      "distance_deviation": 0.12,
+      "angle_deviation": 0.0,
+      "critical": true,
+      "reference": true
+    },
+    {
+      "id": "match.c3",
+      "pose_id": "pose.crystal",
+      "ligand_feature": "MK1.aromatic_B",
+      "pocket_feature": "Ile50:A.hydrophobic",
+      "interaction": "hydrophobic",
+      "quality": 0.66,
+      "distance_deviation": 0.31,
+      "angle_deviation": 0.0,
+      "critical": false,
+      "reference": false
+    },
+    {
+      "id": "match.r0",
+      "pose_id": "pose.rotated",
+      "ligand_feature": "MK1.N2",
+      "pocket_feature": "Asp25:A.carboxylate",
+      "interaction": "hydrogen_bond",
+      "quality": 0.81,
+      "distance_deviation": 0.18,
+      "angle_deviation": 0.16,
+      "critical": true,
+      "reference": false
+    },
+    {
+      "id": "match.r1",
+      "pose_id": "pose.rotated",
+      "ligand_feature": "MK1.N4",
+      "pocket_feature": "Ile50:B.hydrophobic",
+      "interaction": "hydrophobic",
+      "quality": 0.62,
+      "distance_deviation": 0.34,
+      "angle_deviation": 0.0,
+      "critical": false,
+      "reference": false
+    },
+    {
+      "id": "match.r2",
+      "pose_id": "pose.rotated",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Ile50:B.hydrophobic",
+      "interaction": "hydrophobic",
+      "quality": 0.79,
+      "distance_deviation": 0.21,
+      "angle_deviation": 0.0,
+      "critical": true,
+      "reference": false
+    },
+    {
+      "id": "match.r3",
+      "pose_id": "pose.rotated",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Asp25:B.carboxylate",
+      "interaction": "candidate_contact",
+      "quality": 0.48,
+      "distance_deviation": 0.43,
+      "angle_deviation": 0.29,
+      "critical": false,
+      "reference": false
+    }
+  ],
+  "conflicts": [
+    {
+      "left": "match.c0",
+      "right": "match.c1",
+      "rule": "ligand_feature_exclusive",
+      "evidence": "MK1.O2 cannot satisfy two alternative donor/acceptor assignments in one pose"
+    },
+    {
+      "left": "match.c2",
+      "right": "match.c3",
+      "rule": "pocket_occupancy_exclusive",
+      "evidence": "Ile50:A hydrophobic region is represented by one discrete occupancy slot"
+    },
+    {
+      "left": "match.r0",
+      "right": "match.r1",
+      "rule": "spatial_collision",
+      "evidence": "rotated-pose feature volumes overlap in the discretized pocket model"
+    },
+    {
+      "left": "match.r2",
+      "right": "match.r3",
+      "rule": "ligand_feature_exclusive",
+      "evidence": "MK1.aromatic_A has mutually exclusive pocket assignments"
+    }
+  ],
+  "minimum_coverage": 2,
+  "reference": {
+    "pose_id": "pose.crystal",
+    "match_ids": ["match.c0", "match.c2"],
+    "interpretation": "共晶结构派生的离散相互作用参考，不是结合自由能或药效标签"
+  },
+  "visual": {
+    "nodes": [
+      {"id": "MK1.O2", "label": "O2", "group": "Indinavir", "role": "acceptor", "x": 18, "y": 34},
+      {"id": "MK1.aromatic_A", "label": "Ar-A", "group": "Indinavir", "role": "aromatic", "x": 24, "y": 68},
+      {"id": "MK1.N2", "label": "N2", "group": "Indinavir", "role": "donor", "x": 35, "y": 48},
+      {"id": "Asp25:A.carboxylate", "label": "Asp25:A", "group": "Pocket", "role": "acceptor", "x": 72, "y": 28},
+      {"id": "Asp25:B.carboxylate", "label": "Asp25:B", "group": "Pocket", "role": "acceptor", "x": 78, "y": 52},
+      {"id": "Ile50:A.hydrophobic", "label": "Ile50:A", "group": "Pocket", "role": "hydrophobic", "x": 66, "y": 74},
+      {"id": "Ile50:B.hydrophobic", "label": "Ile50:B", "group": "Pocket", "role": "hydrophobic", "x": 84, "y": 78}
+    ]
+  },
+  "limitations": [
+    "离线派生的离散候选匹配，不执行连续空间对接或分子动力学",
+    "评分是无量纲演示目标，不是结合自由能、Kd、Ki、IC50 或药效结论",
+    "局部特征和冲突为可审计演示简化，不替代专业对接软件"
+  ]
+}

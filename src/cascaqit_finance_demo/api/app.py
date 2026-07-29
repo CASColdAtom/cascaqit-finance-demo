@@ -25,6 +25,11 @@ from cascaqit_biomedicine_demo.catalog import (
     BIOMEDICINE_SCENARIO_SPECS,
     preview_analysis,
 )
+from cascaqit_biomedicine_demo.docking import (
+    analyze_docking_match,
+    docking_values,
+    run_docking_match,
+)
 from cascaqit_biomedicine_demo.electronic_structure import (
     analyze_electronic_structure,
     run_electronic_structure,
@@ -238,7 +243,17 @@ def _biomedicine_request(
             status_code=422,
             detail=f"unknown control values: {', '.join(sorted(unknown))}",
         )
-    values = {**spec.values, **request.values}
+    if case_id == "docking_match":
+        try:
+            values = docking_values(preset, request.values)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        values = {
+            key: values[key]
+            for key in ("match_weight", "collision_penalty", "coverage_weight")
+        }
+    else:
+        values = {**spec.values, **request.values}
     return preset, values
 
 
@@ -252,11 +267,12 @@ def analyze_domain_scenario(
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     preset, values = _biomedicine_request(case_id, request)
-    analysis = (
-        analyze_electronic_structure()
-        if case_id == "electronic_structure"
-        else preview_analysis(case_id)
-    )
+    if case_id == "electronic_structure":
+        analysis = analyze_electronic_structure()
+    elif case_id == "docking_match":
+        analysis = analyze_docking_match(preset, values)
+    else:
+        analysis = preview_analysis(case_id)
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
     scenario["values"] = values
     return {"scenario": scenario, "preset": preset, "analysis": analysis}
@@ -282,6 +298,52 @@ async def run_domain_scenario(
                 "stage": "preflight",
             },
         )
+    if case_id == "docking_match":
+        if request.mode == "analog":
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "构象匹配的覆盖与构象约束需要 Digital residual，"
+                    "不支持纯 Analog。"
+                ),
+            )
+        if request.algorithm not in {None, "recommended", "qaoa"}:
+            raise HTTPException(status_code=422, detail="构象匹配只支持 QAOA。")
+        profile = spec.recommended_execution
+        shots = request.shots if request.shots is not None else int(profile["shots"])
+        seed = request.seed if request.seed is not None else int(profile["seed"])
+        layers = (
+            request.layers if request.layers is not None else int(profile["layers"])
+        )
+        strategy = request.search_strategy or str(profile["searchStrategy"])
+        budget = (
+            request.parameter_budget
+            if request.parameter_budget is not None
+            else int(profile["parameterBudget"])
+        )
+        starts = (
+            request.optimizer_starts
+            if request.optimizer_starts is not None
+            else int(profile["optimizerStarts"])
+        )
+        try:
+            run = await run_in_threadpool(
+                run_docking_match,
+                preset=preset,
+                values=values,
+                mode=request.mode,
+                shots=shots,
+                seed=seed,
+                layers=layers,
+                search_strategy=strategy,
+                parameter_budget=budget,
+                optimizer_starts=starts,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        scenario = spec.to_dict()
+        scenario["values"] = values
+        return {"scenario": scenario, "preset": preset, "run": run}
     if request.mode not in {"recommended", "digital"}:
         raise HTTPException(
             status_code=422,

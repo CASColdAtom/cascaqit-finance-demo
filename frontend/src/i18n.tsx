@@ -463,10 +463,12 @@ const scenarioEnglish: Record<
     presets: {
       reference_pose: "Co-crystal Reference",
       strict_geometry: "Strict Geometry",
+      pharmacophore_coverage: "Pharmacophore Coverage",
     },
     controls: {
       match_weight: "Matching Weight",
       collision_penalty: "Collision Penalty",
+      coverage_weight: "Critical-feature Coverage",
     },
   },
   active_center: {

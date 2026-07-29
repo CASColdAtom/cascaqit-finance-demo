@@ -1,0 +1,44 @@
+{
+  "dataset_id": "docking.1hsg.indinavir.discrete-match",
+  "version": "1",
+  "source": {
+    "kind": "RCSB_PDB_derived",
+    "pdb_id": "1HSG",
+    "uri": "https://files.rcsb.org/download/1HSG.cif",
+    "doi": "10.2210/pdb1hsg/pdb",
+    "title": "HIV protease complexed with L-735,524",
+    "ligand_component_id": "MK1",
+    "ligand_name": "INDINAVIR",
+    "initial_release_date": "1996-04-03",
+    "source_file_latest_revision_date": "2024-02-07",
+    "source_file_sha256": "d2ba73b5c4be05c45275571bbb4dd042347927f91c6c05038c0df5d1ce23c268",
+    "license": "CC0-1.0",
+    "license_policy_uri": "https://www.rcsb.org/pages/policies",
+    "license_policy_summary": "RCSB states that data files in the PDB archive are available under the CC0 1.0 Universal Public Domain Dedication; external integrated annotations may have separate terms.",
+    "license_checked_at": "2026-07-29"
+  },
+  "generation": {
+    "tool": "cascaqit-biomedicine fixture curation",
+    "tool_version": "docking-fixture-v1",
+    "parameters": {
+      "model": "discrete ligand-feature to pocket-feature matching",
+      "poses": 2,
+      "candidate_matches": 8,
+      "minimum_coverage": 2
+    }
+  },
+  "units": {
+    "source_coordinates": "angstrom",
+    "neutral_atom_layout": "micrometer",
+    "score": "dimensionless"
+  },
+  "artifacts": [
+    {"path": "domain.json", "sha256": "d485f347cd68a207c3ed9e9f0167028f0fd4db2db3f7c4dec1379063e0f96ca7"},
+    {"path": "reference.json", "sha256": "1d773f5741d06180d6c9a55f3bf20b93a785ceae1af2ac4edb5d8c6064341e41"}
+  ],
+  "limitations": [
+    "Only the minimal derived feature model is packaged; the source mmCIF is identified by checksum but is not bundled.",
+    "The fixture supports a fixed educational matching problem, not arbitrary ligand docking.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

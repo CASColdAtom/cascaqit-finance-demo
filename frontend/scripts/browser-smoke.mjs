@@ -67,6 +67,22 @@ async function layoutSnapshot(page) {
       horizontalOverflow:
         Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) >
         window.innerWidth + 1,
+      overflowElements: [...document.querySelectorAll("body *")]
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.right > window.innerWidth + 1 || rect.width > window.innerWidth + 1;
+        })
+        .slice(0, 12)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            tag: element.tagName.toLowerCase(),
+            className: element.className?.toString().slice(0, 120) ?? "",
+            left: Math.round(rect.left),
+            right: Math.round(rect.right),
+            width: Math.round(rect.width),
+          };
+        }),
       graphics,
     };
   });
@@ -76,7 +92,7 @@ async function assertLayout(page, label) {
   const snapshot = await layoutSnapshot(page);
   if (snapshot.horizontalOverflow) {
     throw new Error(
-      `${label}: horizontal overflow (${snapshot.documentWidth} > ${snapshot.viewportWidth})`,
+      `${label}: horizontal overflow (${snapshot.documentWidth} > ${snapshot.viewportWidth}) ${JSON.stringify(snapshot.overflowElements)}`,
     );
   }
   const structure = page.locator(".biomed-structure-canvas svg:visible");
@@ -88,6 +104,26 @@ async function assertLayout(page, label) {
     if (marks === 0) throw new Error(`${label}: structure SVG contains no marks`);
   }
   return snapshot;
+}
+
+async function waitForPaintedCanvas(page, selector) {
+  await page.locator(selector).first().waitFor({ timeout: 20_000 });
+  await page.waitForFunction(
+    (canvasSelector) =>
+      [...document.querySelectorAll(canvasSelector)].some((element) => {
+        if (!(element instanceof HTMLCanvasElement)) return false;
+        const context = element.getContext("2d");
+        if (!context || !element.width || !element.height) return false;
+        const pixels = context.getImageData(0, 0, element.width, element.height).data;
+        const stride = Math.max(4, Math.floor(pixels.length / (64 * 64 * 4)) * 4);
+        for (let index = 3; index < pixels.length; index += stride) {
+          if (pixels[index] > 0) return true;
+        }
+        return false;
+      }),
+    selector,
+    { timeout: 20_000 },
+  );
 }
 
 async function waitForAnalysis(page) {
@@ -131,12 +167,49 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
       await waitForAnalysis(page);
     }
     const runButton = page.locator(".run-button");
-    const shouldBeDisabled = caseId !== "electronic_structure";
+    const shouldBeDisabled = !["electronic_structure", "docking_match"].includes(caseId);
     if ((await runButton.isDisabled()) !== shouldBeDisabled) {
       throw new Error(`${name}/${caseId}: unexpected run button enabled state`);
     }
     result.scenarios[caseId] = await assertLayout(page, `${name}/${caseId}`);
   }
+
+  await page.locator(".scenario-item", { hasText: "构象匹配" }).click();
+  await page.waitForURL("**/biomedicine/docking_match");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  await page.locator(".run-button").click();
+  await page.locator(".docking-solution-grid").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const dockingText = await page.locator(".docking-result-view").innerText();
+  for (const expected of ["QUANTUM FEASIBLE", "量子观测候选", "经典枚举最优", "共晶派生参考"]) {
+    if (!dockingText.includes(expected)) {
+      throw new Error(`${name}: docking result is missing ${expected}`);
+    }
+  }
+  result.dockingRun = await assertLayout(page, `${name}/docking-run`);
+  await page.screenshot({
+    path: path.join(outputDir, `docking-result-${name}.png`),
+    fullPage: true,
+  });
+
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await waitForPaintedCanvas(page, ".docking-quantum-view canvas");
+  const dockingQuantum = await assertLayout(page, `${name}/docking-quantum`);
+  if (!dockingQuantum.graphics.some((graphic) => graphic.tag === "canvas" && graphic.marks > 0)) {
+    throw new Error(`${name}: docking quantum view contains no painted canvas`);
+  }
+  result.dockingQuantum = dockingQuantum;
+  await page.screenshot({
+    path: path.join(outputDir, `docking-quantum-${name}.png`),
+    fullPage: true,
+  });
 
   await page.locator(".scenario-item", { hasText: "电子结构" }).click();
   await page.waitForURL("**/biomedicine/electronic_structure");
@@ -158,9 +231,7 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   result.h2Run = await assertLayout(page, `${name}/h2-run`);
 
   await page.getByRole("tab", { name: "量子实验" }).click();
-  await page.locator(".view-stage canvas, .view-stage svg").first().waitFor({
-    timeout: 20_000,
-  });
+  await waitForPaintedCanvas(page, ".view-stage canvas");
   const quantum = await assertLayout(page, `${name}/quantum-view`);
   if (!quantum.graphics.some((graphic) => graphic.tag === "canvas" && graphic.marks > 0)) {
     throw new Error(`${name}: quantum view contains no painted canvas`);
