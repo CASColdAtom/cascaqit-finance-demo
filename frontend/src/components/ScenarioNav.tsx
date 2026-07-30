@@ -1,9 +1,13 @@
 import {
+  Activity,
   Atom,
   Building2,
   ChartNoAxesCombined,
+  GitBranch,
+  Grid3X3,
   Landmark,
   Layers3,
+  Network,
   Orbit,
   Route,
   ScanSearch,
@@ -15,10 +19,14 @@ import type { DomainId, ScenarioSpec } from "../types";
 import { useI18n } from "../i18n";
 
 const icons: Record<string, LucideIcon> = {
+  activity: Activity,
   atom: Atom,
   "building-2": Building2,
   "chart-no-axes-combined": ChartNoAxesCombined,
+  "git-branch": GitBranch,
+  "grid-3x3": Grid3X3,
   landmark: Landmark,
+  network: Network,
   orbit: Orbit,
   route: Route,
   "layers-3": Layers3,
@@ -39,7 +47,11 @@ export function ScenarioNav({ scenarios, activeId, onSelect, domainId = "finance
   return (
     <nav className="scenario-nav" aria-label={t("experiments")}>
       <div className="nav-section-label">
-        {domainId === "finance" ? t("financeScenarios") : t("biomedicineScenarios")}
+        {domainId === "finance"
+          ? t("financeScenarios")
+          : domainId === "biomedicine"
+            ? t("biomedicineScenarios")
+            : t("materialsScenarios")}
       </div>
       <div className="scenario-list">
         {scenarios.map((scenario, index) => {
@@ -60,7 +72,11 @@ export function ScenarioNav({ scenarios, activeId, onSelect, domainId = "finance
               </span>
               <span className="scenario-copy">
                 <strong>{scenario.shortTitle}</strong>
-                <small>{scenario.recommendedMode.toUpperCase()}</small>
+                <small>
+                  {scenario.implementationStatus === "preview"
+                    ? "PREVIEW"
+                    : scenario.recommendedMode.toUpperCase()}
+                </small>
               </span>
               <span className="scenario-signal" aria-hidden="true" />
             </button>

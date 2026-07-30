@@ -39,6 +39,13 @@ export function TelemetryHeader({
           >
             {t("biomedicineDomain")}
           </button>
+          <button
+            type="button"
+            aria-pressed={domainId === "materials"}
+            onClick={() => onDomain("materials")}
+          >
+            {t("materialsDomain")}
+          </button>
         </div>
         <div className="telemetry-strip">
           <span className="telemetry-item status-live">

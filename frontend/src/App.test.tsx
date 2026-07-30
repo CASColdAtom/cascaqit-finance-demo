@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AnalysisPayload,
   BiomedicineAnalysisPayload,
+  MaterialsAnalysisPayload,
   ScenarioSpec,
 } from "./types";
 
@@ -191,6 +192,84 @@ const biomedicineAnalysis: BiomedicineAnalysisPayload = {
   },
 };
 
+const materialsScenario: ScenarioSpec = {
+  domainId: "materials",
+  caseId: "rydberg_dynamics",
+  shortTitle: "Rydberg 动力学",
+  title: "材料缺陷晶格中的 Rydberg 动力学与量子淬火",
+  eyebrow: "NATIVE AHS / PURE ANALOG",
+  description: "演化材料有效晶格对应的原生 Rydberg Hamiltonian。",
+  icon: "activity",
+  accent: "emerald",
+  presets: [{ value: "single_vacancy", label: "单空位传播" }],
+  controls: [],
+  values: {},
+  recommendedMode: "analog",
+  executionFamily: "analog_ahs",
+  implementationStatus: "preview",
+  recommendedExecution: {
+    shots: 128,
+    seed: 23,
+    algorithm: "qaa",
+    layers: 1,
+    maxLayers: 1,
+    searchStrategy: "preset",
+    parameterBudget: 2,
+  },
+};
+
+const materialsAnalysis: MaterialsAnalysisPayload = {
+  kind: "materials",
+  caseId: "rydberg_dynamics",
+  executionFamily: "analog_ahs",
+  implementationStatus: "preview",
+  analysisHash: "materials-analysis-hash",
+  dataset: {
+    id: "materials.preview.rydberg",
+    version: "design-1",
+    manifestHash: "materials-manifest-hash",
+    sourceKind: "project_generated_design_preview",
+    license: "project_generated",
+    limitations: ["不执行 AHS 时间演化"],
+  },
+  problem: {
+    id: "materials.preview.rydberg",
+    type: "analog_experiment_definition",
+    hash: "materials-problem-hash",
+    variables: ["site.0", "site.1"],
+    terms: [],
+  },
+  resource: { logicalQubits: 1 },
+  decision: {
+    recommendedMode: "analog",
+    reason: "完整模型目标为纯 Analog；时分辨 SDK 契约尚未通过。",
+    modes: [
+      { mode: "analog", algorithm: "qaa", status: "recommended", reason: "纯 Analog" },
+    ],
+  },
+  domain: {
+    kind: "rydberg_dynamics",
+    modelLevel: "材料有效多体晶格 / 原生 AHS",
+    nodes: [
+      { id: "site.0", label: "S1", x: 14, y: 22, role: "lattice_site" },
+      { id: "site.1", label: "S2", x: 38, y: 22, role: "vacancy" },
+    ],
+    rydbergLayout: [
+      { id: "atom.0", sourceSite: "site.0", x: 10, y: 10, active: true },
+      { id: "atom.1", sourceSite: "site.1", x: 15.6, y: 10, active: false },
+    ],
+    sampleTimes: [0, 0.6, 1.2],
+    pulse: { duration: 1.2, rabiPeak: 2.4, detuningStart: -2, detuningEnd: 2 },
+    pureAnalogEvidence: {
+      digitalGateCount: 0,
+      digitalResidualCount: 0,
+      hybridBlockCount: 0,
+      status: "planned",
+    },
+    limitations: ["不执行 AHS 时间演化"],
+  },
+};
+
 beforeEach(() => {
   api.getScenarios.mockResolvedValue([scenario]);
   api.analyzeScenario.mockResolvedValue({
@@ -206,6 +285,44 @@ afterEach(() => {
 });
 
 describe("App", () => {
+  it("opens the materials Analog preview without exposing a digital circuit", async () => {
+    api.getScenarios.mockImplementation((domainId?: string) =>
+      Promise.resolve(domainId === "materials" ? [materialsScenario] : [scenario]),
+    );
+    api.analyzeScenario.mockImplementation((caseId: string) =>
+      Promise.resolve(
+        caseId === "rydberg_dynamics"
+          ? {
+              scenario: materialsScenario,
+              preset: "single_vacancy",
+              analysis: materialsAnalysis,
+            }
+          : { scenario, preset: "base", analysis },
+      ),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "多资产投资组合优化" });
+    fireEvent.click(screen.getByRole("button", { name: "材料科学" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "材料缺陷晶格中的 Rydberg 动力学与量子淬火",
+      }),
+    ).toBeTruthy();
+    expect(await screen.findByText("周期晶格与缺陷")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", {
+        name: "结构预览",
+      }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.queryByText("数字量子线路")).toBeNull();
+    expect(screen.queryByText("digital")).toBeNull();
+    expect(screen.queryByText("hybrid")).toBeNull();
+    expect(screen.queryByText("QUBO")).toBeNull();
+    expect(window.location.pathname).toBe("/materials/rydberg_dynamics");
+  });
+
   it("switches domains without mixing finance and biomedicine navigation", async () => {
     api.getScenarios.mockImplementation((domainId?: string) =>
       Promise.resolve(domainId === "biomedicine" ? [biomedicineScenario] : [scenario]),

@@ -5,7 +5,7 @@ export type LayerPolicy = "fixed" | "adaptive";
 export type SearchStrategy = "preset" | "grid" | "seeded_sample" | "continuous";
 export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
-export type DomainId = "finance" | "biomedicine";
+export type DomainId = "finance" | "biomedicine" | "materials";
 export type ImplementationStatus = "available" | "preview";
 export type ExperimentLevel = "standard" | "advanced";
 export type ComplexityLevel = "standard" | "advanced_live" | "research";
@@ -56,7 +56,7 @@ export interface ScenarioSpec {
   values: Record<string, string | number | boolean>;
   recommendedMode: Mode;
   recommendedExecution?: ExecutionProfile;
-  executionFamily?: "problem" | "pauli_vqe";
+  executionFamily?: "problem" | "pauli_vqe" | "analog_ahs";
   resultKind?: string;
   visualKind?: string;
   capabilities?: string[];
@@ -563,7 +563,55 @@ export interface BiomedicineAnalysisPayload {
   };
 }
 
-export type WorkbenchAnalysisPayload = AnalysisPayload | BiomedicineAnalysisPayload;
+export interface MaterialsAnalysisPayload {
+  kind: "materials";
+  caseId: string;
+  executionFamily: "problem" | "analog_ahs";
+  implementationStatus: ImplementationStatus;
+  analysisHash: string;
+  dataset: BiomedicineAnalysisPayload["dataset"];
+  problem: BiomedicineAnalysisPayload["problem"];
+  resource: Record<string, number | string | boolean>;
+  decision: BiomedicineAnalysisPayload["decision"];
+  domain: {
+    kind: "defect_adsorption" | "rydberg_dynamics";
+    modelLevel: string;
+    nodes: BiomedicineStructureNode[];
+    adsorbates?: Array<{
+      id: string;
+      site: string;
+      label: string;
+      orientation: string;
+    }>;
+    constraints?: string[];
+    rydbergLayout?: Array<{
+      id: string;
+      sourceSite: string;
+      x: number;
+      y: number;
+      active: boolean;
+    }>;
+    sampleTimes?: number[];
+    pulse?: {
+      duration: number;
+      rabiPeak: number;
+      detuningStart: number;
+      detuningEnd: number;
+    };
+    pureAnalogEvidence?: {
+      digitalGateCount: number;
+      digitalResidualCount: number;
+      hybridBlockCount: number;
+      status: string;
+    };
+    limitations: string[];
+  };
+}
+
+export type WorkbenchAnalysisPayload =
+  | AnalysisPayload
+  | BiomedicineAnalysisPayload
+  | MaterialsAnalysisPayload;
 
 export interface AnalyzeResponse {
   scenario: ScenarioSpec;

@@ -45,30 +45,32 @@ def test_default_data_dir_uses_platform_user_storage(tmp_path) -> None:
     ) == (tmp_path / ".local" / "share" / suffix[0] / suffix[1])
 
 
-def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
+def test_domain_catalog_keeps_three_industry_domains_separate() -> None:
     domains = client.get("/api/domains")
     finance = client.get("/api/domains/finance/scenarios")
     biomedicine = client.get("/api/domains/biomedicine/scenarios")
+    materials = client.get("/api/domains/materials/scenarios")
 
     assert domains.status_code == 200
     assert [item["id"] for item in domains.json()["domains"]] == [
         "finance",
         "biomedicine",
+        "materials",
     ]
     assert len(finance.json()["scenarios"]) == 7
-    assert len(biomedicine.json()["scenarios"]) == 4
+    assert len(biomedicine.json()["scenarios"]) == 6
+    assert len(materials.json()["scenarios"]) == 2
     assert {item["domainId"] for item in finance.json()["scenarios"]} == {"finance"}
     assert {item["domainId"] for item in biomedicine.json()["scenarios"]} == {
         "biomedicine"
     }
+    assert {item["domainId"] for item in materials.json()["scenarios"]} == {"materials"}
     assert all(
         item["experimentLevels"] == ["standard", "advanced"]
         for item in biomedicine.json()["scenarios"]
     )
     statuses = {
-        item["caseId"]: [
-            profile["status"] for profile in item["complexityProfiles"]
-        ]
+        item["caseId"]: [profile["status"] for profile in item["complexityProfiles"]]
         for item in biomedicine.json()["scenarios"]
     }
     assert statuses["electronic_structure"] == [
@@ -82,6 +84,71 @@ def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
         "available",
         "planned",
     ]
+    assert statuses["rna_structure"] == ["available", "planned", "planned"]
+    assert statuses["protein_dynamics"] == ["available", "planned", "planned"]
+    assert all(
+        item["implementationStatus"] == "preview"
+        for item in materials.json()["scenarios"]
+    )
+
+
+def test_v3_biomedicine_research_entries_are_analysis_only() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/rna_structure/analyze",
+        json={"preset": "hairpin_reference", "values": {}},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["scenario"]["implementationStatus"] == "preview"
+    assert payload["analysis"]["domain"]["kind"] == "rna_structure"
+    assert "experimentPlan" not in payload
+
+
+def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> None:
+    response = client.post(
+        "/api/domains/materials/scenarios/rydberg_dynamics/analyze",
+        json={"preset": "single_vacancy", "values": {}},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    analysis = payload["analysis"]
+    assert analysis["kind"] == "materials"
+    assert analysis["executionFamily"] == "analog_ahs"
+    assert analysis["implementationStatus"] == "preview"
+    assert analysis["problem"]["type"] == "analog_experiment_definition"
+    assert analysis["domain"]["pureAnalogEvidence"] == {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0,
+        "status": "planned",
+    }
+    assert analysis["resource"]["analogSites"] == 11
+    assert "logicalQubits" not in analysis["resource"]
+    assert len(analysis["domain"]["sampleTimes"]) == 9
+    material_x = analysis["domain"]["nodes"][0]["x"]
+    rydberg_x = analysis["domain"]["rydbergLayout"][0]["x"]
+    assert material_x != rydberg_x
+    assert "experimentPlan" not in payload
+
+    run = client.post(
+        "/api/domains/materials/scenarios/rydberg_dynamics/run",
+        json={"preset": "single_vacancy", "values": {}},
+    )
+    assert run.status_code == 422
+    assert run.json()["detail"]["code"] == "MATERIALS_EXECUTOR_NOT_IMPLEMENTED"
+
+    defect = client.post(
+        "/api/domains/materials/scenarios/defect_adsorption/analyze",
+        json={"preset": "ceria_vacancy_co", "values": {}},
+    ).json()["analysis"]
+    statuses = {item["mode"]: item["status"] for item in defect["decision"]["modes"]}
+    assert statuses == {
+        "digital": "comparable",
+        "hybrid": "recommended",
+        "analog": "unsuitable",
+    }
 
 
 def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:
@@ -357,8 +424,10 @@ def test_h2o_api_returns_separate_evidence_and_persists_report(
     assert run["quantum"]["measurement"]["groups"]
     assert run["quantum"]["measurement"]["noisyGroups"]
     assert run["audit"]["noiseModelHash"]
-    report_path = tmp_path / "reports" / (
-        f"electronic_structure-{run['audit']['reportHash'][:16]}.json"
+    report_path = (
+        tmp_path
+        / "reports"
+        / (f"electronic_structure-{run['audit']['reportHash'][:16]}.json")
     )
     assert run["audit"]["reportPath"] == str(report_path.resolve())
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -465,13 +534,7 @@ def test_corrupted_electronic_fixture_returns_422_without_local_path(
 ) -> None:
     copied_data = tmp_path / "data"
     shutil.copytree(fixtures.DATA_ROOT, copied_data)
-    pauli = (
-        copied_data
-        / "electronic_structure"
-        / "h2_sto3g"
-        / "1"
-        / "pauli.json"
-    )
+    pauli = copied_data / "electronic_structure" / "h2_sto3g" / "1" / "pauli.json"
     pauli.write_text(pauli.read_text(encoding="utf-8") + " ", encoding="utf-8")
     monkeypatch.setattr(fixtures, "DATA_ROOT", copied_data)
 

@@ -114,6 +114,10 @@ function ControlField({
 export function ControlPanel(props: ControlPanelProps) {
   const { t, tx } = useI18n();
   const modes = props.analysis?.decision.modes ?? [];
+  const modeCandidates: Mode[] =
+    props.scenario.executionFamily === "analog_ahs"
+      ? ["analog"]
+      : ["digital", "hybrid", "analog"];
   const selectedMode = modes.find((item) => item.mode === props.mode);
   const availableAlgorithms = selectedMode?.availableAlgorithms ?? [
     selectedMode?.algorithm ?? (props.mode === "analog" ? "qaa" : "qaoa"),
@@ -228,7 +232,7 @@ export function ControlPanel(props: ControlPanelProps) {
             </span>
           </div>
           <div className="mode-segments" role="group" aria-label={t("executionMode")}>
-            {(["digital", "hybrid", "analog"] as Mode[]).map((candidate) => {
+            {modeCandidates.map((candidate) => {
               const row = modes.find((item) => item.mode === candidate);
               const unavailable = row?.status === "unsuitable";
               return (

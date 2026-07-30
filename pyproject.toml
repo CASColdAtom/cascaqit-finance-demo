@@ -38,6 +38,7 @@ packages = [
     "src/cascaqit_industry_demo",
     "src/cascaqit_finance_demo",
     "src/cascaqit_biomedicine_demo",
+    "src/cascaqit_materials_demo",
 ]
 
 [tool.pytest.ini_options]

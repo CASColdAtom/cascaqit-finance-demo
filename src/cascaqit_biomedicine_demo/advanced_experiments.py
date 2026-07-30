@@ -205,6 +205,8 @@ _STANDARD_LIMITS: dict[str, tuple[int, int, int, int]] = {
     "docking_match": (0, 12, 128, 0),
     "active_center": (2, 0, 16, 8),
     "peptide_landscape": (0, 16, 256, 0),
+    "rna_structure": (0, 16, 256, 0),
+    "protein_dynamics": (0, 16, 256, 0),
 }
 
 _ADVANCED_LIVE_AVAILABLE_CASES = {
@@ -335,9 +337,7 @@ def _configuration_cost(
 ) -> float:
     shots = int(configuration.get("shots", recommended.get("shots", 64)))
     budget = int(
-        configuration.get(
-            "parameter_budget", recommended.get("parameterBudget", 1)
-        )
+        configuration.get("parameter_budget", recommended.get("parameterBudget", 1))
     )
     starts = int(
         configuration.get("optimizer_starts", recommended.get("optimizerStarts", 1))
@@ -379,9 +379,7 @@ def build_experiment_plan(
             "algorithm": recommended_execution.get("algorithm", "recommended"),
             "layers": int(recommended_execution.get("layers", 1)),
             "shots": int(recommended_execution.get("shots", 64)),
-            "parameter_budget": int(
-                recommended_execution.get("parameterBudget", 1)
-            ),
+            "parameter_budget": int(recommended_execution.get("parameterBudget", 1)),
             "optimizer_starts": int(recommended_execution.get("optimizerStarts", 1)),
         }
     ]
@@ -486,9 +484,7 @@ def build_experiment_plan(
             else {"recommended", "digital"}
         )
         expected_algorithm = (
-            "qaoa"
-            if case_id in {"docking_match", "peptide_landscape"}
-            else "vqe"
+            "qaoa" if case_id in {"docking_match", "peptide_landscape"} else "vqe"
         )
         if mode not in allowed_modes:
             diagnostics.append(
@@ -574,9 +570,7 @@ def build_experiment_plan(
     subproblem_hash = _stable_hash(
         {
             "selectionRule": "identity.v1",
-            "problemHashes": [
-                item["quantumSubproblemHash"] for item in point_payloads
-            ],
+            "problemHashes": [item["quantumSubproblemHash"] for item in point_payloads],
         }
     )
     plan_identity = {

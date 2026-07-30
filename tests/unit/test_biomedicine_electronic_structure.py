@@ -25,12 +25,14 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
 )
 
 
-def test_catalog_declares_four_biomedicine_scenarios_and_truthful_status() -> None:
+def test_catalog_declares_six_biomedicine_scenarios_and_truthful_status() -> None:
     assert tuple(BIOMEDICINE_SCENARIO_SPECS) == (
         "electronic_structure",
         "docking_match",
         "active_center",
         "peptide_landscape",
+        "rna_structure",
+        "protein_dynamics",
     )
     electronic = BIOMEDICINE_SCENARIO_SPECS["electronic_structure"]
     assert electronic.implementation_status == "available"
@@ -41,8 +43,16 @@ def test_catalog_declares_four_biomedicine_scenarios_and_truthful_status() -> No
         "h2o_minimal",
     }
     assert {
-        item.implementation_status for item in BIOMEDICINE_SCENARIO_SPECS.values()
-    } == {"available"}
+        case_id: item.implementation_status
+        for case_id, item in BIOMEDICINE_SCENARIO_SPECS.items()
+    } == {
+        "electronic_structure": "available",
+        "docking_match": "available",
+        "active_center": "available",
+        "peptide_landscape": "available",
+        "rna_structure": "preview",
+        "protein_dynamics": "preview",
+    }
 
 
 @pytest.mark.parametrize("dataset", tuple(ELECTRONIC_DATASET_PATHS))

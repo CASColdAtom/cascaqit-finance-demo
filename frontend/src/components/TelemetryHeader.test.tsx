@@ -23,7 +23,7 @@ describe("TelemetryHeader", () => {
     expect(within(header).getByText("RESEARCH DEMONSTRATION")).toBeTruthy();
   });
 
-  it("exposes the finance and biomedicine domain switch", () => {
+  it("exposes all industry domains in one switch", () => {
     const onDomain = vi.fn();
     render(
       <I18nProvider initialLanguage="zh">
@@ -34,5 +34,7 @@ describe("TelemetryHeader", () => {
     expect(screen.getByRole("button", { name: "金融" }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "生物医药" }));
     expect(onDomain).toHaveBeenCalledWith("biomedicine");
+    fireEvent.click(screen.getByRole("button", { name: "材料科学" }));
+    expect(onDomain).toHaveBeenCalledWith("materials");
   });
 });

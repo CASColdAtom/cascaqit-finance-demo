@@ -10,10 +10,12 @@ const VIEWPORTS = [
 ];
 
 const BIOMEDICINE_CASES = [
-  ["electronic_structure", "电子结构"],
-  ["docking_match", "构象匹配"],
-  ["active_center", "金属活性中心"],
-  ["peptide_landscape", "小肽能景"],
+  ["electronic_structure", "电子结构", false],
+  ["docking_match", "构象匹配", false],
+  ["active_center", "金属活性中心", false],
+  ["peptide_landscape", "小肽能景", false],
+  ["rna_structure", "RNA 折叠路径", true],
+  ["protein_dynamics", "蛋白转变路径", true],
 ];
 
 function option(name, fallback) {
@@ -103,6 +105,16 @@ async function assertLayout(page, label) {
       .count();
     if (marks === 0) throw new Error(`${label}: structure SVG contains no marks`);
   }
+  const materialsStructures = page.locator(".materials-lattice-svg:visible");
+  for (let index = 0; index < (await materialsStructures.count()); index += 1) {
+    const marks = await materialsStructures
+      .nth(index)
+      .locator("circle, line, path, polyline, polygon, rect")
+      .count();
+    if (marks === 0) {
+      throw new Error(`${label}: materials SVG ${index + 1} contains no marks`);
+    }
+  }
   return snapshot;
 }
 
@@ -142,6 +154,15 @@ async function selectBiomedicine(page) {
   await waitForAnalysis(page);
 }
 
+async function selectMaterials(page) {
+  await page
+    .getByRole("group", { name: "行业领域" })
+    .getByRole("button", { name: "材料科学" })
+    .click();
+  await page.waitForURL("**/materials/defect_adsorption");
+  await waitForAnalysis(page);
+}
+
 async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   const page = await browser.newPage({ viewport: { width, height } });
   const consoleErrors = [];
@@ -172,14 +193,14 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     viewport: { width, height },
     scenarios: {},
   };
-  for (const [caseId, shortTitle] of BIOMEDICINE_CASES) {
+  for (const [caseId, shortTitle, previewOnly] of BIOMEDICINE_CASES) {
     if (caseId !== "electronic_structure") {
       await page.locator(".scenario-item", { hasText: shortTitle }).click();
       await page.waitForURL(`**/biomedicine/${caseId}`);
       await waitForAnalysis(page);
     }
     const runButton = page.locator(".run-button");
-    const shouldBeDisabled = false;
+    const shouldBeDisabled = previewOnly;
     if ((await runButton.isDisabled()) !== shouldBeDisabled) {
       throw new Error(`${name}/${caseId}: unexpected run button enabled state`);
     }
@@ -410,6 +431,48 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     path: path.join(outputDir, `biomedicine-${name}.png`),
     fullPage: true,
   });
+
+  await selectMaterials(page);
+  result.materials = {
+    defectAdsorption: await assertLayout(page, `${name}/defect-adsorption`),
+  };
+  let runButton = page.locator(".run-button");
+  if (!(await runButton.isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  if (!(await runButton.isDisabled())) {
+    throw new Error(`${name}/defect-adsorption: preview run button is enabled`);
+  }
+
+  await page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click();
+  await page.waitForURL("**/materials/rydberg_dynamics");
+  await waitForAnalysis(page);
+  runButton = page.locator(".run-button");
+  if (!(await runButton.isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  if (!(await runButton.isDisabled())) {
+    throw new Error(`${name}/rydberg-dynamics: preview run button is enabled`);
+  }
+  const analogSnapshot = await assertLayout(page, `${name}/rydberg-dynamics`);
+  if ((await page.locator(".rydberg-register-svg:visible").count()) !== 1) {
+    throw new Error(`${name}/rydberg-dynamics: separate Rydberg register is missing`);
+  }
+  if ((await page.getByText("数字量子线路", { exact: true }).count()) !== 0) {
+    throw new Error(`${name}/rydberg-dynamics: digital circuit leaked into pure Analog`);
+  }
+  const analogModes = await page.locator(".mode-segments").innerText();
+  if (/digital|hybrid/i.test(analogModes)) {
+    throw new Error(`${name}/rydberg-dynamics: non-Analog mode is visible`);
+  }
+  await page.getByRole("tab", { name: "领域结果" }).click();
+  await page.getByText("ANALOG ONLY", { exact: true }).waitFor();
+  result.materials.rydbergDynamics = analogSnapshot;
+  await page.screenshot({
+    path: path.join(outputDir, `materials-analog-${name}.png`),
+    fullPage: true,
+  });
+
   result.consoleErrors = consoleErrors;
   result.pageErrors = pageErrors;
   if (consoleErrors.length || pageErrors.length) {

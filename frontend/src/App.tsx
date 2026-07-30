@@ -26,6 +26,7 @@ import type {
   LayerPolicy,
   Mode,
   LocalJob,
+  MaterialsAnalysisPayload,
   RunPayload,
   RunRequest,
   ScenarioSpec,
@@ -85,6 +86,11 @@ const BiomedicineComparisonView = lazy(() =>
     default: module.BiomedicineComparisonView,
   })),
 );
+const MaterialsView = lazy(() =>
+  import("./components/MaterialsViews").then((module) => ({
+    default: module.MaterialsView,
+  })),
+);
 
 const DEFAULT_EXECUTION_PROFILE: ExecutionProfile = {
   shots: 32,
@@ -117,6 +123,12 @@ function isBiomedicineAnalysis(
   return "kind" in analysis && analysis.kind === "biomedicine";
 }
 
+function isMaterialsAnalysis(
+  analysis: WorkbenchAnalysisPayload,
+): analysis is MaterialsAnalysisPayload {
+  return "kind" in analysis && analysis.kind === "materials";
+}
+
 function isBiomedicineRun(run: WorkbenchRunPayload): run is BiomedicineRunPayload {
   return "kind" in run && run.kind === "biomedicine";
 }
@@ -125,7 +137,10 @@ function cacheIdentity(
   analysis: WorkbenchAnalysisPayload | null,
   scenario: ScenarioSpec | null,
 ): ExecutionIdentity {
-  if (analysis && isBiomedicineAnalysis(analysis)) {
+  if (
+    analysis &&
+    (isBiomedicineAnalysis(analysis) || isMaterialsAnalysis(analysis))
+  ) {
     return {
       datasetVersion: analysis.dataset.version,
       manifestHash: analysis.dataset.manifestHash,
@@ -195,7 +210,11 @@ function Workbench() {
   const suppressAnalysis = useRef(false);
   const cache = useRef(new Map<string, WorkbenchRunPayload>());
   const catalogs = useRef(new Map<DomainId, ScenarioSpec[]>());
-  const lastScenario = useRef<Record<DomainId, string>>({ finance: "", biomedicine: "" });
+  const lastScenario = useRef<Record<DomainId, string>>({
+    finance: "",
+    biomedicine: "",
+    materials: "",
+  });
 
   const activeScenario = useMemo(
     () => scenarios.find((scenario) => scenario.caseId === activeId) ?? null,
@@ -618,8 +637,14 @@ function Workbench() {
   const biomedicineAnalysis =
     analysis && isBiomedicineAnalysis(analysis) ? analysis : null;
   const biomedicineRun = run && isBiomedicineRun(run) ? run : null;
+  const materialsAnalysis =
+    analysis && isMaterialsAnalysis(analysis) ? analysis : null;
   const financeAnalysis =
-    analysis && !isBiomedicineAnalysis(analysis) ? (analysis as AnalysisPayload) : null;
+    analysis &&
+    !isBiomedicineAnalysis(analysis) &&
+    !isMaterialsAnalysis(analysis)
+      ? (analysis as AnalysisPayload)
+      : null;
   const financeRun = run && !isBiomedicineRun(run) ? (run as RunPayload) : null;
   const displayedShots = run
     ? isBiomedicineRun(run)
@@ -629,7 +654,7 @@ function Workbench() {
       : run.audit.shots
     : null;
   const visibleTabs =
-    domainId === "biomedicine"
+    domainId !== "finance"
       ? viewTabs
       : viewTabs.filter((tab) => tab.id !== "comparison");
 
@@ -836,7 +861,9 @@ function Workbench() {
             ) : null}
             {analysis ? (
               <Suspense fallback={<ViewLoading />}>
-                {biomedicineAnalysis ? (
+                {materialsAnalysis ? (
+                  <MaterialsView analysis={materialsAnalysis} view={activeView} />
+                ) : biomedicineAnalysis ? (
                   <>
                     {activeView === "business" ? <BiomedicineResultView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}
                     {activeView === "scenario" ? <BiomedicineStructureView analysis={biomedicineAnalysis} /> : null}

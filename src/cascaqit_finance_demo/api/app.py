@@ -72,11 +72,18 @@ from cascaqit_finance_demo.cases.problem_scenarios import PROBLEM_SCENARIOS
 from cascaqit_finance_demo.quantum.problem_executor import (
     ScenarioExecutor,
 )
+from cascaqit_materials_demo.catalog import (
+    MATERIALS_SCENARIO_SPECS,
+)
+from cascaqit_materials_demo.catalog import (
+    preview_analysis as materials_preview_analysis,
+)
 
 # 前端构建产物随 Python wheel 一起安装，不能依赖源码仓库中的 frontend/dist。
 # 这样复制到离线机器后，仅安装 wheel 就能提供完整页面。
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIST = PACKAGE_ROOT / "static"
+
 
 # 报告属于运行数据，不应写入只读的 site-packages。离线包可通过环境变量把
 # 数据目录指向其便携目录；常规安装默认写入操作系统的用户数据目录。
@@ -103,9 +110,7 @@ def _default_user_data_dir(
     else:
         configured_base = current_environ.get("XDG_DATA_HOME")
         base = (
-            Path(configured_base)
-            if configured_base
-            else user_home / ".local" / "share"
+            Path(configured_base) if configured_base else user_home / ".local" / "share"
         )
     return base / "CASColdAtom" / "IndustryQuantumWorkbench"
 
@@ -377,6 +382,13 @@ def domains() -> dict[str, Any]:
                 "description": "电子结构、构象匹配、有效自旋与小肽能景实验",
                 "scenarioCount": len(BIOMEDICINE_SCENARIO_SPECS),
             },
+            {
+                "id": "materials",
+                "label": "材料科学",
+                "shortLabel": "材料",
+                "description": "缺陷吸附构型优化与原生 Rydberg 多体动力学",
+                "scenarioCount": len(MATERIALS_SCENARIO_SPECS),
+            },
         ]
     }
 
@@ -391,6 +403,10 @@ def domain_scenarios(domain_id: str) -> dict[str, Any]:
             "scenarios": [
                 spec.to_dict() for spec in BIOMEDICINE_SCENARIO_SPECS.values()
             ]
+        }
+    if domain_id == "materials":
+        return {
+            "scenarios": [spec.to_dict() for spec in MATERIALS_SCENARIO_SPECS.values()]
         }
     raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
 
@@ -470,6 +486,58 @@ def _biomedicine_error(code: str, message: str, stage: str) -> HTTPException:
         status_code=422,
         detail={"code": code, "message": message, "stage": stage},
     )
+
+
+def _materials_request(
+    case_id: str, request: ScenarioRequest
+) -> tuple[str, dict[str, str | int | float | bool]]:
+    """Validate one materials preview request without accepting arbitrary fields."""
+
+    try:
+        spec = MATERIALS_SCENARIO_SPECS[case_id]
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"unknown materials scenario: {case_id}"
+        ) from exc
+    preset = request.preset or spec.presets[0][0]
+    if preset not in {value for value, _label in spec.presets}:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "MATERIALS_PRESET_UNKNOWN",
+                "message": f"unknown preset: {preset}",
+                "stage": "preflight",
+            },
+        )
+    controls = {control.key: control for control in spec.controls}
+    unknown = set(request.values) - set(controls)
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "MATERIALS_CONTROL_UNKNOWN",
+                "message": f"unknown control values: {', '.join(sorted(unknown))}",
+                "stage": "preflight",
+            },
+        )
+    values = {**spec.values, **request.values}
+    for key, value in values.items():
+        control = controls[key]
+        if control.kind == "range":
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "MATERIALS_CONTROL_INVALID",
+                        "message": f"{key} requires a numeric value",
+                        "stage": "preflight",
+                    },
+                )
+            if control.minimum is not None and float(value) < control.minimum:
+                raise HTTPException(status_code=422, detail=f"{key} is below minimum")
+            if control.maximum is not None and float(value) > control.maximum:
+                raise HTTPException(status_code=422, detail=f"{key} exceeds maximum")
+    return preset, values
 
 
 def _analyze_biomedicine_case(
@@ -609,6 +677,18 @@ def analyze_domain_scenario(
     """Analyze a domain scenario while preserving the legacy finance route."""
     if domain_id == "finance":
         return analyze(case_id, request)
+    if domain_id == "materials":
+        preset, values = _materials_request(case_id, request)
+        spec = MATERIALS_SCENARIO_SPECS[case_id]
+        scenario = spec.to_dict()
+        scenario["values"] = values
+        analysis = materials_preview_analysis(case_id, preset, values)
+        return {
+            "scenario": scenario,
+            "preset": preset,
+            "dataset": analysis["dataset"],
+            "analysis": analysis,
+        }
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     preset, values = _biomedicine_request(case_id, request)
@@ -620,6 +700,15 @@ def analyze_domain_scenario(
             "BIOMEDICINE_ANALYSIS_INVALID", str(exc), "analysis"
         ) from exc
     spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    if spec.implementation_status != "available":
+        scenario = spec.to_dict()
+        scenario["values"] = values
+        return {
+            "scenario": scenario,
+            "preset": preset,
+            "dataset": analysis["dataset"],
+            "analysis": analysis,
+        }
     try:
         plan = build_experiment_plan(
             case_id=case_id,
@@ -658,12 +747,8 @@ def _execute_biomedicine_job_unit(
     configuration = unit.configuration
     shots = int(configuration.get("shots", profile["shots"]))
     layers = int(configuration.get("layers", profile["layers"]))
-    budget = int(
-        configuration.get("parameter_budget", profile["parameterBudget"])
-    )
-    starts = int(
-        configuration.get("optimizer_starts", profile["optimizerStarts"])
-    )
+    budget = int(configuration.get("parameter_budget", profile["parameterBudget"]))
+    starts = int(configuration.get("optimizer_starts", profile["optimizerStarts"]))
     if case_id == "docking_match":
         mode = str(configuration.get("mode", spec.recommended_mode))
         if mode == "recommended":
@@ -690,9 +775,7 @@ def _execute_biomedicine_job_unit(
             optimizer_starts=starts,
         )
     runner = (
-        run_active_center
-        if case_id == "active_center"
-        else run_electronic_structure
+        run_active_center if case_id == "active_center" else run_electronic_structure
     )
     return runner(
         preset=preset,
@@ -782,6 +865,16 @@ async def run_domain_scenario(
     """Execute an available domain scenario through its native execution family."""
     if domain_id == "finance":
         return await run_scenario(case_id, request)
+    if domain_id == "materials":
+        _materials_request(case_id, request)
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "MATERIALS_EXECUTOR_NOT_IMPLEMENTED",
+                "message": "该材料场景当前只开放可审计分析预览，执行器尚未接入。",
+                "stage": "preflight",
+            },
+        )
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     request_started = time.perf_counter()
@@ -800,9 +893,7 @@ async def run_domain_scenario(
         if request.mode == "analog":
             raise _biomedicine_error(
                 "DOCKING_MODE_UNSUPPORTED",
-                (
-                    "构象匹配的覆盖与构象约束需要 Digital residual，不支持纯 Analog。"
-                ),
+                ("构象匹配的覆盖与构象约束需要 Digital residual，不支持纯 Analog。"),
                 "preflight",
             )
         if request.algorithm not in {None, "recommended", "qaoa"}:

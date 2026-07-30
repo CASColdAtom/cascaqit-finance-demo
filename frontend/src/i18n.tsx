@@ -16,6 +16,7 @@ const zh = {
   industryDomain: "行业领域",
   financeDomain: "金融",
   biomedicineDomain: "生物医药",
+  materialsDomain: "材料科学",
   serviceOnline: "实验服务在线",
   syntheticData: "合成数据",
   auditReady: "执行可审计",
@@ -26,6 +27,7 @@ const zh = {
   experiments: "行业场景",
   financeScenarios: "金融场景",
   biomedicineScenarios: "生物医药场景",
+  materialsScenarios: "材料科学场景",
   execution: "实验执行",
   loadingService: "正在连接实验服务",
   loadingView: "加载实验视图",
@@ -172,6 +174,7 @@ const en: MessageDictionary = {
   industryDomain: "Industry Domain",
   financeDomain: "Finance",
   biomedicineDomain: "Biomedicine",
+  materialsDomain: "Materials",
   serviceOnline: "Execution Service Online",
   syntheticData: "Synthetic Data",
   auditReady: "Auditable Execution",
@@ -182,6 +185,7 @@ const en: MessageDictionary = {
   experiments: "Industry Scenarios",
   financeScenarios: "Financial Scenarios",
   biomedicineScenarios: "Biomedicine Scenarios",
+  materialsScenarios: "Materials Scenarios",
   execution: "Experiment Execution",
   loadingService: "Connecting to Experiment Service",
   loadingView: "Loading Experiment View",
@@ -519,6 +523,69 @@ const scenarioEnglish: Record<
     controls: {
       sequence: "Peptide Sequence",
       contact_weight: "Contact-energy Weight",
+    },
+  },
+  rna_structure: {
+    shortTitle: "RNA Folding",
+    title: "RNA Secondary-structure Ensemble and Folding Paths",
+    description:
+      "Search a sourced set of candidate base pairs and energy parameters for low-energy feasible secondary structures.",
+    presets: {
+      hairpin_reference: "Short Hairpin Reference",
+      stem_competition: "Competing Stems",
+      limited_pseudoknot: "Limited Pseudoknot Research Preset",
+    },
+    controls: {
+      sequence: "RNA Sequence",
+      minimum_loop: "Minimum Loop Length",
+    },
+  },
+  protein_dynamics: {
+    shortTitle: "Protein Path",
+    title: "Protein Conformational-transition Paths and Dynamics Network",
+    description:
+      "Search a versioned metastable-state network for connected, low-cost discrete transition paths.",
+    presets: {
+      open_to_closed: "Open to Closed",
+      barrier_shift: "Barrier Perturbation",
+      alternate_basin: "Competing Conformational Basin",
+    },
+    controls: {
+      maximum_steps: "Maximum Path Steps",
+      barrier_weight: "Barrier Weight",
+    },
+  },
+  defect_adsorption: {
+    shortTitle: "Defects and Adsorption",
+    title: "Catalytic-surface Defect and Adsorption Configuration Optimization",
+    description:
+      "Jointly select defects, adsorption sites, and coverage on a versioned periodic surface with an offline energy model.",
+    presets: {
+      ceria_vacancy_co: "CeO2(111) Oxygen Vacancy / CO",
+      tio2_vacancy_water: "TiO2(110) Oxygen Vacancy / H2O",
+      mos2_vacancy_hydrogen: "MoS2 Sulfur Vacancy / H",
+    },
+    controls: {
+      defect_count: "Number of Defects",
+      coverage: "Adsorption Coverage",
+      interaction_weight: "Nearest-neighbor Interaction Weight",
+    },
+  },
+  rydberg_dynamics: {
+    shortTitle: "Rydberg Dynamics",
+    title: "Rydberg Dynamics and Quantum Quench in a Defective Material Lattice",
+    description:
+      "Evolve a native Rydberg Hamiltonian derived from an effective material lattice to study defect-induced propagation and localization.",
+    presets: {
+      perfect_lattice: "Perfect-lattice Baseline",
+      single_vacancy: "Single-vacancy Propagation",
+      multi_defect_impurity: "Multiple Defects / Local Impurity",
+    },
+    controls: {
+      duration_us: "Evolution Duration",
+      rabi_amplitude: "Peak Rabi Amplitude",
+      detuning_end: "Final Detuning",
+      sample_count: "Sampling Times",
     },
   },
 };
