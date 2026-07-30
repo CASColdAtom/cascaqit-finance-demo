@@ -1,0 +1,123 @@
+{
+  "modelLevel": "版本化粗粒化构象状态网络",
+  "proteinLabel": "Adenylate kinase open/closed teaching network",
+  "nodes": [
+    {
+      "id": "state.open",
+      "label": "Open",
+      "basin": "open",
+      "x": 7,
+      "y": 52,
+      "structureSource": {
+        "kind": "public_experimental_endpoint",
+        "identifier": "RCSB PDB 4AKE",
+        "method": "endpoint label only; coordinates are not redistributed"
+      }
+    },
+    {
+      "id": "state.hinge",
+      "label": "Hinge",
+      "basin": "open-intermediate",
+      "x": 28,
+      "y": 25,
+      "structureSource": {
+        "kind": "project_curated_coarse_grained_centroid",
+        "identifier": "cg-centroid-hinge-v1",
+        "method": "synthetic teaching centroid"
+      }
+    },
+    {
+      "id": "state.lid",
+      "label": "LID shift",
+      "basin": "lid-intermediate",
+      "x": 49,
+      "y": 18,
+      "structureSource": {
+        "kind": "project_curated_coarse_grained_centroid",
+        "identifier": "cg-centroid-lid-v1",
+        "method": "synthetic teaching centroid"
+      }
+    },
+    {
+      "id": "state.core",
+      "label": "Core pack",
+      "basin": "core-intermediate",
+      "x": 49,
+      "y": 78,
+      "structureSource": {
+        "kind": "project_curated_coarse_grained_centroid",
+        "identifier": "cg-centroid-core-v1",
+        "method": "synthetic teaching centroid"
+      }
+    },
+    {
+      "id": "state.alt",
+      "label": "Alt basin",
+      "basin": "alternate",
+      "x": 28,
+      "y": 82,
+      "structureSource": {
+        "kind": "project_curated_coarse_grained_centroid",
+        "identifier": "cg-centroid-alt-v1",
+        "method": "synthetic teaching centroid"
+      }
+    },
+    {
+      "id": "state.preclosed",
+      "label": "Pre-closed",
+      "basin": "closed-intermediate",
+      "x": 70,
+      "y": 42,
+      "structureSource": {
+        "kind": "project_curated_coarse_grained_centroid",
+        "identifier": "cg-centroid-preclosed-v1",
+        "method": "synthetic teaching centroid"
+      }
+    },
+    {
+      "id": "state.closed",
+      "label": "Closed",
+      "basin": "closed",
+      "x": 93,
+      "y": 52,
+      "structureSource": {
+        "kind": "public_experimental_endpoint",
+        "identifier": "RCSB PDB 1AKE",
+        "method": "endpoint label only; coordinates are not redistributed"
+      }
+    }
+  ],
+  "transitions": [
+    {"id": "tr.open_hinge", "from": "state.open", "to": "state.hinge", "structuralCost": 0.35, "barrierProfiles": {"baseline": 0.72, "barrier_shift": 1.18, "alternate_basin": 0.82}},
+    {"id": "tr.hinge_lid", "from": "state.hinge", "to": "state.lid", "structuralCost": 0.28, "barrierProfiles": {"baseline": 0.66, "barrier_shift": 1.24, "alternate_basin": 0.78}},
+    {"id": "tr.hinge_preclosed", "from": "state.hinge", "to": "state.preclosed", "structuralCost": 0.42, "barrierProfiles": {"baseline": 1.02, "barrier_shift": 0.62, "alternate_basin": 0.98}},
+    {"id": "tr.open_alt", "from": "state.open", "to": "state.alt", "structuralCost": 0.48, "barrierProfiles": {"baseline": 1.12, "barrier_shift": 1.02, "alternate_basin": 0.52}},
+    {"id": "tr.alt_core", "from": "state.alt", "to": "state.core", "structuralCost": 0.31, "barrierProfiles": {"baseline": 0.88, "barrier_shift": 0.78, "alternate_basin": 0.46}},
+    {"id": "tr.alt_preclosed", "from": "state.alt", "to": "state.preclosed", "structuralCost": 0.38, "barrierProfiles": {"baseline": 1.05, "barrier_shift": 0.91, "alternate_basin": 0.72}},
+    {"id": "tr.lid_preclosed", "from": "state.lid", "to": "state.preclosed", "structuralCost": 0.25, "barrierProfiles": {"baseline": 0.58, "barrier_shift": 0.74, "alternate_basin": 0.65}},
+    {"id": "tr.core_preclosed", "from": "state.core", "to": "state.preclosed", "structuralCost": 0.27, "barrierProfiles": {"baseline": 0.63, "barrier_shift": 0.58, "alternate_basin": 0.49}},
+    {"id": "tr.lid_closed", "from": "state.lid", "to": "state.closed", "structuralCost": 0.47, "barrierProfiles": {"baseline": 1.08, "barrier_shift": 0.84, "alternate_basin": 1.12}},
+    {"id": "tr.core_closed", "from": "state.core", "to": "state.closed", "structuralCost": 0.44, "barrierProfiles": {"baseline": 0.92, "barrier_shift": 0.69, "alternate_basin": 0.64}},
+    {"id": "tr.preclosed_closed", "from": "state.preclosed", "to": "state.closed", "structuralCost": 0.18, "barrierProfiles": {"baseline": 0.42, "barrier_shift": 0.39, "alternate_basin": 0.45}},
+    {"id": "tr.hinge_closed", "from": "state.hinge", "to": "state.closed", "structuralCost": 0.65, "barrierProfiles": {"baseline": 1.20, "barrier_shift": 2.10, "alternate_basin": 1.45}},
+    {"id": "tr.alt_closed", "from": "state.alt", "to": "state.closed", "structuralCost": 0.58, "barrierProfiles": {"baseline": 1.32, "barrier_shift": 1.18, "alternate_basin": 0.52}},
+    {"id": "tr.hinge_alt", "from": "state.hinge", "to": "state.alt", "structuralCost": 0.55, "barrierProfiles": {"baseline": 1.22, "barrier_shift": 0.94, "alternate_basin": 0.67}},
+    {"id": "tr.alt_lid", "from": "state.alt", "to": "state.lid", "structuralCost": 0.51, "barrierProfiles": {"baseline": 1.16, "barrier_shift": 1.05, "alternate_basin": 0.73}}
+  ],
+  "edgeWeight": {
+    "meaning": "structuralCost + barrierWeight * barrierProfile",
+    "unit": "dimensionless_model_cost",
+    "sourceMethod": "project-authored coarse-grained teaching score; not a rate or elapsed time"
+  },
+  "presets": {
+    "open_to_closed": {"start": "state.open", "target": "state.closed", "weightProfile": "baseline", "referencePath": ["state.open", "state.hinge", "state.closed"]},
+    "barrier_shift": {"start": "state.open", "target": "state.closed", "weightProfile": "barrier_shift", "referencePath": ["state.open", "state.hinge", "state.preclosed", "state.closed"]},
+    "alternate_basin": {"start": "state.open", "target": "state.closed", "weightProfile": "alternate_basin", "referencePath": ["state.open", "state.alt", "state.closed"]}
+  },
+  "selection": {
+    "ruleVersion": "connectivity-first-v1",
+    "maximumActiveNodes": 4,
+    "description": "Lock start, target and the minimum-cost bounded path, then add the highest-coverage basin-diverse state if capacity remains."
+  },
+  "penalties": {"oneHot": 9.0, "endpoint": 9.0, "invalidTransition": 9.0, "repeatedState": 9.0}
+}

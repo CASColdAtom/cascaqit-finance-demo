@@ -51,7 +51,7 @@ def test_catalog_declares_six_biomedicine_scenarios_and_truthful_status() -> Non
         "active_center": "available",
         "peptide_landscape": "available",
         "rna_structure": "available",
-        "protein_dynamics": "preview",
+        "protein_dynamics": "available",
     }
 
 

@@ -9,6 +9,8 @@ import type {
   DockingSolutionPayload,
   ElectronicStructureRunPayload,
   PeptideRunPayload,
+  ProteinDynamicsRunPayload,
+  ProteinPathSolutionPayload,
   RNARunPayload,
   RNAStructureSolutionPayload,
 } from "../types";
@@ -337,6 +339,124 @@ const rnaRun = {
   },
 } as unknown as RNARunPayload;
 
+const proteinStates = [
+  { id: "state.open", label: "Open", basin: "open", x: 8, y: 50, structureSource: { kind: "public", identifier: "4AKE", method: "endpoint" } },
+  { id: "state.hinge", label: "Hinge", basin: "intermediate", x: 35, y: 28, structureSource: { kind: "curated", identifier: "hinge-v1", method: "centroid" } },
+  { id: "state.alt", label: "Alt", basin: "alternate", x: 35, y: 76, structureSource: { kind: "curated", identifier: "alt-v1", method: "centroid" } },
+  { id: "state.preclosed", label: "Pre-closed", basin: "intermediate", x: 66, y: 45, structureSource: { kind: "curated", identifier: "pre-v1", method: "centroid" } },
+  { id: "state.closed", label: "Closed", basin: "closed", x: 92, y: 50, structureSource: { kind: "public", identifier: "1AKE", method: "endpoint" } },
+];
+
+const proteinTransitions = [
+  ["tr.open_hinge", "state.open", "state.hinge", 1.1],
+  ["tr.open_alt", "state.open", "state.alt", 1.4],
+  ["tr.hinge_pre", "state.hinge", "state.preclosed", 0.9],
+  ["tr.alt_pre", "state.alt", "state.preclosed", 0.8],
+  ["tr.pre_closed", "state.preclosed", "state.closed", 0.6],
+].map(([id, from, to, cost]) => ({
+  id: String(id),
+  from: String(from),
+  to: String(to),
+  structuralCost: Number(cost) / 2,
+  barrierProfiles: { baseline: Number(cost) / 2 },
+  barrierProfile: "baseline",
+  barrierComponent: Number(cost) / 2,
+  cost: Number(cost),
+  unit: "dimensionless_model_cost" as const,
+  sourceMethod: "project-authored teaching score",
+}));
+
+const proteinPath: ProteinPathSolutionPayload = {
+  source: "quantum_observed",
+  bitstring: "100100100001",
+  stateIds: ["state.open", "state.hinge", "state.preclosed", "state.closed"],
+  transitionIds: ["tr.open_hinge", "tr.hinge_pre", "tr.pre_closed"],
+  pathLength: 3,
+  pathCost: 2.6,
+  costUnit: "dimensionless_model_cost",
+  modelObjective: 2.6,
+  feasible: true,
+  pathOverlap: 1,
+  failureReasons: [],
+  count: 18,
+  checks: [],
+};
+
+const proteinAnalysis: BiomedicineAnalysisPayload = {
+  ...rnaAnalysis,
+  caseId: "protein_dynamics",
+  dataset: {
+    id: "protein.adenylate-kinase.conformation-network.teaching-v1",
+    version: "1",
+    manifestHash: "protein-manifest",
+    sourceKind: "project_curated_teaching_network",
+    license: "project-authored",
+    allowedClaims: ["Finite state-network path search"],
+    limitations: ["Path cost is not time, rate, or residence time"],
+  },
+  problem: { ...rnaAnalysis.problem, id: "protein-path-qubo", variables: Array.from({ length: 12 }, (_, index) => `q${index}`) },
+  domain: {
+    kind: "protein_dynamics",
+    modelLevel: "版本化粗粒化构象状态网络",
+    proteinLabel: "Adenylate kinase open/closed teaching network",
+    startState: "state.open",
+    targetState: "state.closed",
+    maximumSteps: 3,
+    barrierWeight: 1,
+    weightProfile: "baseline",
+    edgeWeight: { meaning: "structural + barrier", unit: "dimensionless_model_cost", sourceMethod: "teaching score" },
+    stateNodes: proteinStates,
+    transitions: proteinTransitions,
+    activeNodes: proteinStates,
+    activeEdges: proteinTransitions,
+    classicShortestPath: { ...proteinPath, source: "classic_bounded_dijkstra", scope: "complete_network" },
+    classicActivePath: { ...proteinPath, source: "classic_bounded_dijkstra", scope: "active_subgraph" },
+    subproblemSelection: {
+      ruleVersion: "connectivity-first-v1",
+      selectionHash: "protein-selection",
+      completeStateCount: 7,
+      selectedStateCount: 5,
+      completePathCount: 11,
+      activePathCount: 2,
+      activeNodeIds: proteinStates.map((item) => item.id),
+      activeTransitionIds: proteinTransitions.map((item) => item.id),
+      lockedPath: proteinPath.stateIds,
+      connectivityPreserved: true,
+      startPreserved: true,
+      targetPreserved: true,
+      coverageRate: 5 / 7,
+      excluded: [{ id: "state.lid", reason: "outside active window" }],
+    },
+    limitations: ["Path cost is not time, rate, or residence time"],
+  },
+};
+
+const proteinRun = {
+  kind: "biomedicine",
+  analysis: proteinAnalysis,
+  domain: {
+    kind: "protein_dynamics_result",
+    quantumStatus: "observed_feasible",
+    quantumCandidate: proteinPath,
+    topObservedFeasible: [proteinPath],
+    observedFeasibleCount: 1,
+    observedFeasibleRate: 0.28125,
+    classicShortestPath: { ...proteinPath, source: "classic_bounded_dijkstra", scope: "complete_network" },
+    classicActivePath: { ...proteinPath, source: "classic_bounded_dijkstra", scope: "active_subgraph" },
+    failureReasons: [{ id: "flow_conservation", shotCount: 10 }],
+    interpretation: "pathCost 是无量纲离散模型代价，不表示真实时间、速率或驻留时间。",
+  },
+  quantum: rnaRun.quantum,
+  audit: {
+    ...rnaRun.audit,
+    caseId: "protein_dynamics",
+    conformationSetHash: "states-hash",
+    transitionNetworkHash: "network-hash",
+    selectionHash: "selection-hash",
+    pathQuboHash: "path-qubo-hash",
+  },
+} as unknown as ProteinDynamicsRunPayload;
+
 afterEach(cleanup);
 
 describe("Biomedicine terminology", () => {
@@ -497,5 +617,57 @@ describe("Biomedicine RNA views", () => {
     rerender(<BiomedicineAuditView analysis={rnaAnalysis} run={rnaRun} />);
     expect(screen.getByText("Hamiltonian")).toBeTruthy();
     expect(screen.getByText("rna-report")).toBeTruthy();
+  });
+});
+
+describe("Biomedicine protein-path views", () => {
+  it("renders the complete network, active subgraph, and observed path", () => {
+    const { rerender } = render(
+      <BiomedicineResultView analysis={proteinAnalysis} run={null} />,
+    );
+    expect(screen.getByRole("img", { name: "完整蛋白构象状态网络与量子活动子图" })).toBeTruthy();
+    expect(screen.getByText("COMPLETE PATHS")).toBeTruthy();
+    expect(screen.getByText("ACTIVE PATHS")).toBeTruthy();
+
+    rerender(<BiomedicineResultView analysis={proteinAnalysis} run={proteinRun} />);
+    expect(screen.getByRole("img", { name: "量子观测蛋白构象转变路径" })).toBeTruthy();
+    expect(screen.getByText("量子观测候选")).toBeTruthy();
+    expect(screen.getByText("经典完整网络基线")).toBeTruthy();
+    expect(screen.getByText(/不表示真实时间、速率或驻留时间/)).toBeTruthy();
+  });
+
+  it("keeps a missing quantum path empty instead of displaying the classic path", () => {
+    const noObservation = {
+      ...proteinRun,
+      domain: {
+        ...proteinRun.domain,
+        quantumStatus: "quantum_not_observed",
+        quantumCandidate: null,
+        topObservedFeasible: [],
+        observedFeasibleCount: 0,
+        observedFeasibleRate: 0,
+      },
+    } as ProteinDynamicsRunPayload;
+    render(<BiomedicineResultView analysis={proteinAnalysis} run={noObservation} />);
+    expect(screen.getAllByText("NO FALLBACK").length).toBeGreaterThan(0);
+    expect(screen.getByText("未观测到可行路径")).toBeTruthy();
+    expect(screen.getByText("经典完整网络基线")).toBeTruthy();
+  });
+
+  it("labels path counts and classic comparisons without kinetic claims", () => {
+    const { rerender } = render(
+      <I18nProvider>
+        <BiomedicineQuantumView run={proteinRun} mode="digital" />
+      </I18nProvider>,
+    );
+    expect(screen.getByText("有限 shots 路径编码分布")).toBeTruthy();
+    expect(screen.getByText(/Counts 不是转移概率、速率或驻留时间/)).toBeTruthy();
+
+    rerender(
+      <BiomedicineComparisonView analysis={proteinAnalysis} run={proteinRun} />,
+    );
+    expect(screen.getByText("构象转变路径三方对照")).toBeTruthy();
+    expect(screen.getByText("经典完整网络")).toBeTruthy();
+    expect(screen.getByText("经典活动子图")).toBeTruthy();
   });
 });

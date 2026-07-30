@@ -488,7 +488,13 @@ def build_experiment_plan(
         )
         expected_algorithm = (
             "qaoa"
-            if case_id in {"docking_match", "peptide_landscape", "rna_structure"}
+            if case_id
+            in {
+                "docking_match",
+                "peptide_landscape",
+                "rna_structure",
+                "protein_dynamics",
+            }
             else "vqe"
         )
         if mode not in allowed_modes:

@@ -1,0 +1,68 @@
+{
+  "dataset_id": "protein.adenylate-kinase.conformation-network.teaching-v1",
+  "version": "1",
+  "source": {
+    "kind": "project_curated_teaching_network",
+    "uri": "https://www.rcsb.org/structure/4AKE; https://www.rcsb.org/structure/1AKE",
+    "license": "CC0-1.0 endpoint metadata; project-authored network parameters",
+    "license_checked_at": "2026-07-30",
+    "source_file_sha256": "16f48c10aa639c1f03a4ecdffc9c9436121e6f22c5ad73c40ad8c30dc1387ba9"
+  },
+  "generation": {
+    "tool": "cascaqit-finance-demo protein-network fixture builder",
+    "tool_version": "1",
+    "parameters": {
+      "network_kind": "directed coarse-grained teaching network",
+      "endpoint_structures": ["RCSB PDB 4AKE", "RCSB PDB 1AKE"],
+      "maximum_active_nodes": 4
+    }
+  },
+  "units": {
+    "edge_weight": "dimensionless_model_cost",
+    "path_cost": "dimensionless_model_cost",
+    "diagram_coordinates": "percent"
+  },
+  "coordinate_system": "normalized_2d_state_network_layout",
+  "variable_order": [
+    "tr.open_hinge",
+    "tr.hinge_lid",
+    "tr.hinge_preclosed",
+    "tr.open_alt",
+    "tr.alt_core",
+    "tr.alt_preclosed",
+    "tr.lid_preclosed",
+    "tr.core_preclosed",
+    "tr.lid_closed",
+    "tr.core_closed",
+    "tr.preclosed_closed",
+    "tr.hinge_closed",
+    "tr.alt_closed",
+    "tr.hinge_alt",
+    "tr.alt_lid"
+  ],
+  "reference": {
+    "method": "bounded dynamic programming on the complete versioned network",
+    "software_version": "Python 3 standard library",
+    "standard_presets": {
+      "open_to_closed": "state.open>state.hinge>state.closed",
+      "barrier_shift": "state.open>state.hinge>state.preclosed>state.closed",
+      "alternate_basin": "state.open>state.alt>state.closed"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "16f48c10aa639c1f03a4ecdffc9c9436121e6f22c5ad73c40ad8c30dc1387ba9"
+    }
+  ],
+  "allowed_claims": [
+    "Searches a low-cost feasible path in a finite versioned conformation-state network",
+    "Compares QAOA-observed candidates with an independent bounded classical path baseline"
+  ],
+  "limitations": [
+    "Intermediate states and transition scores are project-authored coarse-grained teaching data, not experimentally resolved kinetics",
+    "Path cost is dimensionless and must not be interpreted as time, rate, residence time, or free energy",
+    "The experiment does not predict protein structure, perform all-atom folding, or run quantum molecular dynamics",
+    "QAOA counts are finite-shot observation frequencies and are not transition probabilities"
+  ]
+}

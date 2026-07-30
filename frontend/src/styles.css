@@ -2105,6 +2105,205 @@ code,
 
 .rna-count-warning svg { flex: 0 0 auto; }
 
+.protein-network {
+  min-height: 360px;
+  border: 1px solid var(--line);
+  background: #0a1012;
+  overflow: hidden;
+}
+
+.protein-network svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  min-height: 300px;
+}
+
+.protein-transition line {
+  stroke: #465258;
+  stroke-width: 0.8;
+  opacity: 0.58;
+}
+
+.protein-transition text {
+  fill: #758288;
+  font-family: var(--font-mono);
+  font-size: 2.4px;
+}
+
+.protein-transition path,
+#protein-arrow path {
+  fill: #68767c;
+}
+
+.protein-transition[data-active="true"] line {
+  stroke: var(--cyan);
+  opacity: 0.88;
+}
+
+.protein-transition[data-path="true"] line {
+  stroke: var(--green);
+  stroke-width: 1.7;
+  opacity: 1;
+}
+
+.protein-transition[data-path="true"] text {
+  fill: var(--green);
+  font-weight: 700;
+}
+
+.protein-state circle {
+  fill: #121b1e;
+  stroke: #59666c;
+  stroke-width: 0.8;
+}
+
+.protein-state > text:not(.protein-basin) {
+  fill: var(--text);
+  font-size: 2.8px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.protein-state .protein-basin {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 2.25px;
+}
+
+.protein-state[data-active="true"] circle {
+  fill: #0c2429;
+  stroke: var(--cyan);
+  stroke-width: 1.15;
+}
+
+.protein-state[data-path="true"] circle {
+  fill: #10281f;
+  stroke: var(--green);
+  stroke-width: 1.6;
+}
+
+.protein-state[data-endpoint="true"] circle {
+  stroke-dasharray: 2 1;
+}
+
+.protein-network-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.protein-network-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.protein-network-legend i {
+  width: 16px;
+  height: 2px;
+  background: #59666c;
+}
+
+.protein-network-legend [data-kind="active"] i { background: var(--cyan); }
+.protein-network-legend [data-kind="path"] i { background: var(--green); }
+
+.protein-model-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-top: 0;
+}
+
+.protein-model-strip > div {
+  min-width: 0;
+  padding: 11px 13px;
+  border-right: 1px solid var(--line);
+}
+
+.protein-model-strip > div:last-child { border-right: 0; }
+
+.protein-model-strip small,
+.protein-path-card small,
+.protein-path-card dt {
+  display: block;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.protein-model-strip strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.protein-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.protein-path-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: #0a1012;
+}
+
+.protein-path-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.protein-path-card > div:first-child span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-align: right;
+}
+
+.protein-path-card > strong {
+  display: block;
+  min-height: 42px;
+  margin: 14px 0;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.protein-path-card[data-tone="classic"] > strong { color: var(--green); }
+
+.protein-path-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.protein-path-card dl > div {
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.protein-path-card dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 .structure-edge {
   stroke: var(--structure-line);
   stroke-width: 1.5;
@@ -3836,6 +4035,34 @@ code,
 
   .material-solution-summary > div:last-child {
     border-bottom: 0;
+  }
+
+  .protein-path-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .protein-model-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .protein-model-strip > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .protein-model-strip > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .protein-network {
+    min-height: 285px;
+  }
+
+  .protein-network svg {
+    min-height: 240px;
+  }
+
+  .protein-transition text {
+    display: none;
   }
 }
 

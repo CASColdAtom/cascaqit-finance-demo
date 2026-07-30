@@ -364,10 +364,10 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             ("alternate_basin", "竞争构象盆地"),
         ),
         (
-            _range("maximum_steps", "最大路径步数", 3, 8, 1),
+            _range("maximum_steps", "最大路径步数", 3, 4, 1),
             _range("barrier_weight", "能垒权重", 0.5, 2.0, 0.1),
         ),
-        {"maximum_steps": 5, "barrier_weight": 1.0},
+        {"maximum_steps": 3, "barrier_weight": 1.0},
         "digital",
         "problem",
         "conformation_transition_path",
@@ -379,8 +379,14 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "classic_shortest_path",
             "audit",
         ),
-        "preview",
-        {**_QAOA_PROFILE, "estimatedSeconds": 2.4},
+        "available",
+        {
+            **_QAOA_PROFILE,
+            "shots": 256,
+            "seed": 7,
+            "parameterBudget": 4,
+            "estimatedSeconds": 2.4,
+        },
     ),
 }
 

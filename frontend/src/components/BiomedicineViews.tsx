@@ -21,6 +21,8 @@ import type {
   ElectronicStructureRunPayload,
   Mode,
   PeptideRunPayload,
+  ProteinDynamicsRunPayload,
+  ProteinPathSolutionPayload,
   RNARunPayload,
   RNAStructureSolutionPayload,
 } from "../types";
@@ -42,6 +44,10 @@ function isPeptideRun(run: BiomedicineRunPayload): run is PeptideRunPayload {
 
 function isRnaRun(run: BiomedicineRunPayload): run is RNARunPayload {
   return run.domain.kind === "rna_structure_result";
+}
+
+function isProteinRun(run: BiomedicineRunPayload): run is ProteinDynamicsRunPayload {
+  return run.domain.kind === "protein_dynamics_result";
 }
 
 function QuantumTerm({ short, title }: { short: string; title: string }) {
@@ -188,8 +194,14 @@ function InterpretationBoundary({ analysis }: { analysis: BiomedicineAnalysisPay
 function SubproblemSummary({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
   const selection = analysis.domain.subproblemSelection;
   if (!selection || selection.coverageRate >= 1) return null;
-  const complete = selection.completeMatchCount ?? selection.completeConformationCount ?? 0;
-  const active = selection.selectedMatchCount ?? selection.selectedConformationCount ?? 0;
+  const complete = selection.completeMatchCount
+    ?? selection.completeConformationCount
+    ?? selection.completeStateCount
+    ?? 0;
+  const active = selection.selectedMatchCount
+    ?? selection.selectedConformationCount
+    ?? selection.selectedStateCount
+    ?? 0;
   return (
     <div className="biomed-metric-band subproblem-summary">
       <div><small>COMPLETE DOMAIN</small><strong>{complete}</strong><span>完整领域候选</span></div>
@@ -248,6 +260,162 @@ function RNAAnalysisView({ analysis }: { analysis: BiomedicineAnalysisPayload })
   );
 }
 
+function ProteinNetworkDiagram({
+  analysis,
+  path = [],
+  activeOnly = false,
+  label,
+}: {
+  analysis: BiomedicineAnalysisPayload;
+  path?: string[];
+  activeOnly?: boolean;
+  label: string;
+}) {
+  const nodes = activeOnly
+    ? analysis.domain.activeNodes ?? []
+    : analysis.domain.stateNodes ?? [];
+  const transitions = activeOnly
+    ? analysis.domain.activeEdges ?? []
+    : analysis.domain.transitions ?? [];
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const activeIds = new Set(
+    analysis.domain.subproblemSelection?.activeNodeIds ?? [],
+  );
+  const pathEdges = new Set(
+    path.slice(0, -1).map((nodeId, index) => `${nodeId}>${path[index + 1]}`),
+  );
+  const pathIds = new Set(path);
+  return (
+    <div className="protein-network" role="img" aria-label={label}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="protein-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" />
+          </marker>
+        </defs>
+        {transitions.map((transition) => {
+          const source = nodeMap.get(transition.from);
+          const target = nodeMap.get(transition.to);
+          if (!source || !target) return null;
+          const edgeId = `${transition.from}>${transition.to}`;
+          return (
+            <g
+              className="protein-transition"
+              data-active={activeIds.has(transition.from) && activeIds.has(transition.to)}
+              data-path={pathEdges.has(edgeId)}
+              key={transition.id}
+            >
+              <line x1={source.x} y1={source.y} x2={target.x} y2={target.y} markerEnd="url(#protein-arrow)" />
+              <text x={(source.x + target.x) / 2} y={(source.y + target.y) / 2 - 2} textAnchor="middle">
+                {transition.cost.toFixed(2)}
+              </text>
+            </g>
+          );
+        })}
+        {nodes.map((node) => (
+          <g
+            className="protein-state"
+            data-active={activeIds.has(node.id)}
+            data-path={pathIds.has(node.id)}
+            data-endpoint={node.id === analysis.domain.startState || node.id === analysis.domain.targetState}
+            key={node.id}
+          >
+            <circle cx={node.x} cy={node.y} r="6.8" />
+            <text x={node.x} y={node.y + 1} textAnchor="middle">{node.label}</text>
+            <text className="protein-basin" x={node.x} y={node.y + 10} textAnchor="middle">{node.basin}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="protein-network-legend">
+        <span data-kind="active"><i />QUBO active</span>
+        <span data-kind="path"><i />selected path</span>
+        <span><i />complete network</span>
+      </div>
+    </div>
+  );
+}
+
+function ProteinPathCard({
+  path,
+  title,
+  tone,
+}: {
+  path: ProteinPathSolutionPayload | null;
+  title: string;
+  tone: "quantum" | "classic";
+}) {
+  return (
+    <div className="protein-path-card" data-tone={tone} data-feasible={path?.feasible ?? false}>
+      <div><small>{title}</small><span>{path?.source.replaceAll("_", " ").toUpperCase() ?? "QUANTUM NOT OBSERVED"}</span></div>
+      <strong>{path?.stateIds.join(" → ") ?? "未观测到可行路径"}</strong>
+      <dl>
+        <div><dt>PATH COST</dt><dd>{path?.pathCost?.toFixed(3) ?? "N/A"}</dd></div>
+        <div><dt>STEPS</dt><dd>{path?.pathLength ?? "-"}</dd></div>
+        <div><dt>PATH OVERLAP</dt><dd>{path?.pathOverlap === undefined ? "-" : `${(path.pathOverlap * 100).toFixed(1)}%`}</dd></div>
+        <div><dt>CONSTRAINTS</dt><dd>{path?.feasible ? "PASS" : "NO FALLBACK"}</dd></div>
+      </dl>
+    </div>
+  );
+}
+
+function ProteinAnalysisView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  const selection = analysis.domain.subproblemSelection;
+  return (
+    <div className="view-stack biomed-view protein-analysis-view">
+      <div className="biomed-metric-band">
+        <div><small>COMPLETE STATES</small><strong>{selection?.completeStateCount ?? 0}</strong><span>versioned network</span></div>
+        <div><small>QUBO ACTIVE STATES</small><strong>{selection?.selectedStateCount ?? 0}</strong><span>connectivity preserved</span></div>
+        <div><small>COMPLETE PATHS</small><strong>{selection?.completePathCount ?? 0}</strong><span>bounded simple paths</span></div>
+        <div><small>ACTIVE PATHS</small><strong>{selection?.activePathCount ?? 0}</strong><span>start-to-target</span></div>
+      </div>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> CONFORMATION NETWORK</span><h3>{analysis.domain.proteinLabel}</h3></div><span className="data-chip source-quantum">AVAILABLE</span></div>
+        <ProteinNetworkDiagram analysis={analysis} label="完整蛋白构象状态网络与量子活动子图" />
+        <div className="protein-model-strip">
+          <div><small>START</small><strong>{analysis.domain.startState}</strong></div>
+          <div><small>TARGET</small><strong>{analysis.domain.targetState}</strong></div>
+          <div><small>WEIGHT PROFILE</small><strong>{analysis.domain.weightProfile}</strong></div>
+          <div><small>MAX STEPS</small><strong>{analysis.domain.maximumSteps}</strong></div>
+        </div>
+      </section>
+      <InterpretationBoundary analysis={analysis} />
+    </div>
+  );
+}
+
+function ProteinResultView({
+  analysis,
+  run,
+}: {
+  analysis: BiomedicineAnalysisPayload;
+  run: ProteinDynamicsRunPayload;
+}) {
+  const candidate = run.domain.quantumCandidate;
+  return (
+    <div className="view-stack biomed-view protein-result-view">
+      <div className="biomed-metric-band">
+        <div data-pass={candidate?.feasible ?? false}><small>QUANTUM PATH</small><strong>{candidate ? "OBSERVED" : "NONE"}</strong><span>{candidate ? `${candidate.pathLength} transitions` : "no classic fallback"}</span></div>
+        <div><small>FEASIBLE SHOT RATE</small><strong>{(run.domain.observedFeasibleRate * 100).toFixed(1)}%</strong><span>finite observed counts</span></div>
+        <div><small>PATH COST</small><strong>{candidate?.pathCost?.toFixed(3) ?? "N/A"}</strong><span>dimensionless model cost</span></div>
+        <div><small>CLASSIC OVERLAP</small><strong>{candidate ? `${((candidate.pathOverlap ?? 0) * 100).toFixed(1)}%` : "N/A"}</strong><span>directed-edge Jaccard</span></div>
+      </div>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> OBSERVED TRANSITION PATH</span><h3>量子观测活动子图路径</h3></div><span className={`data-chip ${candidate ? "source-quantum" : "status-preview"}`}>{candidate ? "OBSERVED FEASIBLE" : "NO FALLBACK"}</span></div>
+        <ProteinNetworkDiagram analysis={analysis} path={candidate?.stateIds ?? []} activeOnly label="量子观测蛋白构象转变路径" />
+      </section>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker">OBSERVED / CLASSIC BOUNDED DIJKSTRA</span><h3>量子路径与经典最短路</h3></div><span className="data-chip">DIMENSIONLESS COST</span></div>
+        <div className="protein-path-grid">
+          <ProteinPathCard path={candidate} title="量子观测候选" tone="quantum" />
+          <ProteinPathCard path={run.domain.classicShortestPath} title="经典完整网络基线" tone="classic" />
+        </div>
+        <p className="subsection-note rna-count-warning"><CircleAlert size={14} /> {run.domain.interpretation}</p>
+      </section>
+      <InterpretationBoundary analysis={analysis} />
+    </div>
+  );
+}
+
 function RNAResultView({
   analysis,
   run,
@@ -298,6 +466,9 @@ export function BiomedicineResultView({
     if (analysis.domain.kind === "rna_structure") {
       return <RNAAnalysisView analysis={analysis} />;
     }
+    if (analysis.domain.kind === "protein_dynamics") {
+      return <ProteinAnalysisView analysis={analysis} />;
+    }
     return (
       <div className="view-stack biomed-view">
         <section className="data-section biomed-overview">
@@ -316,6 +487,7 @@ export function BiomedicineResultView({
   if (isActiveCenterRun(run)) return <ActiveCenterResultView analysis={analysis} run={run} />;
   if (isPeptideRun(run)) return <PeptideResultView analysis={analysis} run={run} />;
   if (isRnaRun(run)) return <RNAResultView analysis={analysis} run={run} />;
+  if (isProteinRun(run)) return <ProteinResultView analysis={analysis} run={run} />;
   const result = run.domain;
   const accuracyApplies = result.withinChemicalAccuracy !== null;
   const energyRows: Array<[string, number]> = [
@@ -625,6 +797,23 @@ export function BiomedicineComparisonView({
       </div>
     );
   }
+  if (isProteinRun(run)) {
+    const candidate = run.domain.quantumCandidate;
+    return (
+      <div className="view-stack biomed-view protein-comparison-view">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="QAOA" title="量子近似优化算法" /> / BOUNDED DIJKSTRA</span><h3>构象转变路径三方对照</h3></div><span className="data-chip">DIMENSIONLESS COST</span></div>
+          <ComparisonTable rows={[
+            { source: "量子观测", candidate: candidate?.stateIds.join(" → ") ?? "NONE", value: candidate?.pathCost?.toFixed(3) ?? "N/A", evidence: candidate ? `本次有限 shots 可行路径；重合度 ${((candidate.pathOverlap ?? 0) * 100).toFixed(1)}%` : "未观测到可行路径，未使用经典回填" },
+            { source: "经典完整网络", candidate: run.domain.classicShortestPath.stateIds.join(" → "), value: run.domain.classicShortestPath.pathCost?.toFixed(3) ?? "N/A", evidence: "版本化完整网络的有界 Dijkstra 基线" },
+            { source: "经典活动子图", candidate: run.domain.classicActivePath.stateIds.join(" → "), value: run.domain.classicActivePath.pathCost?.toFixed(3) ?? "N/A", evidence: "与量子 QUBO 相同活动状态集合" },
+          ]} />
+        </section>
+        <p className="subsection-note rna-count-warning"><CircleAlert size={14} /> {run.domain.interpretation}</p>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
   if (isActiveCenterRun(run)) {
     const hashesMatch = run.comparison.hamiltonianHash === run.comparison.vqeHamiltonianHash;
     return (
@@ -661,6 +850,21 @@ export function BiomedicineComparisonView({
 }
 
 export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  if (analysis.domain.kind === "protein_dynamics") {
+    return (
+      <div className="view-stack biomed-view protein-structure-view">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> COMPLETE / ACTIVE NETWORK</span><h3>{analysis.domain.proteinLabel}</h3></div><span className="data-chip">{analysis.domain.stateNodes?.length ?? 0} STATES</span></div>
+          <ProteinNetworkDiagram analysis={analysis} label="完整构象状态网络与活动子图" />
+        </section>
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker">TRANSITION PROVENANCE</span><h3>允许转移、边权与来源</h3></div><span className="data-chip">{analysis.domain.transitions?.length ?? 0} EDGES</span></div>
+          <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Transition</th><th>From → To</th><th>Cost</th><th>Profile / source</th></tr></thead><tbody>{analysis.domain.transitions?.map((edge) => <tr key={edge.id}><td className="mono">{edge.id}</td><td className="mono">{edge.from} → {edge.to}</td><td>{edge.cost.toFixed(3)}</td><td>{edge.barrierProfile}<small>{edge.sourceMethod}</small></td></tr>)}</tbody></table></div>
+        </section>
+        <BoundaryList values={analysis.domain.limitations} />
+      </div>
+    );
+  }
   const edges = analysis.domain.bonds ?? analysis.domain.edges ?? [];
   const rnaReference = analysis.domain.referenceStructure;
   return (
@@ -755,6 +959,7 @@ export function BiomedicineQuantumView({
   if (isDockingRun(run)) return <DockingQuantumView run={run} />;
   if (isPeptideRun(run)) return <PeptideQuantumView run={run} />;
   if (isRnaRun(run)) return <RNAQuantumView run={run} />;
+  if (isProteinRun(run)) return <ProteinQuantumView run={run} />;
   const counts = Object.entries(run.quantum.counts)
     .sort((left, right) => right[1] - left[1])
     .map(([state, count], index) => ({ state, count, rank: index + 1 }));
@@ -800,6 +1005,16 @@ function RNAQuantumView({ run }: { run: RNARunPayload }) {
       <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / PAIR-SELECTION QUBO" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE STATES</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
       <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 RNA 配对 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
       <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> OBSERVATION FREQUENCY</span><h3>有限 shots 观测分布</h3></div></div><CountsChart counts={run.quantum.counts} /><p className="subsection-note rna-count-warning"><CircleAlert size={14} /> Counts 不是热力学概率或碱基配对概率。</p></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
+    </div>
+  );
+}
+
+function ProteinQuantumView({ run }: { run: ProteinDynamicsRunPayload }) {
+  return (
+    <div className="view-stack biomed-view protein-quantum-view">
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / TIME-SLICE PATH QUBO" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE PATHS</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
+      <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定构象路径 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
+      <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> OBSERVATION FREQUENCY</span><h3>有限 shots 路径编码分布</h3></div></div><CountsChart counts={run.quantum.counts} /><p className="subsection-note rna-count-warning"><CircleAlert size={14} /> Counts 不是转移概率、速率或驻留时间。</p></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
     </div>
   );
 }
@@ -863,7 +1078,7 @@ export function BiomedicineAuditView({
           ["Presentation", run.audit.resultPresentationHash],
           ["Report", run.audit.reportHash],
         ]
-      : isPeptideRun(run) || isRnaRun(run)
+      : isPeptideRun(run) || isRnaRun(run) || isProteinRun(run)
         ? [
             ["Manifest", run.audit.manifestHash],
             ["Domain Input", run.audit.domainInputHash],

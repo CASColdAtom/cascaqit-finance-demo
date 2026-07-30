@@ -61,6 +61,11 @@ from cascaqit_biomedicine_demo.peptide_landscape import (
     peptide_values,
     run_peptide_landscape,
 )
+from cascaqit_biomedicine_demo.protein_dynamics import (
+    analyze_protein_dynamics,
+    protein_dynamics_values,
+    run_protein_dynamics,
+)
 from cascaqit_biomedicine_demo.rna_structure import (
     analyze_rna_structure,
     rna_values,
@@ -491,6 +496,13 @@ def _biomedicine_request(
             raise _biomedicine_error(
                 "RNA_INPUT_INVALID", str(exc), "preflight"
             ) from exc
+    elif case_id == "protein_dynamics":
+        try:
+            values = protein_dynamics_values(preset, request.values)
+        except ValueError as exc:
+            raise _biomedicine_error(
+                "PROTEIN_PATH_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
     else:
         values = {**spec.values, **request.values}
     return preset, values
@@ -582,6 +594,8 @@ def _analyze_biomedicine_case(
         return analyze_peptide_landscape(preset, values)
     if case_id == "rna_structure":
         return analyze_rna_structure(preset, values)
+    if case_id == "protein_dynamics":
+        return analyze_protein_dynamics(preset, values)
     return preview_analysis(case_id)
 
 
@@ -871,6 +885,16 @@ def _execute_biomedicine_job_unit(
             parameter_budget=budget,
             optimizer_starts=starts,
         )
+    if case_id == "protein_dynamics":
+        return run_protein_dynamics(
+            preset=preset,
+            values=unit.values,
+            shots=shots,
+            seed=unit.seed,
+            layers=layers,
+            parameter_budget=budget,
+            optimizer_starts=starts,
+        )
     runner = (
         run_active_center if case_id == "active_center" else run_electronic_structure
     )
@@ -1141,6 +1165,40 @@ async def run_domain_scenario(
         except ValueError as exc:
             raise _biomedicine_error(
                 "RNA_EXECUTION_INVALID", str(exc), "execution"
+            ) from exc
+        return _biomedicine_run_response(spec, preset, values, run, request_started)
+    if case_id == "protein_dynamics":
+        if request.mode not in {"recommended", "digital"}:
+            raise _biomedicine_error(
+                "PROTEIN_PATH_MODE_UNSUPPORTED",
+                "蛋白构象转变路径只支持 Digital QAOA。",
+                "preflight",
+            )
+        if request.algorithm not in {None, "recommended", "qaoa"}:
+            raise _biomedicine_error(
+                "PROTEIN_PATH_ALGORITHM_UNSUPPORTED",
+                "蛋白构象转变路径只支持 QAOA。",
+                "preflight",
+            )
+        profile = spec.recommended_execution
+        try:
+            run = await run_in_threadpool(
+                run_protein_dynamics,
+                preset=preset,
+                values=values,
+                shots=request.shots or int(profile["shots"]),
+                seed=request.seed
+                if request.seed is not None
+                else int(profile["seed"]),
+                layers=request.layers or int(profile["layers"]),
+                parameter_budget=request.parameter_budget
+                or int(profile["parameterBudget"]),
+                optimizer_starts=request.optimizer_starts
+                or int(profile["optimizerStarts"]),
+            )
+        except ValueError as exc:
+            raise _biomedicine_error(
+                "PROTEIN_PATH_EXECUTION_INVALID", str(exc), "execution"
             ) from exc
         return _biomedicine_run_response(spec, preset, values, run, request_started)
     if request.mode not in {"recommended", "digital"}:

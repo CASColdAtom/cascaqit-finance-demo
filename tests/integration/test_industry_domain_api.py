@@ -167,6 +167,99 @@ def test_rna_structure_validates_input_and_persists_separate_results(
     assert unsupported.json()["detail"]["code"] == "RNA_MODE_UNSUPPORTED"
 
 
+def test_protein_path_analysis_preserves_network_and_complete_constraints() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/protein_dynamics/analyze",
+        json={
+            "preset": "barrier_shift",
+            "values": {"maximum_steps": 4, "barrier_weight": 1.2},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    analysis = payload["analysis"]
+    selection = analysis["domain"]["subproblemSelection"]
+    assert payload["scenario"]["implementationStatus"] == "available"
+    assert analysis["domain"]["kind"] == "protein_dynamics"
+    assert analysis["problem"]["type"] == "qubo"
+    assert analysis["problem"]["coefficientLedger"]["balanced"] is True
+    assert selection["connectivityPreserved"] is True
+    assert selection["startPreserved"] is True
+    assert selection["targetPreserved"] is True
+    assert selection["activePathCount"] >= 2
+    assert analysis["domain"]["classicShortestPath"]["feasible"] is True
+    assert {item["id"] for item in analysis["domain"]["constraintEncoding"]} == {
+        "start_endpoint",
+        "target_endpoint",
+        "flow_conservation",
+        "path_continuity",
+        "cycle_prohibition",
+        "maximum_path_length",
+    }
+    assert payload["experimentPlan"]["executionPolicy"] == "sync"
+    assert payload["experimentPlan"]["configurations"][0]["algorithm"] == "qaoa"
+
+
+def test_protein_path_run_persists_quantum_and_classic_results_separately(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/protein_dynamics/run",
+        json={
+            "preset": "alternate_basin",
+            "values": {"maximum_steps": 3, "barrier_weight": 1.0},
+            "mode": "digital",
+            "algorithm": "qaoa",
+            "shots": 64,
+            "seed": 7,
+            "layers": 1,
+            "parameter_budget": 4,
+            "optimizer_starts": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    run = response.json()["run"]
+    candidate = run["domain"]["quantumCandidate"]
+    assert run["domain"]["classicShortestPath"]["source"] == (
+        "classic_bounded_dijkstra"
+    )
+    assert run["domain"]["classicActivePath"]["source"] == (
+        "classic_bounded_dijkstra"
+    )
+    assert run["audit"]["hardwareExecution"] is False
+    assert run["audit"]["pathQuboHash"] == run["audit"]["problemHash"]
+    if candidate is None:
+        assert run["domain"]["quantumStatus"] == "quantum_not_observed"
+    else:
+        assert candidate["source"] == "quantum_observed"
+        assert candidate["feasible"] is True
+    report_path = (
+        tmp_path
+        / "reports"
+        / f"protein_dynamics-{run['audit']['reportHash'][:16]}.json"
+    )
+    assert report_path.is_file()
+
+    invalid = client.post(
+        "/api/domains/biomedicine/scenarios/protein_dynamics/analyze",
+        json={"preset": "open_to_closed", "values": {"maximum_steps": 5}},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["detail"]["code"] == "PROTEIN_PATH_INPUT_INVALID"
+
+    unsupported = client.post(
+        "/api/domains/biomedicine/scenarios/protein_dynamics/run",
+        json={"preset": "open_to_closed", "mode": "analog"},
+    )
+    assert unsupported.status_code == 422
+    assert unsupported.json()["detail"]["code"] == (
+        "PROTEIN_PATH_MODE_UNSUPPORTED"
+    )
+
+
 def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> None:
     response = client.post(
         "/api/domains/materials/scenarios/rydberg_dynamics/analyze",

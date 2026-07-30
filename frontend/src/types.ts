@@ -406,6 +406,46 @@ export interface RNAStructureSolutionPayload {
   }>;
 }
 
+export interface ProteinStateNodePayload extends BiomedicineStructureNode {
+  label: string;
+  basin: string;
+  structureSource: {
+    kind: string;
+    identifier: string;
+    method: string;
+  };
+}
+
+export interface ProteinTransitionPayload {
+  id: string;
+  from: string;
+  to: string;
+  structuralCost: number;
+  barrierProfiles: Record<string, number>;
+  barrierProfile: string;
+  barrierComponent: number;
+  cost: number;
+  unit: "dimensionless_model_cost";
+  sourceMethod: string;
+}
+
+export interface ProteinPathSolutionPayload {
+  source: "quantum_observed" | "classic_bounded_dijkstra";
+  bitstring?: string;
+  stateIds: string[];
+  transitionIds: string[];
+  pathLength: number;
+  pathCost: number | null;
+  costUnit: "dimensionless_model_cost";
+  modelObjective?: number;
+  feasible: boolean;
+  pathOverlap?: number;
+  failureReasons?: string[];
+  count?: number;
+  scope?: "complete_network" | "active_subgraph";
+  checks?: Array<{ id: string; passed: boolean }>;
+}
+
 export interface BiomedicineAnalysisPayload {
   kind: "biomedicine";
   caseId: string;
@@ -520,6 +560,29 @@ export interface BiomedicineAnalysisPayload {
     referenceStructure?: RNAStructureSolutionPayload;
     classicExact?: RNAStructureSolutionPayload;
     classicDynamicProgramming?: RNAStructureSolutionPayload;
+    proteinLabel?: string;
+    startState?: string;
+    targetState?: string;
+    maximumSteps?: number;
+    barrierWeight?: number;
+    weightProfile?: string;
+    edgeWeight?: {
+      meaning: string;
+      unit: "dimensionless_model_cost";
+      sourceMethod: string;
+    };
+    stateNodes?: ProteinStateNodePayload[];
+    transitions?: ProteinTransitionPayload[];
+    activeNodes?: ProteinStateNodePayload[];
+    activeEdges?: ProteinTransitionPayload[];
+    classicShortestPath?: ProteinPathSolutionPayload;
+    classicActivePath?: ProteinPathSolutionPayload;
+    referencePath?: {
+      source: "fixture_reference_path";
+      stateIds: string[];
+      interpretation: string;
+    };
+    constraintEncoding?: Array<{ id: string; encoding: string }>;
     conformations?: Array<{
       id: string;
       coordinates: number[][];
@@ -595,6 +658,16 @@ export interface BiomedicineAnalysisPayload {
       selectedMatchCount?: number;
       completeConformationCount?: number;
       selectedConformationCount?: number;
+      completeStateCount?: number;
+      selectedStateCount?: number;
+      completePathCount?: number;
+      activePathCount?: number;
+      activeNodeIds?: string[];
+      activeTransitionIds?: string[];
+      lockedPath?: string[];
+      connectivityPreserved?: boolean;
+      startPreserved?: boolean;
+      targetPreserved?: boolean;
       coverageRate: number;
       excluded: Array<{ id: string; reason: string; basinId?: string }>;
       majorBasins?: string[];
@@ -1406,11 +1479,37 @@ export interface RNARunPayload {
   };
 }
 
+export interface ProteinDynamicsRunPayload {
+  kind: "biomedicine";
+  analysis: BiomedicineAnalysisPayload;
+  domain: {
+    kind: "protein_dynamics_result";
+    quantumStatus: "observed_feasible" | "quantum_not_observed";
+    quantumCandidate: ProteinPathSolutionPayload | null;
+    topObservedFeasible: ProteinPathSolutionPayload[];
+    observedFeasibleCount: number;
+    observedFeasibleRate: number;
+    classicShortestPath: ProteinPathSolutionPayload;
+    classicActivePath: ProteinPathSolutionPayload;
+    failureReasons: Array<{ id: string; shotCount: number }>;
+    interpretation: string;
+  };
+  quantum: RNARunPayload["quantum"];
+  audit: Omit<RNARunPayload["audit"], "caseId"> & {
+    caseId: "protein_dynamics";
+    conformationSetHash: string;
+    transitionNetworkHash: string;
+    selectionHash: string;
+    pathQuboHash: string;
+  };
+}
+
 export type BiomedicineRunPayload =
   | ElectronicStructureRunPayload
   | ActiveCenterRunPayload
   | PeptideRunPayload
   | RNARunPayload
+  | ProteinDynamicsRunPayload
   | DockingRunPayload;
 
 export type WorkbenchRunPayload =

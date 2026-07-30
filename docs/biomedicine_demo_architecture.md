@@ -960,7 +960,7 @@ V2 在现有测试基础上增加：
 
 ### 19.1 状态与职责边界
 
-本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二阶段已经接入两个生物医药入口、两个材料科学场景、三领域统一导航、材料结构视图和纯 Analog UI 门禁；第十三阶段已完成 RNA 版本化 fixture、配对 QUBO、Digital QAOA、经典枚举/动态规划对照，以及材料缺陷-吸附联合 QUBO、Digital/Hybrid 执行、经典枚举、离线参考、报告持久化和专用页面。蛋白路径执行器和原生 AHS `AnalogExecutor` 仍未实现，材料 Rydberg 动力学继续保持 `preview`。V2 的四个生物医药场景和现有金融入口保持不变；V3 继续共用任务、审计和领域 API，但为原生 AHS 增加独立的 `AnalogExecutor`，避免把时间演化塞入 QUBO `ProblemExecutor`。
+本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二阶段已经接入两个生物医药入口、两个材料科学场景、三领域统一导航、材料结构视图和纯 Analog UI 门禁；第十三阶段已完成 RNA 版本化 fixture、配对 QUBO、Digital QAOA、经典枚举/动态规划对照，以及材料缺陷-吸附联合 QUBO、Digital/Hybrid 执行、经典枚举、离线参考、报告持久化和专用页面。第十四阶段已完成蛋白状态网络、连接保持活动子图、时间片路径 QUBO、Digital QAOA、有界 Dijkstra 对照、校准和专用页面。原生 AHS `AnalogExecutor` 仍未实现，材料 Rydberg 动力学继续保持 `preview`。V2 的四个生物医药场景和现有金融入口保持不变；V3 继续共用任务、审计和领域 API，但为原生 AHS 增加独立的 `AnalogExecutor`，避免把时间演化塞入 QUBO `ProblemExecutor`。
 
 架构将“动态”拆成三类能力：
 
@@ -980,7 +980,7 @@ RNA、蛋白路径和材料构型优化只把离散优化子问题交给 CASCAQi
 
 ### 19.3 代码布局
 
-模块边界如下；`rna_structure.py`、RNA 数据目录和材料目录骨架已经存在，其余文件仍是目标结构：
+模块边界如下；`rna_structure.py`、`protein_dynamics.py`、对应数据目录和材料目录已经存在，`analog_executor.py` 仍是目标结构：
 
 ```text
 src/
@@ -1045,6 +1045,10 @@ versioned conformations + allowed transitions + edge provenance
 构象状态网络 fixture 必须记录节点结构来源、边的生成方法、边权含义和单位。活动子图选择器先锁定起点、终点和至少一条完整通路，再按能垒、结构多样性和路径覆盖裁剪。选择前后分别保存 network hash 和 selection hash。
 
 结果中的 `pathCost` 不自动转成时间。只有 fixture 提供经过验证的经典动力学模型时，响应才能在 `classicReference` 中返回速率或时间；量子结果仍只表示离散路径候选。
+
+首版 `protein_dynamics.py` 使用 7 状态、15 条有向边的版本化教学网络。连接优先选择器锁定端点和一条完整最短路，再加入高覆盖、不同盆地状态，活动子图保持 4 个状态和至少 2 条完整通路。时间片 QUBO 在 `maximum_steps=3..4` 时使用 9–12 个变量：每片 one-hot、首片允许后继、末片目标固定、相邻片只允许声明转移、目标态吸收填充、非目标状态不可重复。有限时间片本身给出最大路径长度，不引入可被解释为物理时间的字段。
+
+量子候选只从实际 counts 中通过六项路径复核的 bitstring 产生；未观测时返回 `quantumCandidate=null` 和 `quantum_not_observed`。完整网络与活动子图分别执行有界 Dijkstra，结果只进入经典对照字段。审计链增加 `conformationSetHash`、`transitionNetworkHash`、`selectionHash` 和 `pathQuboHash`。
 
 #### 19.4.3 材料缺陷与吸附构型
 
@@ -1197,7 +1201,7 @@ V3 至少增加以下自动化和浏览器检查：
 |---|---|---|
 | 第十二阶段 | 领域注册表、材料包骨架、四类场景 manifest 和适配协议 | 三个一级领域目录可查询，新增场景保持 `preview`，现有场景全部回归 |
 | 第十三阶段 | RNA 与材料 QUBO、材料 AHS 适配器/执行器、Digital/Hybrid/纯 Analog 门禁和页面 | 两个优化场景可运行；Analog 三预设完成 wheel 契约、时间序列、三个固定 seed 和三视口证据，否则保持 `preview` |
-| 第十四阶段 | 蛋白状态网络、活动子图和路径优化研究入口 | 路径约束与经典基线通过，动态表述边界通过审计 |
+| 第十四阶段（已完成） | 蛋白状态网络、活动子图和路径优化研究入口 | 路径约束、经典基线、九次校准、专用页面和动态表述边界已通过自动化审计；浏览器截图仍受托管环境阻塞 |
 | 第十五阶段 | 八个生物医药与材料案例校准、离线包、客户讲解和发布报告 | 全量门禁、wheel、Windows 包和需求证据可追溯 |
 
 | 需求编号 | 主要组件 | 核心身份 | 失败时行为 |

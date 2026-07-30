@@ -15,7 +15,7 @@ const BIOMEDICINE_CASES = [
   ["active_center", "金属活性中心", false],
   ["peptide_landscape", "小肽能景", false],
   ["rna_structure", "RNA 折叠路径", false],
-  ["protein_dynamics", "蛋白转变路径", true],
+  ["protein_dynamics", "蛋白转变路径", false],
 ];
 
 function option(name, fallback) {
@@ -396,6 +396,51 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await page.getByRole("tab", { name: "量子实验" }).click();
   await waitForPaintedCanvas(page, ".rna-quantum-view canvas");
   result.rnaQuantum = await assertLayout(page, `${name}/rna-quantum`);
+
+  await page.locator(".scenario-item", { hasText: "蛋白转变路径" }).click();
+  await page.waitForURL("**/biomedicine/protein_dynamics");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  const proteinNetwork = page.locator(".protein-analysis-view .protein-network svg");
+  if ((await proteinNetwork.locator(".protein-state circle").count()) < 4) {
+    throw new Error(`${name}: protein analysis contains too few state nodes`);
+  }
+  if ((await proteinNetwork.locator('.protein-transition[data-active="true"] line').count()) < 2) {
+    throw new Error(`${name}: protein analysis contains no active transition subgraph`);
+  }
+  await page.locator(".run-button").click();
+  await page.locator(".protein-result-view").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const proteinText = await page.locator(".protein-result-view").innerText();
+  for (const expected of [
+    "QUANTUM PATH",
+    "量子观测候选",
+    "经典完整网络基线",
+    "不表示真实时间",
+  ]) {
+    if (!proteinText.includes(expected)) {
+      throw new Error(`${name}: protein result is missing ${expected}`);
+    }
+  }
+  result.proteinRun = await assertLayout(page, `${name}/protein-run`);
+  await page.screenshot({
+    path: path.join(outputDir, `protein-path-result-${name}.png`),
+    fullPage: true,
+  });
+
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "构象转变路径三方对照" }).waitFor();
+  result.proteinComparison = await assertLayout(page, `${name}/protein-comparison`);
+
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await waitForPaintedCanvas(page, ".protein-quantum-view canvas");
+  result.proteinQuantum = await assertLayout(page, `${name}/protein-quantum`);
 
   await page.locator(".scenario-item", { hasText: "电子结构" }).click();
   await page.waitForURL("**/biomedicine/electronic_structure");
