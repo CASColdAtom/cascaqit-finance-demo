@@ -115,6 +115,8 @@ export interface ExperimentPlanPoint {
   } & Record<string, unknown>;
   analysisHash?: string;
   problemHash: string;
+  completeDomainProblemHash: string;
+  quantumSubproblemHash: string;
   resource: {
     logicalQubits: number;
     problemVariables: number;
@@ -286,6 +288,9 @@ export interface AnalysisPayload {
     id: string;
     type: string;
     hash: string;
+    completeDomainProblemHash?: string;
+    quantumSubproblemHash?: string;
+    selectionHash?: string;
     variables: string[];
     matrix: { variables: string[]; cells: MatrixCell[] };
     termGroups: Array<{
@@ -467,6 +472,15 @@ export interface BiomedicineAnalysisPayload {
       contacts: number[][];
       energy: number;
       contactCount: number;
+      basinId?: string;
+    }>;
+    fullLandscape?: Array<{
+      id: string;
+      coordinates: number[][];
+      contacts: number[][];
+      energy: number;
+      contactCount: number;
+      basinId?: string;
     }>;
     classicGroundIds?: string[];
     structure?: {
@@ -495,6 +509,18 @@ export interface BiomedicineAnalysisPayload {
       critical: boolean;
       reference: boolean;
     }>;
+    completeMatches?: Array<{
+      id: string;
+      pose_id: string;
+      ligand_feature: string;
+      pocket_feature: string;
+      interaction: string;
+      quality: number;
+      distance_deviation: number;
+      angle_deviation: number;
+      critical: boolean;
+      reference: boolean;
+    }>;
     conflicts?: Array<{
       left: string;
       right: string;
@@ -502,6 +528,23 @@ export interface BiomedicineAnalysisPayload {
       evidence: string;
     }>;
     minimumCoverage?: number;
+    basinRule?: {
+      version: string;
+      distanceThreshold: number;
+      majorBasinMinimumSize: number;
+      basinSizes: Record<string, number>;
+    };
+    subproblemSelection?: {
+      ruleVersion: string;
+      selectionHash: string;
+      completeMatchCount?: number;
+      selectedMatchCount?: number;
+      completeConformationCount?: number;
+      selectedConformationCount?: number;
+      coverageRate: number;
+      excluded: Array<{ id: string; reason: string; basinId?: string }>;
+      majorBasins?: string[];
+    };
     weights?: Record<string, string | number>;
     atoms?: BiomedicineStructureNode[];
     bonds?: BiomedicineStructureEdge[];
@@ -968,6 +1011,7 @@ export interface DockingRunPayload {
 }
 
 export interface PeptideSolutionPayload {
+  source?: "quantum_observed" | "quantum_not_observed";
   bitstring: string;
   conformationId: string | null;
   energy: number | null;
@@ -999,7 +1043,19 @@ export interface PeptideRunPayload {
       contacts: number[][];
       energy: number;
       contactCount: number;
+      basinId?: string;
     }>;
+    activeLandscape: Array<{
+      id: string;
+      coordinates: number[][];
+      contacts: number[][];
+      energy: number;
+      contactCount: number;
+      basinId?: string;
+    }>;
+    subproblemSelection: NonNullable<
+      BiomedicineAnalysisPayload["domain"]["subproblemSelection"]
+    >;
     energyGapFromGround: number | null;
     interpretation: string;
   };

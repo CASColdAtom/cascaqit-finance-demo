@@ -135,6 +135,21 @@ function InterpretationBoundary({ analysis }: { analysis: BiomedicineAnalysisPay
   );
 }
 
+function SubproblemSummary({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  const selection = analysis.domain.subproblemSelection;
+  if (!selection || selection.coverageRate >= 1) return null;
+  const complete = selection.completeMatchCount ?? selection.completeConformationCount ?? 0;
+  const active = selection.selectedMatchCount ?? selection.selectedConformationCount ?? 0;
+  return (
+    <div className="biomed-metric-band subproblem-summary">
+      <div><small>COMPLETE DOMAIN</small><strong>{complete}</strong><span>完整领域候选</span></div>
+      <div><small>QUANTUM WINDOW</small><strong>{active}</strong><span>进入实时 QUBO</span></div>
+      <div><small>COVERAGE</small><strong>{(selection.coverageRate * 100).toFixed(1)}%</strong><span>确定性选择</span></div>
+      <div><small>EXCLUDED</small><strong>{selection.excluded.length}</strong><span>原因可审计</span></div>
+    </div>
+  );
+}
+
 export function BiomedicineResultView({
   analysis,
   run,
@@ -150,6 +165,7 @@ export function BiomedicineResultView({
             <div><span className="section-kicker"><Beaker size={14} /> DOMAIN MODEL</span><h3>{analysis.domain.modelLevel ?? analysis.domain.geometryLabel ?? analysis.domain.kind}</h3></div>
             <span className={`data-chip status-${analysis.implementationStatus}`}>{analysis.implementationStatus.toUpperCase()}</span>
           </div>
+          <SubproblemSummary analysis={analysis} />
           <StructureDiagram analysis={analysis} />
         </section>
         <InterpretationBoundary analysis={analysis} />
@@ -223,6 +239,7 @@ function PeptideResultView({ analysis, run }: { analysis: BiomedicineAnalysisPay
   const span = Math.max(0.1, maximum - minimum);
   return (
     <div className="view-stack biomed-view peptide-result-view">
+      <SubproblemSummary analysis={analysis} />
       <div className="biomed-metric-band">
         <div data-pass={candidate.feasible}><small>QUANTUM CANDIDATE</small><strong>{candidate.conformationId ?? "NONE"}</strong><span>{candidate.feasible ? "observed feasible" : "no classic fallback"}</span></div>
         <div><small>COARSE ENERGY</small><strong>{candidate.energy?.toFixed(3) ?? "N/A"}</strong><span>dimensionless</span></div>
@@ -232,12 +249,13 @@ function PeptideResultView({ analysis, run }: { analysis: BiomedicineAnalysisPay
       <section className="data-section">
         <div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> COMPLETE CLASSIC LANDSCAPE</span><h3>量子候选与完整离散能景</h3></div><span className="data-chip source-quantum">{run.domain.observedFeasibleCount} OBSERVED</span></div>
         <div className="peptide-landscape-list">
-          {run.domain.fullLandscape.map((item) => (
+          {run.domain.fullLandscape.slice(0, 24).map((item) => (
             <div key={item.id} data-selected={item.id === candidate.conformationId} data-ground={item.energy === minimum}>
               <strong>{item.id}</strong><i><b style={{ width: `${Math.max(3, ((maximum - item.energy) / span) * 100)}%` }} /></i><span>{item.energy.toFixed(3)}</span><small>{item.contactCount} contacts</small>
             </div>
           ))}
         </div>
+        {run.domain.fullLandscape.length > 24 ? <p className="subsection-note">完整能景共 {run.domain.fullLandscape.length} 个构象；图中显示按能量排序的前 24 个，活动窗口与排除账本保留在分析证据中。</p> : null}
         <p className="subsection-note">{run.domain.interpretation}</p>
       </section>
       <InterpretationBoundary analysis={analysis} />
@@ -329,6 +347,7 @@ function DockingResultView({
   const candidate = run.domain.quantumCandidate;
   return (
     <div className="view-stack biomed-view docking-result-view">
+      <SubproblemSummary analysis={analysis} />
       <div className="biomed-metric-band">
         <div data-pass={candidate.feasible}><small>QUANTUM CANDIDATE</small><strong>{candidate.feasible ? "FEASIBLE" : "INFEASIBLE"}</strong><span>observed samples only</span></div>
         <div><small>SELECTED POSE</small><strong>{candidate.poseId ?? "NONE"}</strong><span>single-pose check</span></div>

@@ -206,10 +206,25 @@ _STANDARD_LIMITS: dict[str, tuple[int, int, int, int]] = {
     "peptide_landscape": (0, 16, 256, 0),
 }
 
-_ADVANCED_LIVE_AVAILABLE_CASES = {"electronic_structure", "active_center"}
+_ADVANCED_LIVE_AVAILABLE_CASES = {
+    "electronic_structure",
+    "docking_match",
+    "active_center",
+    "peptide_landscape",
+}
 _ADVANCED_PRESETS = {
     "electronic_structure": {"lih_potential_scan"},
+    "docking_match": {
+        "multi_pose_balanced",
+        "multi_pose_geometry",
+        "multi_pose_coverage",
+    },
     "active_center": {"trinuclear_frustrated", "tetranuclear_ligand_field"},
+    "peptide_landscape": {
+        "octapeptide_hydrophobic",
+        "octapeptide_charge_shift",
+        "octapeptide_mutation",
+    },
 }
 
 
@@ -447,6 +462,12 @@ def build_experiment_plan(
                 "dataset": analysis["dataset"],
                 "analysisHash": analysis.get("analysisHash"),
                 "problemHash": analysis["problem"]["hash"],
+                "completeDomainProblemHash": analysis["problem"].get(
+                    "completeDomainProblemHash", analysis["problem"]["hash"]
+                ),
+                "quantumSubproblemHash": analysis["problem"].get(
+                    "quantumSubproblemHash", analysis["problem"]["hash"]
+                ),
                 "resource": snapshot,
             }
         )
@@ -514,7 +535,7 @@ def build_experiment_plan(
             {
                 "values": item["values"],
                 "dataset": item["dataset"],
-                "problemHash": item["problemHash"],
+                "problemHash": item["completeDomainProblemHash"],
             }
             for item in point_payloads
         ]
@@ -522,7 +543,9 @@ def build_experiment_plan(
     subproblem_hash = _stable_hash(
         {
             "selectionRule": "identity.v1",
-            "problemHashes": [item["problemHash"] for item in point_payloads],
+            "problemHashes": [
+                item["quantumSubproblemHash"] for item in point_payloads
+            ],
         }
     )
     plan_identity = {

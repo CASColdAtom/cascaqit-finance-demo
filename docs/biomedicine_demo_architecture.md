@@ -754,6 +754,16 @@ complete pose-feature graph
 
 裁剪发生在 QUBO 构造前，但完整问题和被排除候选必须进入审计。裁剪器先为每个强制关键特征保留局部评分最高的候选，再按局部评分、约束覆盖数和候选 ID 稳定排序填满剩余名额。排序规则和权重写入 profile 并单独版本化；不能根据某次量子或经典最优答案反向选择变量。Digital 与 Hybrid 配置必须复用同一个裁剪后 QUBO hash。
 
+当前 `docking-active-subproblem-v1` 的输入为 3 个构象、24 个候选匹配和 12 条冲突。选择器先覆盖 3 个强制口袋特征，再保证每个构象至少 2 个候选，最后稳定补满到 9 个匹配。QUBO 另含 3 个构象变量和 1 个覆盖辅助变量，共 13 个逻辑变量。分析响应同时返回：
+
+```text
+problem.completeDomainProblemHash  完整 24 候选业务图
+problem.selectionHash              选择规则、保留项和排除账本
+problem.quantumSubproblemHash       13 变量 Canonical QUBO
+```
+
+`ExperimentPlanner` 分别读取前两类问题身份：完整问题用于计划身份，活动 QUBO 用于执行身份。三种权重预设以及 Digital/Hybrid 配置复用相同选择结果；权重只改变 QUBO 系数，不改变候选集合。
+
 #### 18.4.3 多中心有效自旋
 
 ```text
@@ -782,6 +792,8 @@ Hamiltonian template + bounded parameter grid
 ```
 
 离线生成器按接触图汉明距离和 manifest 中固定的阈值生成盆地标签；构象 ID 用于距离和能量相同时的稳定排序。选择器先保留每个主要盆地的最低能代表，再按能量窗、结构多样性和约束覆盖填满活动窗口，避免只包含同一结构族。完整经典能景和量子活动窗口使用不同字段。转向/接触（turn/contact）编码属于独立研究适配器，只有 `CapabilityRegistry` 确认约束保持混合算子后才可注册为正式配置。
+
+当前 `peptide-active-window-v1` 处理 48 个八残基构象。离线数据按 `contact-hamming-greedy-v1` 生成 8 个盆地，主要盆地阈值为 4 个构象。运行时选择器保留全部经典简并基态和 6 个主要盆地代表，再补满到 12 个活动构象。`fullLandscape`、`activeLandscape` 和 `subproblemSelection` 分开返回；量子候选只从活动窗口的观测结果产生。QAOA 未观测到可行状态时返回不可行候选，不得从 `fullLandscape` 取经典基态替换。
 
 ### 18.5 CASCAQit 能力边界
 
@@ -907,6 +919,8 @@ V2 在现有测试基础上增加：
 - 接入多构象匹配完整业务图和确定性裁剪；
 - 接入更大小肽构象库、盆地识别和活动窗口；
 - 完成 Digital/Hybrid 对照及完整领域覆盖报告。
+
+状态（2026-07-30）：已完成。高级对接已接入 24→9 候选选择、13 变量 QUBO、完整排除账本和 Digital/Hybrid 同一 QUBO 身份；高级小肽已接入 48→12 构象窗口、8 个盆地、完整基态与主要盆地覆盖。目录、能力注册、计划器和前端规模摘要已经接通。Python、React、生产构建、依赖审计与 wheel 内容复核均通过；持久化批量任务仍按第十一阶段能力门禁拒绝。
 
 #### 第十一阶段：长任务与发布验收
 

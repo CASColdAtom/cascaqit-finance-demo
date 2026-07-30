@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from cascaqit_biomedicine_demo.docking import (
@@ -117,3 +120,76 @@ def test_digital_qaoa_is_available_as_a_separate_comparison_path() -> None:
     assert run["quantum"]["summary"]["analogTerms"] == 0
     assert run["quantum"]["summary"]["digitalTerms"] > 0
     assert run["domain"]["classicOptimum"]["feasible"] is True
+
+
+def test_advanced_fixture_and_selector_are_deterministic_and_auditable() -> None:
+    fixture = load_docking_fixture("multi_pose_balanced")
+    repeated = load_docking_fixture("multi_pose_balanced")
+    selection = fixture.selection
+
+    assert len(fixture.complete_domain["matches"]) == 24
+    assert len(fixture.complete_domain["conflicts"]) == 12
+    assert len(fixture.domain["matches"]) == 9
+    assert len(selection["excluded"]) == 15
+    assert selection["coverageRate"] == pytest.approx(9 / 24)
+    assert selection["selectionHash"] == repeated.selection["selectionHash"]
+    assert all(selection["requiredFeatureCoverage"].values())
+    assert set(selection["poseCoverage"]) == {
+        item["id"] for item in fixture.complete_domain["poses"]
+    }
+    assert min(selection["poseCoverage"].values()) >= 2
+
+
+def test_advanced_fixture_manifest_tracks_generator_source() -> None:
+    fixture = load_docking_fixture("multi_pose_balanced")
+    generator = (
+        Path(__file__).resolve().parents[2]
+        / fixture.manifest["generation"]["script"]
+    )
+
+    assert hashlib.sha256(generator.read_bytes()).hexdigest() == fixture.manifest[
+        "generation"
+    ]["script_sha256"]
+
+
+def test_advanced_modes_share_one_selected_qubo_identity() -> None:
+    analysis = analyze_docking_match("multi_pose_balanced", {})
+    problem = analysis["problem"]
+
+    assert len(problem["variables"]) == 13
+    assert len(problem["terms"]) == 70
+    assert problem["completeDomainProblemHash"] != problem["quantumSubproblemHash"]
+    assert problem["hash"] == problem["quantumSubproblemHash"]
+    assert problem["selectionHash"] not in {
+        problem["completeDomainProblemHash"],
+        problem["quantumSubproblemHash"],
+    }
+    assert {
+        item["mode"] for item in analysis["decision"]["modes"]
+    } >= {"digital", "hybrid"}
+
+
+def test_advanced_digital_and_hybrid_runs_share_qubo_without_classic_fallback() -> None:
+    runs = [
+        run_docking_match(
+            preset="multi_pose_balanced",
+            values={},
+            mode=mode,
+            shots=8,
+            seed=7,
+            layers=1,
+            search_strategy="continuous",
+            parameter_budget=4,
+            optimizer_starts=1,
+        )
+        for mode in ("digital", "hybrid")
+    ]
+
+    assert runs[0]["audit"]["problemHash"] == runs[1]["audit"]["problemHash"]
+    assert {
+        run["domain"]["quantumCandidate"]["source"] for run in runs
+    } == {"quantum_observed"}
+    assert all(
+        run["domain"]["classicOptimum"]["source"] == "complete_enumeration"
+        for run in runs
+    )

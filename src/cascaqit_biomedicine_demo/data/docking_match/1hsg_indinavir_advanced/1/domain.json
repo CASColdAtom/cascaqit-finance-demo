@@ -1,0 +1,558 @@
+{
+  "conflicts": [
+    {
+      "evidence": "crystal candidate volumes 0/1 overlap in the fixed discretized feature model",
+      "left": "match.c0",
+      "right": "match.c1",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "crystal candidate volumes 2/3 overlap in the fixed discretized feature model",
+      "left": "match.c2",
+      "right": "match.c3",
+      "rule": "spatial_collision"
+    },
+    {
+      "evidence": "crystal candidate volumes 4/5 overlap in the fixed discretized feature model",
+      "left": "match.c4",
+      "right": "match.c5",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "crystal candidate volumes 6/7 overlap in the fixed discretized feature model",
+      "left": "match.c6",
+      "right": "match.c7",
+      "rule": "spatial_collision"
+    },
+    {
+      "evidence": "rotated candidate volumes 0/1 overlap in the fixed discretized feature model",
+      "left": "match.r0",
+      "right": "match.r1",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "rotated candidate volumes 2/3 overlap in the fixed discretized feature model",
+      "left": "match.r2",
+      "right": "match.r3",
+      "rule": "spatial_collision"
+    },
+    {
+      "evidence": "rotated candidate volumes 4/5 overlap in the fixed discretized feature model",
+      "left": "match.r4",
+      "right": "match.r5",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "rotated candidate volumes 6/7 overlap in the fixed discretized feature model",
+      "left": "match.r6",
+      "right": "match.r7",
+      "rule": "spatial_collision"
+    },
+    {
+      "evidence": "flipped candidate volumes 0/1 overlap in the fixed discretized feature model",
+      "left": "match.f0",
+      "right": "match.f1",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "flipped candidate volumes 2/3 overlap in the fixed discretized feature model",
+      "left": "match.f2",
+      "right": "match.f3",
+      "rule": "spatial_collision"
+    },
+    {
+      "evidence": "flipped candidate volumes 4/5 overlap in the fixed discretized feature model",
+      "left": "match.f4",
+      "right": "match.f5",
+      "rule": "pocket_occupancy_exclusive"
+    },
+    {
+      "evidence": "flipped candidate volumes 6/7 overlap in the fixed discretized feature model",
+      "left": "match.f6",
+      "right": "match.f7",
+      "rule": "spatial_collision"
+    }
+  ],
+  "limitations": [
+    "离线派生的多构象离散候选图，不执行连续空间对接或分子动力学",
+    "活动子问题由固定规则选择，不代表全部 24 个候选同时进入量子执行",
+    "评分是无量纲演示目标，不是结合自由能、Kd、Ki、IC50 或药效结论"
+  ],
+  "matches": [
+    {
+      "angle_deviation": 0.04,
+      "critical": true,
+      "distance_deviation": 0.06,
+      "id": "match.c0",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.O2",
+      "pocket_feature": "Asp25:A.carboxylate",
+      "pose_id": "pose.crystal",
+      "quality": 0.99,
+      "reference": true
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": true,
+      "distance_deviation": 0.095,
+      "id": "match.c1",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Ile50:A.hydrophobic",
+      "pose_id": "pose.crystal",
+      "quality": 0.955,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.09,
+      "critical": true,
+      "distance_deviation": 0.13,
+      "id": "match.c2",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.N2",
+      "pocket_feature": "Asp25:B.carboxylate",
+      "pose_id": "pose.crystal",
+      "quality": 0.92,
+      "reference": true
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.165,
+      "id": "match.c3",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.N4",
+      "pocket_feature": "Ile50:B.hydrophobic",
+      "pose_id": "pose.crystal",
+      "quality": 0.885,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.14,
+      "critical": false,
+      "distance_deviation": 0.2,
+      "id": "match.c4",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.aromatic_B",
+      "pocket_feature": "Gly27:A.backbone",
+      "pose_id": "pose.crystal",
+      "quality": 0.85,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.165,
+      "critical": false,
+      "distance_deviation": 0.06,
+      "id": "match.c5",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.OH1",
+      "pocket_feature": "Gly27:B.backbone",
+      "pose_id": "pose.crystal",
+      "quality": 0.815,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.095,
+      "id": "match.c6",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.hydrophobe_C",
+      "pocket_feature": "Val82:A.hydrophobic",
+      "pose_id": "pose.crystal",
+      "quality": 0.78,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.13,
+      "id": "match.c7",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.amine_D",
+      "pocket_feature": "Val82:B.hydrophobic",
+      "pose_id": "pose.crystal",
+      "quality": 0.745,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": true,
+      "distance_deviation": 0.095,
+      "id": "match.r0",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.O2",
+      "pocket_feature": "Ile50:A.hydrophobic",
+      "pose_id": "pose.rotated",
+      "quality": 0.89,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.065,
+      "critical": true,
+      "distance_deviation": 0.13,
+      "id": "match.r1",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Asp25:B.carboxylate",
+      "pose_id": "pose.rotated",
+      "quality": 0.855,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.165,
+      "id": "match.r2",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.N2",
+      "pocket_feature": "Ile50:B.hydrophobic",
+      "pose_id": "pose.rotated",
+      "quality": 0.82,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.115,
+      "critical": false,
+      "distance_deviation": 0.2,
+      "id": "match.r3",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.N4",
+      "pocket_feature": "Gly27:A.backbone",
+      "pose_id": "pose.rotated",
+      "quality": 0.785,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.14,
+      "critical": false,
+      "distance_deviation": 0.06,
+      "id": "match.r4",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.aromatic_B",
+      "pocket_feature": "Gly27:B.backbone",
+      "pose_id": "pose.rotated",
+      "quality": 0.75,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.095,
+      "id": "match.r5",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.OH1",
+      "pocket_feature": "Val82:A.hydrophobic",
+      "pose_id": "pose.rotated",
+      "quality": 0.715,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.13,
+      "id": "match.r6",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.hydrophobe_C",
+      "pocket_feature": "Val82:B.hydrophobic",
+      "pose_id": "pose.rotated",
+      "quality": 0.68,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.215,
+      "critical": true,
+      "distance_deviation": 0.165,
+      "id": "match.r7",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.amine_D",
+      "pocket_feature": "Asp25:A.carboxylate",
+      "pose_id": "pose.rotated",
+      "quality": 0.645,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.04,
+      "critical": true,
+      "distance_deviation": 0.13,
+      "id": "match.f0",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.O2",
+      "pocket_feature": "Asp25:B.carboxylate",
+      "pose_id": "pose.flipped",
+      "quality": 0.84,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.165,
+      "id": "match.f1",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.aromatic_A",
+      "pocket_feature": "Ile50:B.hydrophobic",
+      "pose_id": "pose.flipped",
+      "quality": 0.805,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.09,
+      "critical": false,
+      "distance_deviation": 0.2,
+      "id": "match.f2",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.N2",
+      "pocket_feature": "Gly27:A.backbone",
+      "pose_id": "pose.flipped",
+      "quality": 0.77,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.115,
+      "critical": false,
+      "distance_deviation": 0.06,
+      "id": "match.f3",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.N4",
+      "pocket_feature": "Gly27:B.backbone",
+      "pose_id": "pose.flipped",
+      "quality": 0.735,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.095,
+      "id": "match.f4",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.aromatic_B",
+      "pocket_feature": "Val82:A.hydrophobic",
+      "pose_id": "pose.flipped",
+      "quality": 0.7,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": false,
+      "distance_deviation": 0.13,
+      "id": "match.f5",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.OH1",
+      "pocket_feature": "Val82:B.hydrophobic",
+      "pose_id": "pose.flipped",
+      "quality": 0.665,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.19,
+      "critical": true,
+      "distance_deviation": 0.165,
+      "id": "match.f6",
+      "interaction": "hydrogen_bond",
+      "ligand_feature": "MK1.hydrophobe_C",
+      "pocket_feature": "Asp25:A.carboxylate",
+      "pose_id": "pose.flipped",
+      "quality": 0.63,
+      "reference": false
+    },
+    {
+      "angle_deviation": 0.0,
+      "critical": true,
+      "distance_deviation": 0.2,
+      "id": "match.f7",
+      "interaction": "hydrophobic",
+      "ligand_feature": "MK1.amine_D",
+      "pocket_feature": "Ile50:A.hydrophobic",
+      "pose_id": "pose.flipped",
+      "quality": 0.595,
+      "reference": false
+    }
+  ],
+  "minimum_coverage": 2,
+  "poses": [
+    {
+      "id": "pose.crystal",
+      "label": "共晶派生构象",
+      "reference": true,
+      "strain": 0.12
+    },
+    {
+      "id": "pose.rotated",
+      "label": "旋转候选构象",
+      "reference": false,
+      "strain": 0.34
+    },
+    {
+      "id": "pose.flipped",
+      "label": "翻转候选构象",
+      "reference": false,
+      "strain": 0.47
+    }
+  ],
+  "reference": {
+    "interpretation": "共晶结构派生的离散相互作用参考，不是结合自由能或药效标签",
+    "match_ids": [
+      "match.c0",
+      "match.c2"
+    ],
+    "pose_id": "pose.crystal"
+  },
+  "required_feature_ids": [
+    "Asp25:A.carboxylate",
+    "Ile50:A.hydrophobic",
+    "Asp25:B.carboxylate"
+  ],
+  "selection": {
+    "max_match_variables": 9,
+    "minimum_matches_per_pose": 2,
+    "rule_version": "docking-active-subproblem-v1"
+  },
+  "structure": {
+    "ligand_component_id": "MK1",
+    "ligand_name": "INDINAVIR",
+    "pdb_id": "1HSG",
+    "pocket_residues": [
+      "Asp25:A",
+      "Asp25:B",
+      "Ile50:A",
+      "Ile50:B"
+    ],
+    "protein_chains": [
+      "A",
+      "B"
+    ],
+    "title": "HIV protease complexed with L-735,524"
+  },
+  "visual": {
+    "nodes": [
+      {
+        "group": "Indinavir",
+        "id": "MK1.O2",
+        "label": "O2",
+        "role": "ligand_feature",
+        "x": 15,
+        "y": 15
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.aromatic_A",
+        "label": "aromatic_A",
+        "role": "ligand_feature",
+        "x": 30,
+        "y": 15
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.N2",
+        "label": "N2",
+        "role": "ligand_feature",
+        "x": 15,
+        "y": 37
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.N4",
+        "label": "N4",
+        "role": "ligand_feature",
+        "x": 30,
+        "y": 37
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.aromatic_B",
+        "label": "aromatic_B",
+        "role": "ligand_feature",
+        "x": 15,
+        "y": 59
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.OH1",
+        "label": "OH1",
+        "role": "ligand_feature",
+        "x": 30,
+        "y": 59
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.hydrophobe_C",
+        "label": "hydrophobe_C",
+        "role": "ligand_feature",
+        "x": 15,
+        "y": 81
+      },
+      {
+        "group": "Indinavir",
+        "id": "MK1.amine_D",
+        "label": "amine_D",
+        "role": "ligand_feature",
+        "x": 30,
+        "y": 81
+      },
+      {
+        "group": "Pocket",
+        "id": "Asp25:A.carboxylate",
+        "label": "Asp25:A",
+        "role": "pocket_feature",
+        "x": 70,
+        "y": 15
+      },
+      {
+        "group": "Pocket",
+        "id": "Ile50:A.hydrophobic",
+        "label": "Ile50:A",
+        "role": "pocket_feature",
+        "x": 85,
+        "y": 15
+      },
+      {
+        "group": "Pocket",
+        "id": "Asp25:B.carboxylate",
+        "label": "Asp25:B",
+        "role": "pocket_feature",
+        "x": 70,
+        "y": 37
+      },
+      {
+        "group": "Pocket",
+        "id": "Ile50:B.hydrophobic",
+        "label": "Ile50:B",
+        "role": "pocket_feature",
+        "x": 85,
+        "y": 37
+      },
+      {
+        "group": "Pocket",
+        "id": "Gly27:A.backbone",
+        "label": "Gly27:A",
+        "role": "pocket_feature",
+        "x": 70,
+        "y": 59
+      },
+      {
+        "group": "Pocket",
+        "id": "Gly27:B.backbone",
+        "label": "Gly27:B",
+        "role": "pocket_feature",
+        "x": 85,
+        "y": 59
+      },
+      {
+        "group": "Pocket",
+        "id": "Val82:A.hydrophobic",
+        "label": "Val82:A",
+        "role": "pocket_feature",
+        "x": 70,
+        "y": 81
+      },
+      {
+        "group": "Pocket",
+        "id": "Val82:B.hydrophobic",
+        "label": "Val82:B",
+        "role": "pocket_feature",
+        "x": 85,
+        "y": 81
+      }
+    ]
+  }
+}

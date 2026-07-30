@@ -1,0 +1,119 @@
+{
+  "allowed_claims": [
+    "Demonstrate deterministic reduction of a 24-candidate matching graph.",
+    "Compare Digital and Hybrid QAOA on the same selected QUBO identity."
+  ],
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "760a017df367657ecaacf8a44a3e09d68549867b6ee8c037dbf0ec72e14298cc"
+    },
+    {
+      "path": "reference.json",
+      "sha256": "d4c2c77bbb6b16216dccaa68f6e0f400eb851408c395d8d7fc06da2083767a77"
+    }
+  ],
+  "coordinate_system": {
+    "neutral_atom_layout": "compiler-generated two-dimensional hardware embedding in micrometer",
+    "source_features": "Cartesian coordinates derived from the 1HSG structure in angstrom"
+  },
+  "dataset_id": "docking.1hsg.indinavir.advanced-discrete-match",
+  "generation": {
+    "parameters": {
+      "active_match_limit": 9,
+      "candidate_matches": 24,
+      "minimum_coverage": 2,
+      "model": "multi-pose discrete ligand-pocket feature matching",
+      "poses": 3
+    },
+    "script": "scripts/generate_advanced_docking_fixture.py",
+    "script_sha256": "ea252ae8653c3cb587be8762281371f383f8567b4c1defb7d5e318a51db3a0da",
+    "tool": "cascaqit-biomedicine advanced docking fixture generator",
+    "tool_version": "docking-fixture-v2"
+  },
+  "limitations": [
+    "Only fixed features derived from 1HSG are represented.",
+    "The quantum activity window contains 9 of 24 candidate matches.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ],
+  "reference": {
+    "method": "bounded enumeration of each selected binary subproblem",
+    "software": "CPython standard-library enumeration",
+    "software_version": "3.9.6",
+    "standard_presets": {
+      "multi_pose_balanced": {
+        "reference_match_ids": [
+          "match.c0",
+          "match.c2"
+        ],
+        "reference_pose_id": "pose.crystal"
+      },
+      "multi_pose_coverage": {
+        "reference_match_ids": [
+          "match.c0",
+          "match.c2"
+        ],
+        "reference_pose_id": "pose.crystal"
+      },
+      "multi_pose_geometry": {
+        "reference_match_ids": [
+          "match.c0",
+          "match.c2"
+        ],
+        "reference_pose_id": "pose.crystal"
+      }
+    }
+  },
+  "source": {
+    "doi": "10.2210/pdb1hsg/pdb",
+    "initial_release_date": "1996-04-03",
+    "kind": "RCSB_PDB_derived",
+    "license": "CC0-1.0",
+    "license_checked_at": "2026-07-29",
+    "license_policy_summary": "RCSB states that data files in the PDB archive are available under the CC0 1.0 Universal Public Domain Dedication; external integrated annotations may have separate terms.",
+    "license_policy_uri": "https://www.rcsb.org/pages/policies",
+    "ligand_component_id": "MK1",
+    "ligand_name": "INDINAVIR",
+    "pdb_id": "1HSG",
+    "source_file_latest_revision_date": "2024-02-07",
+    "source_file_sha256": "d2ba73b5c4be05c45275571bbb4dd042347927f91c6c05038c0df5d1ce23c268",
+    "title": "HIV protease complexed with L-735,524",
+    "uri": "https://files.rcsb.org/download/1HSG.cif"
+  },
+  "units": {
+    "neutral_atom_layout": "micrometer",
+    "score": "dimensionless",
+    "source_coordinates": "angstrom"
+  },
+  "variable_order": [
+    "match.c0",
+    "match.c1",
+    "match.c2",
+    "match.c3",
+    "match.c4",
+    "match.c5",
+    "match.c6",
+    "match.c7",
+    "match.r0",
+    "match.r1",
+    "match.r2",
+    "match.r3",
+    "match.r4",
+    "match.r5",
+    "match.r6",
+    "match.r7",
+    "match.f0",
+    "match.f1",
+    "match.f2",
+    "match.f3",
+    "match.f4",
+    "match.f5",
+    "match.f6",
+    "match.f7",
+    "select.crystal",
+    "select.rotated",
+    "select.flipped",
+    "slack.coverage"
+  ],
+  "version": "1"
+}

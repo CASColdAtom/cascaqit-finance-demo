@@ -1,0 +1,129 @@
+{
+  "allowed_claims": [
+    "Demonstrate a 48-conformation coarse-grained landscape and basin-aware active window.",
+    "Compare Digital QAOA samples with the complete finite classical landscape."
+  ],
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "a822a571d1fa43006db065b021e968a2eb815bf5dcb20512d35c6d79605ed280"
+    }
+  ],
+  "coordinate_system": {
+    "domain": "two-dimensional integer square lattice",
+    "normalization": "translation and D4 symmetry canonicalization"
+  },
+  "dataset_id": "peptide.eight-residue.square-lattice",
+  "generation": {
+    "parameters": {
+      "basin_distance_threshold": 2,
+      "lattice": "square_2d",
+      "length": 8,
+      "library_size": 48,
+      "symmetry": "D4 plus translation"
+    },
+    "script": "scripts/generate_advanced_peptide_fixture.py",
+    "script_sha256": "85fe49f93569bded0259b6b0ea75a7b91ec75fa85ff9dc5bda5f26aa0a683580",
+    "tool": "deterministic self-avoiding walk enumeration",
+    "tool_version": "peptide-fixture-v2"
+  },
+  "limitations": [
+    "This is an eight-residue two-dimensional coarse-grained library.",
+    "The quantum activity window contains 12 of 48 conformations.",
+    "No folding kinetics, solvent, three-dimensional structure, or biological function is modeled.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ],
+  "reference": {
+    "method": "complete enumeration of the packaged finite conformation landscape",
+    "software": "CPython deterministic enumeration",
+    "software_version": "3.9.6",
+    "standard_presets": {
+      "octapeptide_charge_shift": {
+        "ground_conformation_ids": [
+          "a16",
+          "a40",
+          "a45"
+        ],
+        "ground_energy": -1.2,
+        "sequence": "+-PH-+HP"
+      },
+      "octapeptide_hydrophobic": {
+        "ground_conformation_ids": [
+          "a11",
+          "a45"
+        ],
+        "ground_energy": -3.0,
+        "sequence": "HPPHHPHH"
+      },
+      "octapeptide_mutation": {
+        "ground_conformation_ids": [
+          "a43"
+        ],
+        "ground_energy": -2.2,
+        "sequence": "HPHPPHH+"
+      }
+    }
+  },
+  "source": {
+    "kind": "project_generated_enumeration",
+    "license": "project_generated",
+    "license_checked_at": "2026-07-30",
+    "raw_file_sha256": null,
+    "uri": null
+  },
+  "units": {
+    "coordinates": "lattice unit",
+    "energy": "dimensionless coarse-grained score"
+  },
+  "variable_order": [
+    "conf.a00",
+    "conf.a01",
+    "conf.a02",
+    "conf.a03",
+    "conf.a04",
+    "conf.a05",
+    "conf.a06",
+    "conf.a07",
+    "conf.a08",
+    "conf.a09",
+    "conf.a10",
+    "conf.a11",
+    "conf.a12",
+    "conf.a13",
+    "conf.a14",
+    "conf.a15",
+    "conf.a16",
+    "conf.a17",
+    "conf.a18",
+    "conf.a19",
+    "conf.a20",
+    "conf.a21",
+    "conf.a22",
+    "conf.a23",
+    "conf.a24",
+    "conf.a25",
+    "conf.a26",
+    "conf.a27",
+    "conf.a28",
+    "conf.a29",
+    "conf.a30",
+    "conf.a31",
+    "conf.a32",
+    "conf.a33",
+    "conf.a34",
+    "conf.a35",
+    "conf.a36",
+    "conf.a37",
+    "conf.a38",
+    "conf.a39",
+    "conf.a40",
+    "conf.a41",
+    "conf.a42",
+    "conf.a43",
+    "conf.a44",
+    "conf.a45",
+    "conf.a46",
+    "conf.a47"
+  ],
+  "version": "1"
+}

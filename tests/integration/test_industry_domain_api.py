@@ -74,7 +74,12 @@ def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
         "available",
         "planned",
     ]
-    assert statuses["docking_match"] == ["available", "planned", "planned"]
+    assert statuses["docking_match"] == ["available", "available", "planned"]
+    assert statuses["peptide_landscape"] == [
+        "available",
+        "available",
+        "planned",
+    ]
 
 
 def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:
@@ -194,6 +199,56 @@ def test_advanced_lih_scan_builds_five_point_audited_plan() -> None:
     assert {item["code"] for item in plan["diagnostics"]} == {
         "BATCH_EXECUTION_NOT_AVAILABLE"
     }
+
+
+@pytest.mark.parametrize(
+    ("case_id", "preset", "configurations"),
+    [
+        (
+            "docking_match",
+            "multi_pose_balanced",
+            [
+                {"mode": "digital", "algorithm": "qaoa"},
+                {"mode": "hybrid", "algorithm": "qaoa"},
+            ],
+        ),
+        (
+            "peptide_landscape",
+            "octapeptide_hydrophobic",
+            [
+                {"mode": "digital", "algorithm": "qaoa", "layers": 1},
+                {"mode": "digital", "algorithm": "qaoa", "layers": 1},
+            ],
+        ),
+    ],
+)
+def test_advanced_optimization_plans_only_wait_for_persistent_jobs(
+    case_id: str,
+    preset: str,
+    configurations: list[dict[str, object]],
+) -> None:
+    response = client.post(
+        f"/api/domains/biomedicine/scenarios/{case_id}/analyze",
+        json={
+            "preset": preset,
+            "experimentLevel": "advanced",
+            "complexityProfile": "advanced_live",
+            "configurations": configurations,
+            "seeds": [7, 23],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    plan = payload["experimentPlan"]
+    problem = payload["analysis"]["problem"]
+    assert plan["profile"]["status"] == "available"
+    assert plan["runCount"] == 4
+    assert {item["code"] for item in plan["diagnostics"]} == {
+        "BATCH_EXECUTION_NOT_AVAILABLE"
+    }
+    assert plan["completeDomainProblemHash"] != plan["quantumSubproblemHash"]
+    assert problem["completeDomainProblemHash"] != problem["quantumSubproblemHash"]
 
 
 def test_planning_controls_require_advanced_level_and_declared_parameter() -> None:

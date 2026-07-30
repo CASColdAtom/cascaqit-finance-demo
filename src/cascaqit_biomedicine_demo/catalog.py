@@ -194,6 +194,9 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             ("reference_pose", "共晶参考"),
             ("strict_geometry", "几何严格"),
             ("pharmacophore_coverage", "药效团覆盖"),
+            ("multi_pose_balanced", "三构象综合匹配 · 高级"),
+            ("multi_pose_geometry", "三构象几何约束 · 高级"),
+            ("multi_pose_coverage", "三构象特征覆盖 · 高级"),
         ),
         (
             _range("match_weight", "匹配权重", 0.2, 1.0, 0.05),
@@ -274,12 +277,22 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             ("hydrophobic_core", "疏水核心"),
             ("charged_competition", "带电竞争"),
             ("contact_limited", "接触受限"),
+            ("octapeptide_hydrophobic", "八残基疏水核心 · 高级"),
+            ("octapeptide_charge_shift", "八残基电荷位移 · 高级"),
+            ("octapeptide_mutation", "八残基突变对照 · 高级"),
         ),
         (
             _select(
                 "sequence",
                 "短肽序列",
-                (("HPPHHP", "HPPHHP"), ("+-P-+H", "+-P-+H"), ("HPHPPH", "HPHPPH")),
+                (
+                    ("HPPHHP", "HPPHHP"),
+                    ("+-P-+H", "+-P-+H"),
+                    ("HPHPPH", "HPHPPH"),
+                    ("HPPHHPHH", "HPPHHPHH"),
+                    ("+-PH-+HP", "+-PH-+HP"),
+                    ("HPHPPHH+", "HPHPPHH+"),
+                ),
             ),
             _range("contact_weight", "接触能权重", 0.5, 2.0, 0.1),
         ),

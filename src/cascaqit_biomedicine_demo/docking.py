@@ -20,11 +20,20 @@ from cascaqit_biomedicine_demo.problem_model import (
     TermGroup,
     with_isolated_pair_geometry,
 )
+from cascaqit_biomedicine_demo.subproblem_selection import select_docking_matches
 from cascaqit_industry_demo.problem_executor import ScenarioExecutor
 
-DATA_ROOT = (
-    Path(__file__).resolve().parent / "data" / "docking_match" / "1hsg_indinavir" / "1"
-)
+DATA_ROOT = Path(__file__).resolve().parent / "data" / "docking_match"
+_STANDARD_PRESETS = {
+    "reference_pose",
+    "strict_geometry",
+    "pharmacophore_coverage",
+}
+_ADVANCED_PRESETS = {
+    "multi_pose_balanced",
+    "multi_pose_geometry",
+    "multi_pose_coverage",
+}
 MATCH_PREFIX = "match."
 POSE_PREFIX = "select."
 SLACK_VARIABLE = "slack.coverage"
@@ -34,8 +43,10 @@ SLACK_VARIABLE = "slack.coverage"
 class DockingFixture:
     manifest: dict[str, Any]
     domain: dict[str, Any]
+    complete_domain: dict[str, Any]
     reference: dict[str, Any]
     manifest_hash: str
+    selection: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -89,6 +100,27 @@ _PRESET_DEFAULTS: dict[str, dict[str, float]] = {
         "geometry_weight": 0.8,
         "strain_weight": 1.0,
     },
+    "multi_pose_balanced": {
+        "match_weight": 0.7,
+        "collision_penalty": 2.8,
+        "coverage_weight": 0.8,
+        "geometry_weight": 0.9,
+        "strain_weight": 1.0,
+    },
+    "multi_pose_geometry": {
+        "match_weight": 0.6,
+        "collision_penalty": 3.8,
+        "coverage_weight": 0.7,
+        "geometry_weight": 1.4,
+        "strain_weight": 1.2,
+    },
+    "multi_pose_coverage": {
+        "match_weight": 0.6,
+        "collision_penalty": 3.0,
+        "coverage_weight": 1.3,
+        "geometry_weight": 0.8,
+        "strain_weight": 1.0,
+    },
 }
 
 
@@ -106,44 +138,98 @@ def _read_object(path: Path) -> tuple[dict[str, Any], bytes]:
     return value, raw
 
 
-def load_docking_fixture() -> DockingFixture:
-    manifest, manifest_raw = _read_object(DATA_ROOT / "manifest.json")
+def load_docking_fixture(preset: str | None = None) -> DockingFixture:
+    selected_preset = preset or "reference_pose"
+    if selected_preset in _STANDARD_PRESETS:
+        fixture_root = DATA_ROOT / "1hsg_indinavir" / "1"
+    elif selected_preset in _ADVANCED_PRESETS:
+        fixture_root = DATA_ROOT / "1hsg_indinavir_advanced" / "1"
+    else:
+        raise ValueError(f"unknown docking preset: {selected_preset}")
+    manifest, manifest_raw = _read_object(fixture_root / "manifest.json")
     validate_manifest_contract(manifest)
     loaded: dict[str, dict[str, Any]] = {}
     for artifact in manifest.get("artifacts", ()):
         name = str(artifact["path"])
         if name not in {"domain.json", "reference.json"}:
             raise ValueError(f"unsupported docking fixture artifact: {name}")
-        value, raw = _read_object(DATA_ROOT / name)
+        value, raw = _read_object(fixture_root / name)
         if hashlib.sha256(raw).hexdigest() != artifact["sha256"]:
             raise ValueError(f"docking fixture checksum mismatch: {name}")
         loaded[name] = value
     if set(loaded) != {"domain.json", "reference.json"}:
         raise ValueError("docking fixture is incomplete")
-    expected_order = [item["id"] for item in loaded["domain.json"]["matches"]]
+    complete_domain = loaded["domain.json"]
+    expected_order = [item["id"] for item in complete_domain["matches"]]
     expected_order.extend(
         f"select.{item['id'].split('.', 1)[1]}"
-        for item in loaded["domain.json"]["poses"]
+        for item in complete_domain["poses"]
     )
     expected_order.append(SLACK_VARIABLE)
     if manifest["variable_order"] != expected_order:
         raise ValueError("docking fixture variable order is inconsistent")
-    domain = loaded["domain.json"]
-    match_ids = {str(item["id"]) for item in domain["matches"]}
-    pose_ids = {str(item["id"]) for item in domain["poses"]}
-    if len(match_ids) != 8 or len(pose_ids) != 2:
-        raise ValueError("docking fixture requires two poses and eight matches")
-    for item in domain["matches"]:
+    match_ids = {str(item["id"]) for item in complete_domain["matches"]}
+    pose_ids = {str(item["id"]) for item in complete_domain["poses"]}
+    if selected_preset in _STANDARD_PRESETS and (
+        len(match_ids) != 8 or len(pose_ids) != 2
+    ):
+        raise ValueError(
+            "standard docking fixture requires two poses and eight matches"
+        )
+    if selected_preset in _ADVANCED_PRESETS and not (
+        20 <= len(match_ids) <= 40 and 2 <= len(pose_ids) <= 4
+    ):
+        raise ValueError(
+            "advanced docking fixture size is outside the registered range"
+        )
+    for item in complete_domain["matches"]:
         if item["pose_id"] not in pose_ids:
             raise ValueError("docking match references an unknown pose")
-    for conflict in domain["conflicts"]:
+    for conflict in complete_domain["conflicts"]:
         if {conflict["left"], conflict["right"]} - match_ids:
             raise ValueError("docking conflict references an unknown match")
+    if selected_preset in _ADVANCED_PRESETS:
+        selection = select_docking_matches(complete_domain)
+        domain = {
+            **complete_domain,
+            "matches": selection["selectedMatches"],
+            "conflicts": selection["selectedConflicts"],
+        }
+    else:
+        selected_ids = [str(item["id"]) for item in complete_domain["matches"]]
+        complete_hash = _hash(
+            {
+                "matches": complete_domain["matches"],
+                "poses": complete_domain["poses"],
+                "conflicts": complete_domain["conflicts"],
+                "minimumCoverage": complete_domain["minimum_coverage"],
+            }
+        )
+        selection = {
+            "ruleVersion": "identity.v1",
+            "completeProblemHash": complete_hash,
+            "selectedMatchIds": selected_ids,
+            "excluded": [],
+            "requiredFeatureCoverage": {},
+            "poseCoverage": {},
+            "selectionHash": _hash({"rule": "identity.v1", "ids": selected_ids}),
+            "completeMatchCount": len(selected_ids),
+            "selectedMatchCount": len(selected_ids),
+            "coverageRate": 1.0,
+            "selectedMatches": complete_domain["matches"],
+            "selectedConflicts": complete_domain["conflicts"],
+        }
+        domain = complete_domain
+    reference_ids = set(complete_domain["reference"]["match_ids"])
+    if reference_ids - set(selection["selectedMatchIds"]):
+        raise ValueError("docking activity window excludes the co-crystal reference")
     return DockingFixture(
         manifest=manifest,
         domain=domain,
+        complete_domain=complete_domain,
         reference=loaded["reference.json"],
         manifest_hash=hashlib.sha256(manifest_raw).hexdigest(),
+        selection=selection,
     )
 
 
@@ -534,7 +620,7 @@ def classic_docking_solution(
     preset: str, values: dict[str, Any] | None = None
 ) -> DockingSolution:
     """Return the exact feasible baseline for one packaged docking preset."""
-    scenario = DockingMatchScenario()
+    scenario = DockingMatchScenario(load_docking_fixture(preset))
     case_input = docking_input(preset, values or {})
     definition = scenario.build_definition(case_input)
     solutions = _classic_solutions(scenario, case_input, definition)
@@ -626,6 +712,9 @@ def _analysis_payload(
             "id": canonical.problem_id,
             "type": "qubo",
             "hash": canonical.problem_hash,
+            "completeDomainProblemHash": fixture.selection["completeProblemHash"],
+            "quantumSubproblemHash": canonical.problem_hash,
+            "selectionHash": fixture.selection["selectionHash"],
             "variables": list(definition.problem.variables),
             "terms": [
                 {
@@ -679,7 +768,14 @@ def _analysis_payload(
             "structure": domain["structure"],
             "poses": domain["poses"],
             "matches": domain["matches"],
+            "completeMatches": fixture.complete_domain["matches"],
             "conflicts": domain["conflicts"],
+            "completeConflicts": fixture.complete_domain["conflicts"],
+            "subproblemSelection": {
+                key: value
+                for key, value in fixture.selection.items()
+                if key not in {"selectedMatches", "selectedConflicts"}
+            },
             "minimumCoverage": domain["minimum_coverage"],
             "nodes": domain["visual"]["nodes"],
             "edges": visual_edges,
@@ -693,7 +789,7 @@ def _analysis_payload(
 
 
 def analyze_docking_match(preset: str, values: dict[str, Any]) -> dict[str, Any]:
-    scenario = DockingMatchScenario()
+    scenario = DockingMatchScenario(load_docking_fixture(preset))
     case_input = docking_input(preset, values)
     analysis = ScenarioExecutor().analyze(scenario, case_input)
     return _analysis_payload(scenario, case_input, analysis)
@@ -844,7 +940,7 @@ def run_docking_match(
     parameter_budget: int,
     optimizer_starts: int,
 ) -> dict[str, Any]:
-    scenario = DockingMatchScenario()
+    scenario = DockingMatchScenario(load_docking_fixture(preset))
     case_input = docking_input(preset, values)
     executor = ScenarioExecutor()
     result = executor.run(
@@ -897,6 +993,10 @@ def run_docking_match(
             "datasetId": scenario.fixture.manifest["dataset_id"],
             "datasetVersion": scenario.fixture.manifest["version"],
             "manifestHash": scenario.fixture.manifest_hash,
+            "completeDomainProblemHash": scenario.fixture.selection[
+                "completeProblemHash"
+            ],
+            "selectionHash": scenario.fixture.selection["selectionHash"],
             "domainInputHash": _hash(
                 {
                     "input": asdict(case_input),

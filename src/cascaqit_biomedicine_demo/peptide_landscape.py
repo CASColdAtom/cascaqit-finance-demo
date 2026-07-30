@@ -24,19 +24,25 @@ from cascaqit_biomedicine_demo.problem_model import (
     QuboBuilder,
     TermGroup,
 )
-
-DATA_ROOT = (
-    Path(__file__).resolve().parent
-    / "data"
-    / "peptide_landscape"
-    / "six_residue_2d"
-    / "1"
+from cascaqit_biomedicine_demo.subproblem_selection import (
+    select_peptide_conformations,
 )
+
+DATA_ROOT = Path(__file__).resolve().parent / "data" / "peptide_landscape"
+_STANDARD_PRESETS = {"hydrophobic_core", "charged_competition", "contact_limited"}
+_ADVANCED_PRESETS = {
+    "octapeptide_hydrophobic",
+    "octapeptide_charge_shift",
+    "octapeptide_mutation",
+}
 
 _PRESETS = {
     "hydrophobic_core": {"sequence": "HPPHHP", "contact_weight": 1.0},
     "charged_competition": {"sequence": "+-P-+H", "contact_weight": 1.0},
     "contact_limited": {"sequence": "HPHPPH", "contact_weight": 1.0},
+    "octapeptide_hydrophobic": {"sequence": "HPPHHPHH", "contact_weight": 1.0},
+    "octapeptide_charge_shift": {"sequence": "+-PH-+HP", "contact_weight": 1.0},
+    "octapeptide_mutation": {"sequence": "HPHPPHH+", "contact_weight": 1.0},
 }
 
 
@@ -68,15 +74,24 @@ def _derived_contacts(coordinates: list[list[int]]) -> list[list[int]]:
     return contacts
 
 
-def load_peptide_fixture() -> PeptideFixture:
-    manifest, manifest_raw = _read_json(DATA_ROOT / "manifest.json")
+def load_peptide_fixture(preset: str | None = None) -> PeptideFixture:
+    selected_preset = preset or "hydrophobic_core"
+    if selected_preset in _STANDARD_PRESETS:
+        fixture_root = DATA_ROOT / "six_residue_2d" / "1"
+    elif selected_preset in _ADVANCED_PRESETS:
+        fixture_root = DATA_ROOT / "eight_residue_2d" / "1"
+    else:
+        raise ValueError(f"unknown peptide preset: {selected_preset}")
+    manifest, manifest_raw = _read_json(fixture_root / "manifest.json")
     validate_manifest_contract(manifest)
-    domain, domain_raw = _read_json(DATA_ROOT / "domain.json")
+    domain, domain_raw = _read_json(fixture_root / "domain.json")
     if hashlib.sha256(domain_raw).hexdigest() != manifest["artifacts"][0]["sha256"]:
         raise ValueError("peptide fixture checksum mismatch: domain.json")
     conformations = domain["conformations"]
-    if not 8 <= len(conformations) <= 16:
-        raise ValueError("peptide fixture requires 8 to 16 conformations")
+    if selected_preset in _STANDARD_PRESETS and not 8 <= len(conformations) <= 16:
+        raise ValueError("standard peptide fixture requires 8 to 16 conformations")
+    if selected_preset in _ADVANCED_PRESETS and not 32 <= len(conformations) <= 64:
+        raise ValueError("advanced peptide fixture requires 32 to 64 conformations")
     identifiers = set()
     coordinate_sets = set()
     for item in conformations:
@@ -115,7 +130,7 @@ def peptide_values(preset: str, overrides: dict[str, Any]) -> dict[str, Any]:
     values.update(overrides)
     sequence = str(values["sequence"])
     if sequence not in {item["sequence"] for item in _PRESETS.values()}:
-        raise ValueError("sequence must be one of the packaged six-residue presets")
+        raise ValueError("sequence must be one of the packaged peptide presets")
     weight = float(values["contact_weight"])
     if not 0.5 <= weight <= 2.0:
         raise ValueError("contact_weight must be between 0.5 and 2.0")
@@ -153,7 +168,7 @@ def _energy(
 
 
 def _landscape(preset: str, values: dict[str, Any]) -> list[dict[str, Any]]:
-    fixture = load_peptide_fixture()
+    fixture = load_peptide_fixture(preset)
     return [
         {
             **item,
@@ -167,7 +182,36 @@ def _landscape(preset: str, values: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _definition(preset: str, values: dict[str, Any]) -> OptimizationProblemDefinition:
-    landscape = _landscape(preset, values)
+    fixture = load_peptide_fixture(preset)
+    complete_landscape = _landscape(preset, values)
+    if preset in _ADVANCED_PRESETS:
+        basin_rule = fixture.domain["basinRule"]
+        selection = select_peptide_conformations(
+            complete_landscape,
+            basin_sizes=basin_rule["basinSizes"],
+            major_basin_minimum_size=int(basin_rule["majorBasinMinimumSize"]),
+            limit=int(fixture.domain["selection"]["max_conformations"]),
+        )
+        landscape = selection["selectedConformations"]
+    else:
+        selected_ids = [str(item["id"]) for item in complete_landscape]
+        complete_hash = hash_payload(complete_landscape)
+        selection = {
+            "ruleVersion": "identity.v1",
+            "completeLandscapeHash": complete_hash,
+            "selectedConformationIds": selected_ids,
+            "excluded": [],
+            "majorBasins": [],
+            "energyWindow": None,
+            "selectionHash": hash_payload(
+                {"rule": "identity.v1", "ids": selected_ids}
+            ),
+            "completeConformationCount": len(complete_landscape),
+            "selectedConformationCount": len(complete_landscape),
+            "coverageRate": 1.0,
+            "selectedConformations": complete_landscape,
+        }
+        landscape = complete_landscape
     variables = tuple(f"conf.{item['id']}" for item in landscape)
     builder = QuboBuilder(variables)
     for variable, item in zip(variables, landscape):
@@ -189,7 +233,7 @@ def _definition(preset: str, values: dict[str, Any]) -> OptimizationProblemDefin
         source_rule="select_exactly_one_conformation",
     )
     problem = builder.build(
-        problem_id=f"biomedicine.peptide.six-residue.{preset}",
+        problem_id=f"biomedicine.peptide.{fixture.manifest['dataset_id']}.{preset}",
         metadata={"preset": preset, "sequence": values["sequence"]},
     )
     return OptimizationProblemDefinition(
@@ -205,7 +249,12 @@ def _definition(preset: str, values: dict[str, Any]) -> OptimizationProblemDefin
             ),
         ),
         coefficient_contributions=builder.contributions,
-        metadata={"landscape": landscape, "penalty": penalty},
+        metadata={
+            "landscape": landscape,
+            "full_landscape": complete_landscape,
+            "selection": selection,
+            "penalty": penalty,
+        },
     )
 
 
@@ -262,12 +311,17 @@ def _ledger(definition: OptimizationProblemDefinition) -> dict[str, Any]:
 
 def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, Any]:
     resolved = peptide_values(preset, values)
-    fixture = load_peptide_fixture()
+    fixture = load_peptide_fixture(preset)
     definition = _definition(preset, resolved)
-    landscape = sorted(
+    active_landscape = sorted(
         definition.metadata["landscape"], key=lambda x: (x["energy"], x["id"])
     )
-    best = landscape[0]
+    full_landscape = sorted(
+        definition.metadata["full_landscape"],
+        key=lambda x: (x["energy"], x["id"]),
+    )
+    selection = definition.metadata["selection"]
+    best = full_landscape[0]
     nodes = [
         {
             "id": f"res.{i + 1}",
@@ -283,7 +337,7 @@ def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, 
     ]
     edges = [
         {"source": f"res.{i}", "target": f"res.{i + 1}", "kind": "chain", "score": 0.0}
-        for i in range(1, 6)
+        for i in range(1, int(fixture.domain["residueCount"]))
     ] + [
         {
             "source": f"res.{left}",
@@ -314,6 +368,9 @@ def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, 
             "id": definition.problem.problem_id,
             "type": "qubo",
             "hash": definition.problem.stable_hash(),
+            "completeDomainProblemHash": selection["completeLandscapeHash"],
+            "quantumSubproblemHash": definition.problem.stable_hash(),
+            "selectionHash": selection["selectionHash"],
             "variables": list(definition.problem.variables),
             "terms": [
                 {
@@ -338,7 +395,8 @@ def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, 
         },
         "resource": {
             "logical_variables": len(definition.problem.variables),
-            "conformations": len(landscape),
+            "conformations": len(full_landscape),
+            "activeConformations": len(active_landscape),
         },
         "decision": {
             "recommendedMode": "digital",
@@ -373,11 +431,20 @@ def analyze_peptide_landscape(preset: str, values: dict[str, Any]) -> dict[str, 
             "sequence": resolved["sequence"],
             "preset": preset,
             "contactWeight": resolved["contact_weight"],
-            "conformations": landscape,
+            "conformations": active_landscape,
+            "fullLandscape": full_landscape,
+            "basinRule": fixture.domain.get("basinRule"),
+            "subproblemSelection": {
+                key: value
+                for key, value in selection.items()
+                if key != "selectedConformations"
+            },
             "nodes": nodes,
             "edges": edges,
             "classicGroundIds": [
-                item["id"] for item in landscape if item["energy"] == best["energy"]
+                item["id"]
+                for item in full_landscape
+                if item["energy"] == best["energy"]
             ],
             "limitations": fixture.manifest["limitations"],
         },
@@ -399,7 +466,7 @@ def run_peptide_landscape(
     if layers != 1:
         raise ValueError("小肽首个已校准预设只支持一层 Digital QAOA。")
     resolved = peptide_values(preset, values)
-    fixture = load_peptide_fixture()
+    fixture = load_peptide_fixture(preset)
     definition = _definition(preset, resolved)
     qaoa = QAOA(definition.problem, layers=layers)
     started = time.perf_counter()
@@ -423,16 +490,20 @@ def run_peptide_landscape(
         key=lambda x: (x["energy"], -x["count"], x["bitstring"]),
     )
     quantum_candidate = (
-        feasible[0]
+        feasible[0] | {"source": "quantum_observed"}
         if feasible
         else _solution("0" * len(definition.problem.variables), definition)
-        | {"count": 0}
+        | {"count": 0, "source": "quantum_not_observed"}
     )
-    landscape = sorted(
+    active_landscape = sorted(
         definition.metadata["landscape"], key=lambda x: (x["energy"], x["id"])
     )
-    minimum = landscape[0]["energy"]
-    classic_ground = [item for item in landscape if item["energy"] == minimum]
+    full_landscape = sorted(
+        definition.metadata["full_landscape"],
+        key=lambda x: (x["energy"], x["id"]),
+    )
+    minimum = full_landscape[0]["energy"]
+    classic_ground = [item for item in full_landscape if item["energy"] == minimum]
     best = result.evaluations[result.best_evaluation_index]
     circuit = (
         qaoa.build_circuit()
@@ -450,7 +521,13 @@ def run_peptide_landscape(
             "topObservedFeasible": feasible[:5],
             "observedFeasibleCount": len(feasible),
             "classicGroundConformations": classic_ground,
-            "fullLandscape": landscape,
+            "activeLandscape": active_landscape,
+            "fullLandscape": full_landscape,
+            "subproblemSelection": {
+                key: value
+                for key, value in definition.metadata["selection"].items()
+                if key != "selectedConformations"
+            },
             "energyGapFromGround": None
             if not quantum_candidate["feasible"]
             else quantum_candidate["energy"] - minimum,
@@ -504,6 +581,10 @@ def run_peptide_landscape(
             "datasetId": fixture.manifest["dataset_id"],
             "datasetVersion": fixture.manifest["version"],
             "manifestHash": fixture.manifest_hash,
+            "completeDomainProblemHash": definition.metadata["selection"][
+                "completeLandscapeHash"
+            ],
+            "selectionHash": definition.metadata["selection"]["selectionHash"],
             "domainInputHash": hash_payload(
                 {
                     "preset": preset,
