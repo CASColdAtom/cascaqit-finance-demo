@@ -108,15 +108,17 @@ const activeCenterRun = {
     sampledEnergyMeV: -0.919,
     sampledStandardErrorMeV: 0.01,
     exactGroundEnergyMeV: -0.9211,
+    exactFirstGapMeV: 0.0548,
+    exactFirstGapSource: "classical_exact_diagonalization",
     absoluteErrorMeV: 0.0001,
     magnetization: [
       { siteId: "spin.m1", expectation: -0.25, standardError: 0.04 },
       { siteId: "spin.m2", expectation: 0.25, standardError: 0.04 },
     ],
     correlations: [
-      { operator: "XX", expectation: -0.97, standardError: 0.02 },
-      { operator: "YY", expectation: -0.96, standardError: 0.02 },
-      { operator: "ZZ", expectation: -1, standardError: 0 },
+      { pathId: "exchange", leftSiteId: "spin.m1", rightSiteId: "spin.m2", operator: "XX", expectation: -0.97, standardError: 0.02 },
+      { pathId: "exchange", leftSiteId: "spin.m1", rightSiteId: "spin.m2", operator: "YY", expectation: -0.96, standardError: 0.02 },
+      { pathId: "exchange", leftSiteId: "spin.m1", rightSiteId: "spin.m2", operator: "ZZ", expectation: -1, standardError: 0 },
     ],
     sectorOccupancy: { "Mz=+1": 0, "Mz=+0": 1, "Mz=-1": 0 },
     declaredSector: "total_magnetization_z",
@@ -125,6 +127,8 @@ const activeCenterRun = {
   comparison: {
     hamiltonianHash: "same-hash",
     vqeHamiltonianHash: "same-hash",
+    exactFirstGapMeV: 0.0548,
+    exactFirstGapSource: "classical_exact_diagonalization",
   },
   audit: { hamiltonianHash: "same-hash" },
 } as unknown as ActiveCenterRunPayload;
@@ -305,7 +309,8 @@ describe("Biomedicine active-center views", () => {
     expect(screen.getByText("局域磁化与两点自旋关联")).toBeTruthy();
     expect(screen.getByText("总磁化扇区占据")).toBeTruthy();
     expect(screen.getByText("MATCH")).toBeTruthy();
-    expect(screen.getByText("CORRELATION / XX")).toBeTruthy();
+    expect(screen.getByText("exchange / XX")).toBeTruthy();
+    expect(screen.getByText(/classic gap 0\.0548 meV/)).toBeTruthy();
   });
 });
 

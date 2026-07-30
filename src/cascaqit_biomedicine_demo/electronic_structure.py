@@ -22,6 +22,7 @@ from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import (
     ELECTRONIC_DATASET_PATHS,
     H2_BOND_SCAN_DATASETS,
+    LIH_BOND_SCAN_DATASETS,
     LoadedFixture,
     load_electronic_fixture,
 )
@@ -37,6 +38,10 @@ _PRESETS = {
         "noise_model": "ideal",
     },
     "lih_active_space": {
+        "dataset": "lih_sto3g_1600",
+        "noise_model": "ideal",
+    },
+    "lih_potential_scan": {
         "dataset": "lih_sto3g_1600",
         "noise_model": "ideal",
     },
@@ -83,9 +88,11 @@ def _validated_reference(
     return packaged
 
 
-def _bond_scan_reference(selected_dataset: str) -> list[dict[str, Any]]:
+def _bond_scan_reference(
+    selected_dataset: str, datasets: tuple[str, ...]
+) -> list[dict[str, Any]]:
     points = []
-    for dataset in H2_BOND_SCAN_DATASETS:
+    for dataset in datasets:
         fixture = load_electronic_fixture(dataset)
         points.append(
             {
@@ -127,8 +134,13 @@ def analyze_electronic_structure(
         "noiseModel": resolved["noise_model"],
         "reference": fixture.manifest["reference"],
         "bondScanReference": (
-            _bond_scan_reference(resolved["dataset"])
-            if fixture.domain["molecule"] == "H2"
+            _bond_scan_reference(resolved["dataset"], H2_BOND_SCAN_DATASETS)
+            if preset == "h2_bond_scan"
+            else []
+        ),
+        "potentialScanReference": (
+            _bond_scan_reference(resolved["dataset"], LIH_BOND_SCAN_DATASETS)
+            if preset == "lih_potential_scan"
             else []
         ),
         "limitations": fixture.manifest["limitations"],

@@ -1,0 +1,929 @@
+{
+  "constant": -7.23810331282209,
+  "hamiltonian_id": "electronic.lih.sto3g.1200.active-2e-3o",
+  "logical_order": [
+    "q0",
+    "q1",
+    "q2",
+    "q3"
+  ],
+  "terms": [
+    {
+      "coefficient": 0.0116282002262137,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ]
+      ],
+      "operator": "X(q0)",
+      "term_id": "pauli.x0"
+    },
+    {
+      "coefficient": 0.00645362400510669,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) X(q1) X(q2) X(q3)",
+      "term_id": "pauli.x0.x1.x2.x3"
+    },
+    {
+      "coefficient": -0.00645362400510669,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Y"
+        ],
+        [
+          "q3",
+          "Y"
+        ]
+      ],
+      "operator": "X(q0) X(q1) Y(q2) Y(q3)",
+      "term_id": "pauli.x0.x1.y2.y3"
+    },
+    {
+      "coefficient": 0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) X(q1) Z(q2) X(q3)",
+      "term_id": "pauli.x0.x1.z2.x3"
+    },
+    {
+      "coefficient": 0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) X(q1) X(q3)",
+      "term_id": "pauli.x0.x1.x3"
+    },
+    {
+      "coefficient": -0.0116282002262137,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q1)",
+      "term_id": "pauli.x0.z1"
+    },
+    {
+      "coefficient": -0.0025462655806017,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) Z(q1) X(q2)",
+      "term_id": "pauli.x0.z1.x2"
+    },
+    {
+      "coefficient": 0.0025462655806017,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q1) X(q2) Z(q3)",
+      "term_id": "pauli.x0.z1.x2.z3"
+    },
+    {
+      "coefficient": -0.0105842332063473,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q1) Z(q2)",
+      "term_id": "pauli.x0.z1.z2"
+    },
+    {
+      "coefficient": 0.000497890844083508,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q1) Z(q2) Z(q3)",
+      "term_id": "pauli.x0.z1.z2.z3"
+    },
+    {
+      "coefficient": -0.00054609165864148,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q1) Z(q3)",
+      "term_id": "pauli.x0.z1.z3"
+    },
+    {
+      "coefficient": 0.0025462655806017,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "X(q0) X(q2)",
+      "term_id": "pauli.x0.x2"
+    },
+    {
+      "coefficient": -0.0025462655806017,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) X(q2) Z(q3)",
+      "term_id": "pauli.x0.x2.z3"
+    },
+    {
+      "coefficient": 0.0105842332063473,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q2)",
+      "term_id": "pauli.x0.z2"
+    },
+    {
+      "coefficient": -0.000497890844083508,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q2) Z(q3)",
+      "term_id": "pauli.x0.z2.z3"
+    },
+    {
+      "coefficient": 0.00054609165864148,
+      "factors": [
+        [
+          "q0",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q0) Z(q3)",
+      "term_id": "pauli.x0.z3"
+    },
+    {
+      "coefficient": -0.00645362400510669,
+      "factors": [
+        [
+          "q0",
+          "Y"
+        ],
+        [
+          "q1",
+          "Y"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Y(q0) Y(q1) X(q2) X(q3)",
+      "term_id": "pauli.y0.y1.x2.x3"
+    },
+    {
+      "coefficient": 0.00645362400510669,
+      "factors": [
+        [
+          "q0",
+          "Y"
+        ],
+        [
+          "q1",
+          "Y"
+        ],
+        [
+          "q2",
+          "Y"
+        ],
+        [
+          "q3",
+          "Y"
+        ]
+      ],
+      "operator": "Y(q0) Y(q1) Y(q2) Y(q3)",
+      "term_id": "pauli.y0.y1.y2.y3"
+    },
+    {
+      "coefficient": -0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "Y"
+        ],
+        [
+          "q1",
+          "Y"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Y(q0) Y(q1) Z(q2) X(q3)",
+      "term_id": "pauli.y0.y1.z2.x3"
+    },
+    {
+      "coefficient": -0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "Y"
+        ],
+        [
+          "q1",
+          "Y"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Y(q0) Y(q1) X(q3)",
+      "term_id": "pauli.y0.y1.x3"
+    },
+    {
+      "coefficient": -0.0300628922966325,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0)",
+      "term_id": "pauli.z0"
+    },
+    {
+      "coefficient": 0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Z(q0) X(q1) X(q2) X(q3)",
+      "term_id": "pauli.z0.x1.x2.x3"
+    },
+    {
+      "coefficient": -0.00481462018934717,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Y"
+        ],
+        [
+          "q3",
+          "Y"
+        ]
+      ],
+      "operator": "Z(q0) X(q1) Y(q2) Y(q3)",
+      "term_id": "pauli.z0.x1.y2.y3"
+    },
+    {
+      "coefficient": 0.0104335591299946,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Z(q0) X(q1) Z(q2) X(q3)",
+      "term_id": "pauli.z0.x1.z2.x3"
+    },
+    {
+      "coefficient": 0.0104335591299946,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "Z(q0) X(q1) X(q3)",
+      "term_id": "pauli.z0.x1.x3"
+    },
+    {
+      "coefficient": -0.205458142576774,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1)",
+      "term_id": "pauli.z0.z1"
+    },
+    {
+      "coefficient": -0.000497890844083508,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1) X(q2)",
+      "term_id": "pauli.z0.z1.x2"
+    },
+    {
+      "coefficient": 0.000497890844083508,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1) X(q2) Z(q3)",
+      "term_id": "pauli.z0.z1.x2.z3"
+    },
+    {
+      "coefficient": 0.059418021358166,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1) Z(q2)",
+      "term_id": "pauli.z0.z1.z2"
+    },
+    {
+      "coefficient": 0.08498677091323,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1) Z(q2) Z(q3)",
+      "term_id": "pauli.z0.z1.z2.z3"
+    },
+    {
+      "coefficient": -0.0706642832152713,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q1) Z(q3)",
+      "term_id": "pauli.z0.z1.z3"
+    },
+    {
+      "coefficient": 0.0105842332063473,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "Z(q0) X(q2)",
+      "term_id": "pauli.z0.x2"
+    },
+    {
+      "coefficient": -0.0105842332063473,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) X(q2) Z(q3)",
+      "term_id": "pauli.z0.x2.z3"
+    },
+    {
+      "coefficient": 0.128719210474688,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q2)",
+      "term_id": "pauli.z0.z2"
+    },
+    {
+      "coefficient": 0.059418021358166,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q2) Z(q3)",
+      "term_id": "pauli.z0.z2.z3"
+    },
+    {
+      "coefficient": -0.0726062348995219,
+      "factors": [
+        [
+          "q0",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q0) Z(q3)",
+      "term_id": "pauli.z0.z3"
+    },
+    {
+      "coefficient": 0.00481462018934717,
+      "factors": [
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q1) X(q2) X(q3)",
+      "term_id": "pauli.x1.x2.x3"
+    },
+    {
+      "coefficient": -0.00481462018934717,
+      "factors": [
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Y"
+        ],
+        [
+          "q3",
+          "Y"
+        ]
+      ],
+      "operator": "X(q1) Y(q2) Y(q3)",
+      "term_id": "pauli.x1.y2.y3"
+    },
+    {
+      "coefficient": 0.0104335591299946,
+      "factors": [
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q1) Z(q2) X(q3)",
+      "term_id": "pauli.x1.z2.x3"
+    },
+    {
+      "coefficient": 0.0104335591299946,
+      "factors": [
+        [
+          "q1",
+          "X"
+        ],
+        [
+          "q3",
+          "X"
+        ]
+      ],
+      "operator": "X(q1) X(q3)",
+      "term_id": "pauli.x1.x3"
+    },
+    {
+      "coefficient": 0.20797221263374,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1)",
+      "term_id": "pauli.z1"
+    },
+    {
+      "coefficient": 0.00054609165864148,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "Z(q1) X(q2)",
+      "term_id": "pauli.z1.x2"
+    },
+    {
+      "coefficient": -0.00054609165864148,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1) X(q2) Z(q3)",
+      "term_id": "pauli.z1.x2.z3"
+    },
+    {
+      "coefficient": -0.0726062348995219,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1) Z(q2)",
+      "term_id": "pauli.z1.z2"
+    },
+    {
+      "coefficient": -0.0706642832152713,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1) Z(q2) Z(q3)",
+      "term_id": "pauli.z1.z2.z3"
+    },
+    {
+      "coefficient": 0.0782363777898524,
+      "factors": [
+        [
+          "q1",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q1) Z(q3)",
+      "term_id": "pauli.z1.z3"
+    },
+    {
+      "coefficient": 0.0116282002262137,
+      "factors": [
+        [
+          "q2",
+          "X"
+        ]
+      ],
+      "operator": "X(q2)",
+      "term_id": "pauli.x2"
+    },
+    {
+      "coefficient": -0.0116282002262137,
+      "factors": [
+        [
+          "q2",
+          "X"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "X(q2) Z(q3)",
+      "term_id": "pauli.x2.z3"
+    },
+    {
+      "coefficient": -0.0300628922966325,
+      "factors": [
+        [
+          "q2",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q2)",
+      "term_id": "pauli.z2"
+    },
+    {
+      "coefficient": -0.205458142576774,
+      "factors": [
+        [
+          "q2",
+          "Z"
+        ],
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q2) Z(q3)",
+      "term_id": "pauli.z2.z3"
+    },
+    {
+      "coefficient": 0.20797221263374,
+      "factors": [
+        [
+          "q3",
+          "Z"
+        ]
+      ],
+      "operator": "Z(q3)",
+      "term_id": "pauli.z3"
+    }
+  ]
+}

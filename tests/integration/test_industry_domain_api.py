@@ -63,11 +63,18 @@ def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
         item["experimentLevels"] == ["standard", "advanced"]
         for item in biomedicine.json()["scenarios"]
     )
-    assert all(
-        [profile["status"] for profile in item["complexityProfiles"]]
-        == ["available", "planned", "planned"]
+    statuses = {
+        item["caseId"]: [
+            profile["status"] for profile in item["complexityProfiles"]
+        ]
         for item in biomedicine.json()["scenarios"]
-    )
+    }
+    assert statuses["electronic_structure"] == [
+        "available",
+        "available",
+        "planned",
+    ]
+    assert statuses["docking_match"] == ["available", "planned", "planned"]
 
 
 def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:
@@ -96,7 +103,7 @@ def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     assert payload["analysis"]["domain"]["molecule"] == "H2"
     assert payload["dataset"] == payload["analysis"]["dataset"]
     assert payload["analysis"]["resource"]["measurementGroups"] == 2
-    assert len(payload["scenario"]["presets"]) == 3
+    assert len(payload["scenario"]["presets"]) == 4
     assert len(payload["analysis"]["domain"]["bondScanReference"]) == 3
     assert payload["experimentPlan"]["executionPolicy"] == "sync"
     assert payload["experimentPlan"]["runCount"] == 1
@@ -133,7 +140,7 @@ def test_advanced_analysis_returns_truthful_rejected_plan_until_release() -> Non
     response = client.post(
         "/api/domains/biomedicine/scenarios/active_center/analyze",
         json={
-            "preset": "antiferromagnetic",
+            "preset": "trinuclear_frustrated",
             "values": {},
             "experimentLevel": "advanced",
             "complexityProfile": "advanced_live",
@@ -155,8 +162,37 @@ def test_advanced_analysis_returns_truthful_rejected_plan_until_release() -> Non
         1.6,
     ]
     assert {item["code"] for item in plan["diagnostics"]} == {
-        "COMPLEXITY_PROFILE_NOT_AVAILABLE",
         "BATCH_EXECUTION_NOT_AVAILABLE",
+    }
+
+
+def test_advanced_lih_scan_builds_five_point_audited_plan() -> None:
+    datasets = [
+        "lih_sto3g_1200",
+        "lih_sto3g_1400",
+        "lih_sto3g_1600",
+        "lih_sto3g_1800",
+        "lih_sto3g_2200",
+    ]
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/electronic_structure/analyze",
+        json={
+            "preset": "lih_potential_scan",
+            "experimentLevel": "advanced",
+            "complexityProfile": "advanced_live",
+            "values": {},
+            "sweep": {"parameter": "dataset", "values": datasets},
+        },
+    )
+
+    assert response.status_code == 200
+    plan = response.json()["experimentPlan"]
+    assert plan["runCount"] == 5
+    assert plan["profile"]["status"] == "available"
+    assert [point["values"]["dataset"] for point in plan["points"]] == datasets
+    assert {point["resource"]["logicalQubits"] for point in plan["points"]} == {4}
+    assert {item["code"] for item in plan["diagnostics"]} == {
+        "BATCH_EXECUTION_NOT_AVAILABLE"
     }
 
 

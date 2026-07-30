@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from cascaqit_biomedicine_demo.active_center import (
@@ -20,6 +23,49 @@ def test_fixture_defines_three_validated_presets() -> None:
         "coupling_imbalance",
     }
     assert fixture.manifest["logical_order"] == ["spin.m1", "spin.m2"]
+
+
+@pytest.mark.parametrize(
+    ("preset", "sites", "paths", "terms"),
+    [
+        ("trinuclear_frustrated", 3, 3, 12),
+        ("tetranuclear_ligand_field", 4, 4, 16),
+    ],
+)
+def test_advanced_fixtures_expand_generic_spin_networks(
+    preset: str, sites: int, paths: int, terms: int
+) -> None:
+    fixture = load_active_center_fixture(preset)
+    analysis = analyze_active_center(preset, {})
+
+    assert len(fixture.pauli["logical_order"]) == sites
+    assert len(fixture.pauli["presets"][preset]["exchange_paths"]) == paths
+    assert len(analysis["problem"]["terms"]) == terms
+    assert analysis["resource"]["logicalQubits"] == sites
+    assert analysis["domain"]["exactFirstGapMeV"] >= 0
+    assert (
+        analysis["domain"]["exactFirstGapSource"]
+        == "classical_exact_diagonalization"
+    )
+    assert analysis["problem"]["templateHash"] != analysis["problem"]["hash"]
+
+
+def test_generated_fixtures_record_current_generator_hash() -> None:
+    script = (
+        Path(__file__).resolve().parents[2]
+        / "scripts"
+        / "generate_active_center_fixtures.py"
+    )
+    expected = hashlib.sha256(script.read_bytes()).hexdigest()
+    for preset in (
+        "antiferromagnetic",
+        "trinuclear_frustrated",
+        "tetranuclear_ligand_field",
+    ):
+        assert (
+            load_active_center_fixture(preset).manifest["generation"]["script_sha256"]
+            == expected
+        )
 
 
 @pytest.mark.parametrize(
@@ -96,3 +142,27 @@ def test_run_returns_backend_observables_and_one_hamiltonian_identity() -> None:
     }
     assert run["domain"]["absoluteErrorMeV"] < 0.02
     assert run["audit"]["claimBoundary"] == "effective_spin_model_only"
+
+
+def test_multicenter_vqe_returns_all_site_and_path_observables() -> None:
+    run = run_active_center(
+        preset="trinuclear_frustrated",
+        values={},
+        shots=128,
+        seed=7,
+        layers=2,
+        parameter_budget=20,
+        optimizer_starts=1,
+    )
+
+    assert len(run["domain"]["magnetization"]) == 3
+    assert len(run["domain"]["correlations"]) == 9
+    assert {item["pathId"] for item in run["domain"]["correlations"]} == {
+        "exchange.m1-m2",
+        "exchange.m2-m3",
+        "exchange.m3-m1",
+    }
+    assert run["comparison"]["exactFirstGapSource"] == (
+        "classical_exact_diagonalization"
+    )
+    assert run["audit"]["templateHamiltonianHash"] != run["audit"]["hamiltonianHash"]

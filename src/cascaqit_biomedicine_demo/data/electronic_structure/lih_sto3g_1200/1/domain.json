@@ -1,0 +1,45 @@
+{
+  "activeSpace": "2 electrons / 3 orbitals",
+  "atoms": [
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "element": "Li",
+      "id": "Li1",
+      "x": 25.0,
+      "y": 50.0,
+      "z": 0.0
+    },
+    {
+      "coordinatesAngstrom": [
+        0.0,
+        0.0,
+        1.2
+      ],
+      "element": "H",
+      "id": "H2",
+      "x": 75.0,
+      "y": 50.0,
+      "z": 0.0
+    }
+  ],
+  "basis": "STO-3G",
+  "bonds": [
+    {
+      "lengthAngstrom": 1.2,
+      "order": 1,
+      "source": "Li1",
+      "target": "H2"
+    }
+  ],
+  "charge": 0,
+  "datasetKey": "lih_sto3g_1200",
+  "geometryLabel": "1.200 angstrom active-space scan point",
+  "mapping": "symmetry-conserving Bravyi-Kitaev with two-qubit tapering",
+  "molecule": "LiH",
+  "multiplicity": 1,
+  "referenceHartreeFockBitstring": "1111"
+}

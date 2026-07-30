@@ -1,4 +1,4 @@
-"""Effective bimetal spin Hamiltonian analysis and CASCAQit VQE execution."""
+"""Effective multi-center spin analysis and CASCAQit VQE execution."""
 
 from __future__ import annotations
 
@@ -29,9 +29,14 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
     sector_occupancy_from_probabilities,
 )
 
-DATA_ROOT = (
-    Path(__file__).resolve().parent / "data" / "active_center" / "bimetal_spin" / "1"
-)
+DATA_ROOT = Path(__file__).resolve().parent / "data" / "active_center"
+_PRESET_DIRECTORIES = {
+    "antiferromagnetic": "bimetal_spin",
+    "ligand_field": "bimetal_spin",
+    "coupling_imbalance": "bimetal_spin",
+    "trinuclear_frustrated": "trinuclear_spin",
+    "tetranuclear_ligand_field": "tetranuclear_spin",
+}
 
 
 @dataclass(frozen=True)
@@ -50,28 +55,32 @@ def _read_json(path: Path) -> tuple[dict[str, Any], bytes]:
     return value, raw
 
 
-def load_active_center_fixture() -> ActiveCenterFixture:
-    """Load and checksum the packaged effective-model fixture."""
-    manifest, manifest_raw = _read_json(DATA_ROOT / "manifest.json")
+def load_active_center_fixture(preset: str | None = None) -> ActiveCenterFixture:
+    """Load and checksum the packaged effective-model fixture for a preset."""
+    selected_preset = preset or "antiferromagnetic"
+    try:
+        directory = _PRESET_DIRECTORIES[selected_preset]
+    except KeyError as exc:
+        raise ValueError(f"unknown active-center preset: {selected_preset}") from exc
+    fixture_root = DATA_ROOT / directory / "1"
+    manifest, manifest_raw = _read_json(fixture_root / "manifest.json")
     validate_manifest_contract(manifest)
     artifacts: dict[str, dict[str, Any]] = {
         str(item["path"]): item for item in manifest["artifacts"]
     }
     loaded: dict[str, dict[str, Any]] = {}
     for name in ("domain.json", "pauli.json"):
-        payload, raw = _read_json(DATA_ROOT / name)
+        payload, raw = _read_json(fixture_root / name)
         expected = str(artifacts[name]["sha256"])
         if hashlib.sha256(raw).hexdigest() != expected:
             raise ValueError(f"active-center fixture checksum mismatch: {name}")
         loaded[name] = payload
     if manifest["logical_order"] != loaded["pauli.json"]["logical_order"]:
         raise ValueError("active-center fixture logical order is inconsistent")
-    if set(loaded["pauli.json"]["presets"]) != {
-        "antiferromagnetic",
-        "ligand_field",
-        "coupling_imbalance",
-    }:
-        raise ValueError("active-center fixture must define all three presets")
+    if selected_preset not in loaded["pauli.json"]["presets"]:
+        raise ValueError(
+            f"active-center fixture does not define preset: {selected_preset}"
+        )
     return ActiveCenterFixture(
         manifest=manifest,
         domain=loaded["domain.json"],
@@ -81,7 +90,7 @@ def load_active_center_fixture() -> ActiveCenterFixture:
 
 
 def active_center_values(preset: str, overrides: dict[str, Any]) -> dict[str, float]:
-    fixture = load_active_center_fixture()
+    fixture = load_active_center_fixture(preset)
     try:
         definition = fixture.pauli["presets"][preset]
     except KeyError as exc:
@@ -104,47 +113,39 @@ def _resolved_pauli(
     definition = fixture.pauli["presets"][preset]
     exchange = values["exchange_coupling"]
     field = values["local_field"]
-    jxy = exchange * float(definition["jxy_multiplier"])
-    jz = exchange * float(definition["jz_multiplier"])
-    h1 = field * float(definition["field_1_multiplier"])
-    h2 = field * float(definition["field_2_multiplier"])
     logical_order = fixture.pauli["logical_order"]
+    terms: list[dict[str, Any]] = []
+    for path in definition["exchange_paths"]:
+        for axis, multiplier in (
+            ("X", path["jxy_multiplier"]),
+            ("Y", path["jxy_multiplier"]),
+            ("Z", path["jz_multiplier"]),
+        ):
+            left = str(path["left"])
+            right = str(path["right"])
+            terms.append(
+                {
+                    "term_id": f"{path['id']}.{axis.lower() * 2}",
+                    "operator": f"{axis}({left}) {axis}({right})",
+                    "coefficient": exchange * float(multiplier) / 4,
+                    "factors": [[left, axis], [right, axis]],
+                }
+            )
+    for item in definition["fields"]:
+        site = str(item["site"])
+        terms.append(
+            {
+                "term_id": f"field.{site.split('.')[-1]}",
+                "operator": f"Z({site})",
+                "coefficient": field * float(item["multiplier"]) / 2,
+                "factors": [[site, "Z"]],
+            }
+        )
     payload = {
         "hamiltonian_id": f"{fixture.pauli['hamiltonian_id_prefix']}.{preset}",
         "logical_order": logical_order,
         "constant": float(fixture.pauli["constant_mev"]),
-        "terms": [
-            {
-                "term_id": "exchange.xx",
-                "operator": "X(M1) X(M2)",
-                "coefficient": jxy / 4,
-                "factors": [[logical_order[0], "X"], [logical_order[1], "X"]],
-            },
-            {
-                "term_id": "exchange.yy",
-                "operator": "Y(M1) Y(M2)",
-                "coefficient": jxy / 4,
-                "factors": [[logical_order[0], "Y"], [logical_order[1], "Y"]],
-            },
-            {
-                "term_id": "exchange.zz",
-                "operator": "Z(M1) Z(M2)",
-                "coefficient": jz / 4,
-                "factors": [[logical_order[0], "Z"], [logical_order[1], "Z"]],
-            },
-            {
-                "term_id": "field.m1",
-                "operator": "Z(M1)",
-                "coefficient": h1 / 2,
-                "factors": [[logical_order[0], "Z"]],
-            },
-            {
-                "term_id": "field.m2",
-                "operator": "Z(M2)",
-                "coefficient": h2 / 2,
-                "factors": [[logical_order[1], "Z"]],
-            },
-        ],
+        "terms": terms,
         "metadata": {
             "dataset_id": fixture.manifest["dataset_id"],
             "manifest_hash": fixture.manifest_hash,
@@ -156,8 +157,22 @@ def _resolved_pauli(
     return payload
 
 
+def _template_hash(fixture: ActiveCenterFixture, preset: str) -> str:
+    definition = fixture.pauli["presets"][preset]
+    return hash_payload(
+        {
+            "datasetId": fixture.manifest["dataset_id"],
+            "logicalOrder": fixture.pauli["logical_order"],
+            "constantMeV": fixture.pauli["constant_mev"],
+            "coefficientDefinition": fixture.pauli["coefficient_definition"],
+            "exchangePaths": definition["exchange_paths"],
+            "fields": definition["fields"],
+        }
+    )
+
+
 def _analysis(preset: str, values: dict[str, float]) -> dict[str, Any]:
-    fixture = load_active_center_fixture()
+    fixture = load_active_center_fixture(preset)
     pauli = _resolved_pauli(fixture, preset, values)
     hamiltonian = build_pauli_hamiltonian(pauli)
     vqe = VQE(hamiltonian, layers=1)
@@ -167,6 +182,8 @@ def _analysis(preset: str, values: dict[str, float]) -> dict[str, Any]:
         config=PauliMeasurementConfig(shots_per_group=256),
     )
     exact = exact_diagonalization(hamiltonian)
+    exact_first_gap = exact["spectrum"][1] - exact["spectrum"][0]
+    template_hash = _template_hash(fixture, preset)
     definition = fixture.pauli["presets"][preset]
     analysis = {
         "kind": "biomedicine",
@@ -187,6 +204,7 @@ def _analysis(preset: str, values: dict[str, float]) -> dict[str, Any]:
             "id": hamiltonian.hamiltonian_id,
             "type": "pauli_hamiltonian",
             "hash": hamiltonian.stable_hash(),
+            "templateHash": template_hash,
             "variables": list(hamiltonian.logical_order),
             "constant": hamiltonian.constant,
             "terms": [
@@ -255,6 +273,10 @@ def _analysis(preset: str, values: dict[str, float]) -> dict[str, Any]:
             "presetDescription": definition["description"],
             "parameters": {**values, "units": "meV"},
             "exactGroundEnergyMeV": exact["energy"],
+            "exactFirstGapMeV": exact_first_gap,
+            "exactFirstGapSource": "classical_exact_diagonalization",
+            "templateHamiltonianHash": template_hash,
+            "instanceHamiltonianHash": hamiltonian.stable_hash(),
             "limitations": fixture.manifest["limitations"],
         },
     }
@@ -277,10 +299,10 @@ def run_active_center(
     parameter_budget: int,
     optimizer_starts: int,
 ) -> dict[str, Any]:
-    if layers != 1:
-        raise ValueError("金属活性中心首个已校准模型只支持一层 VQE Ansatz。")
+    if layers not in {1, 2}:
+        raise ValueError("金属活性中心模型只支持一层或两层 VQE Ansatz。")
     resolved = active_center_values(preset, values)
-    fixture = load_active_center_fixture()
+    fixture = load_active_center_fixture(preset)
     hamiltonian = build_pauli_hamiltonian(_resolved_pauli(fixture, preset, resolved))
     vqe = VQE(hamiltonian, layers=layers)
     started = time.perf_counter()
@@ -301,6 +323,7 @@ def run_active_center(
         seed=seed,
     )
     exact = exact_diagonalization(hamiltonian)
+    exact_first_gap = exact["spectrum"][1] - exact["spectrum"][0]
     counts = dict(result.final_result.counts) if result.final_result else {}
     sampled_expectations = {
         item.term_id: float(item.expectation) for item in sampled.contributions
@@ -335,25 +358,35 @@ def run_active_center(
             "sampledStandardErrorMeV": float(sampled.energy_standard_error),
             "exactGroundEnergyMeV": exact["energy"],
             "absoluteErrorMeV": abs(float(best.energy) - exact["energy"]),
+            "exactFirstGapMeV": exact_first_gap,
+            "exactFirstGapSource": "classical_exact_diagonalization",
             "magnetization": [
                 {
-                    "siteId": "spin.m1",
-                    "expectation": sampled_expectations["field.m1"],
-                    "standardError": standard_errors["field.m1"],
-                },
-                {
-                    "siteId": "spin.m2",
-                    "expectation": sampled_expectations["field.m2"],
-                    "standardError": standard_errors["field.m2"],
-                },
+                    "siteId": str(item["site"]),
+                    "expectation": sampled_expectations[
+                        f"field.{str(item['site']).split('.')[-1]}"
+                    ],
+                    "standardError": standard_errors[
+                        f"field.{str(item['site']).split('.')[-1]}"
+                    ],
+                }
+                for item in fixture.pauli["presets"][preset]["fields"]
             ],
             "correlations": [
                 {
-                    "operator": operator.upper(),
-                    "expectation": sampled_expectations[f"exchange.{operator}"],
-                    "standardError": standard_errors[f"exchange.{operator}"],
+                    "pathId": str(path["id"]),
+                    "leftSiteId": str(path["left"]),
+                    "rightSiteId": str(path["right"]),
+                    "operator": f"{axis}{axis}",
+                    "expectation": sampled_expectations[
+                        f"{path['id']}.{axis.lower() * 2}"
+                    ],
+                    "standardError": standard_errors[
+                        f"{path['id']}.{axis.lower() * 2}"
+                    ],
                 }
-                for operator in ("xx", "yy", "zz")
+                for path in fixture.pauli["presets"][preset]["exchange_paths"]
+                for axis in ("X", "Y", "Z")
             ],
             "sectorOccupancy": sector_occupancy_from_counts(counts),
             "declaredSector": fixture.domain["declaredSector"],
@@ -410,6 +443,8 @@ def run_active_center(
             "referenceMethod": fixture.manifest["reference"]["method"],
             "hamiltonianHash": hamiltonian_hash,
             "exactSpectrumMeV": exact["spectrum"],
+            "exactFirstGapMeV": exact_first_gap,
+            "exactFirstGapSource": "classical_exact_diagonalization",
             "exactExpectations": exact["expectations"],
             "exactSectorOccupancy": sector_occupancy_from_probabilities(
                 exact["probabilities"], len(hamiltonian.logical_order)
@@ -430,6 +465,7 @@ def run_active_center(
                 }
             ),
             "hamiltonianHash": hamiltonian_hash,
+            "templateHamiltonianHash": _template_hash(fixture, preset),
             "referenceHamiltonianHash": hamiltonian_hash,
             "analysisHash": analysis["analysisHash"],
             "ansatzHash": result.ansatz.stable_hash(),

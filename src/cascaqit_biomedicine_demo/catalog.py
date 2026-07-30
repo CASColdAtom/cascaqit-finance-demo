@@ -145,6 +145,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         (
             ("h2_bond_scan", "H2 键长扫描"),
             ("lih_active_space", "LiH 活性空间"),
+            ("lih_potential_scan", "LiH 五点势能扫描 · 高级"),
             ("h2o_minimal", "H2O 最小活性空间"),
         ),
         (
@@ -160,6 +161,10 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
                         "h2o_sto3g_equilibrium",
                         "H2O / 0.958 Å / 104.45° / 2e-3o",
                     ),
+                    ("lih_sto3g_1200", "LiH / 1.200 Å / 2e-3o"),
+                    ("lih_sto3g_1400", "LiH / 1.400 Å / 2e-3o"),
+                    ("lih_sto3g_1800", "LiH / 1.800 Å / 2e-3o"),
+                    ("lih_sto3g_2200", "LiH / 2.200 Å / 2e-3o"),
                 ),
             ),
             _select(
@@ -220,13 +225,15 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "金属活性中心",
         "金属酶活性中心有效 Hamiltonian",
         "EFFECTIVE SPIN MODEL / DIGITAL VQE",
-        "展示双金属中心的有效交换耦合、局域场与可观测量边界。",
+        "展示二至四中心有效交换耦合、局域场与可观测量边界。",
         "orbit",
         "amber",
         (
             ("antiferromagnetic", "反铁磁耦合"),
             ("ligand_field", "配体场扰动"),
             ("coupling_imbalance", "耦合不平衡"),
+            ("trinuclear_frustrated", "三中心受挫网络"),
+            ("tetranuclear_ligand_field", "四中心配体场网络"),
         ),
         (
             _range("exchange_coupling", "交换耦合 J", 0.2, 2.0, 0.1, " meV"),
@@ -247,6 +254,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         "available",
         {
             **_VQE_PROFILE,
+            "maxLayers": 2,
             "shots": 512,
             "seed": 7,
             "parameterBudget": 40,

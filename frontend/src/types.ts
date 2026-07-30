@@ -453,6 +453,13 @@ export interface BiomedicineAnalysisPayload {
       hartreeFockEnergy: number;
       selected: boolean;
     }>;
+    potentialScanReference?: Array<{
+      dataset: string;
+      bondLengthAngstrom: number;
+      exactGroundEnergy: number;
+      hartreeFockEnergy: number;
+      selected: boolean;
+    }>;
     sequence?: string;
     conformations?: Array<{
       id: string;
@@ -827,6 +834,8 @@ export interface ActiveCenterRunPayload
     sampledEnergyMeV: number;
     sampledStandardErrorMeV: number;
     exactGroundEnergyMeV: number;
+    exactFirstGapMeV: number;
+    exactFirstGapSource: "classical_exact_diagonalization";
     absoluteErrorMeV: number;
     magnetization: Array<{
       siteId: string;
@@ -834,6 +843,9 @@ export interface ActiveCenterRunPayload
       standardError: number;
     }>;
     correlations: Array<{
+      pathId: string;
+      leftSiteId: string;
+      rightSiteId: string;
       operator: "XX" | "YY" | "ZZ";
       expectation: number;
       standardError: number;
@@ -846,6 +858,8 @@ export interface ActiveCenterRunPayload
     referenceMethod: string;
     hamiltonianHash: string;
     exactSpectrumMeV: number[];
+    exactFirstGapMeV: number;
+    exactFirstGapSource: "classical_exact_diagonalization";
     exactExpectations: Record<string, number>;
     exactSectorOccupancy: Record<string, number>;
     vqeHamiltonianHash: string;

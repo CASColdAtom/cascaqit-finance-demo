@@ -1,0 +1,55 @@
+{
+  "coefficient_definition": "H = sum_paths (Jxy/4)(XX+YY) + (Jz/4)ZZ + sum_sites (h/2)Z",
+  "constant_mev": 0.0,
+  "hamiltonian_id_prefix": "active-center.trinuclear-spin.effective-model",
+  "logical_order": [
+    "spin.m1",
+    "spin.m2",
+    "spin.m3"
+  ],
+  "presets": {
+    "trinuclear_frustrated": {
+      "description": "三条反铁磁交换路径组成三角网络并加入弱不均匀局域场。",
+      "exchange_coupling_mev": 1.1,
+      "exchange_paths": [
+        {
+          "id": "exchange.m1-m2",
+          "jxy_multiplier": 1.0,
+          "jz_multiplier": 1.05,
+          "left": "spin.m1",
+          "right": "spin.m2"
+        },
+        {
+          "id": "exchange.m2-m3",
+          "jxy_multiplier": 0.9,
+          "jz_multiplier": 1.0,
+          "left": "spin.m2",
+          "right": "spin.m3"
+        },
+        {
+          "id": "exchange.m3-m1",
+          "jxy_multiplier": 1.1,
+          "jz_multiplier": 0.95,
+          "left": "spin.m3",
+          "right": "spin.m1"
+        }
+      ],
+      "fields": [
+        {
+          "multiplier": 1.0,
+          "site": "spin.m1"
+        },
+        {
+          "multiplier": -0.5,
+          "site": "spin.m2"
+        },
+        {
+          "multiplier": 0.25,
+          "site": "spin.m3"
+        }
+      ],
+      "label": "三中心受挫网络",
+      "local_field_mev": 0.12
+    }
+  }
+}

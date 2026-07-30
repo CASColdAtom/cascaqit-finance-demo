@@ -1,0 +1,70 @@
+{
+  "declaredSector": "total_magnetization_z",
+  "edges": [
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m1-m2",
+      "score": 1.0,
+      "source": "spin.m1",
+      "target": "spin.m2"
+    },
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m2-m3",
+      "score": 1.15,
+      "source": "spin.m2",
+      "target": "spin.m3"
+    },
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m3-m4",
+      "score": 0.9,
+      "source": "spin.m3",
+      "target": "spin.m4"
+    },
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m4-m1",
+      "score": 1.05,
+      "source": "spin.m4",
+      "target": "spin.m1"
+    }
+  ],
+  "effectiveSpinSites": 4,
+  "modelLevel": "四金属语境下的四自旋低能有效模型",
+  "modelName": "四中心环形各向异性 Heisenberg 模型",
+  "nodes": [
+    {
+      "group": "有效自旋",
+      "id": "spin.m1",
+      "label": "M1",
+      "role": "effective_spin_site",
+      "x": 25.0,
+      "y": 28.0
+    },
+    {
+      "group": "有效自旋",
+      "id": "spin.m2",
+      "label": "M2",
+      "role": "effective_spin_site",
+      "x": 75.0,
+      "y": 28.0
+    },
+    {
+      "group": "有效自旋",
+      "id": "spin.m3",
+      "label": "M3",
+      "role": "effective_spin_site",
+      "x": 75.0,
+      "y": 72.0
+    },
+    {
+      "group": "有效自旋",
+      "id": "spin.m4",
+      "label": "M4",
+      "role": "effective_spin_site",
+      "x": 25.0,
+      "y": 72.0
+    }
+  ]
+}

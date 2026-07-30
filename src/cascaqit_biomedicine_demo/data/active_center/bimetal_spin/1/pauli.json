@@ -1,38 +1,86 @@
 {
-  "hamiltonian_id_prefix": "active-center.bimetal-spin",
-  "logical_order": ["spin.m1", "spin.m2"],
+  "coefficient_definition": "H = sum_paths (Jxy/4)(XX+YY) + (Jz/4)ZZ + sum_sites (h/2)Z",
   "constant_mev": 0.0,
-  "coefficient_definition": "H = (Jxy/4)(XX+YY) + (Jz/4)ZZ + (h1/2)Z1 + (h2/2)Z2",
+  "hamiltonian_id_prefix": "active-center.bimetal-spin.effective-model",
+  "logical_order": [
+    "spin.m1",
+    "spin.m2"
+  ],
   "presets": {
     "antiferromagnetic": {
+      "description": "各向同性正交换耦合与弱交错局域场。",
+      "exchange_coupling_mev": 1.2,
+      "exchange_paths": [
+        {
+          "id": "exchange",
+          "jxy_multiplier": 1.0,
+          "jz_multiplier": 1.0,
+          "left": "spin.m1",
+          "right": "spin.m2"
+        }
+      ],
+      "fields": [
+        {
+          "multiplier": 1.0,
+          "site": "spin.m1"
+        },
+        {
+          "multiplier": -1.0,
+          "site": "spin.m2"
+        }
+      ],
       "label": "反铁磁耦合",
-      "exchange_coupling_mev": 1.2,
-      "local_field_mev": 0.15,
-      "jxy_multiplier": 1.0,
-      "jz_multiplier": 1.0,
-      "field_1_multiplier": 1.0,
-      "field_2_multiplier": -1.0,
-      "description": "各向同性正交换耦合与弱交错局域场。"
-    },
-    "ligand_field": {
-      "label": "配体场扰动",
-      "exchange_coupling_mev": 1.2,
-      "local_field_mev": 0.4,
-      "jxy_multiplier": 1.0,
-      "jz_multiplier": 1.0,
-      "field_1_multiplier": 1.0,
-      "field_2_multiplier": -0.25,
-      "description": "不对称局域场模拟配位环境对两个有效位点的不同扰动。"
+      "local_field_mev": 0.15
     },
     "coupling_imbalance": {
-      "label": "耦合不平衡",
+      "description": "XX/YY 与 ZZ 各向异性表示有效交换通道不平衡。",
       "exchange_coupling_mev": 1.2,
-      "local_field_mev": 0.15,
-      "jxy_multiplier": 0.75,
-      "jz_multiplier": 1.25,
-      "field_1_multiplier": 1.0,
-      "field_2_multiplier": -0.6,
-      "description": "用 XX/YY 与 ZZ 的各向异性表示有效交换通道不平衡。"
+      "exchange_paths": [
+        {
+          "id": "exchange",
+          "jxy_multiplier": 0.75,
+          "jz_multiplier": 1.25,
+          "left": "spin.m1",
+          "right": "spin.m2"
+        }
+      ],
+      "fields": [
+        {
+          "multiplier": 1.0,
+          "site": "spin.m1"
+        },
+        {
+          "multiplier": -0.6,
+          "site": "spin.m2"
+        }
+      ],
+      "label": "耦合不平衡",
+      "local_field_mev": 0.15
+    },
+    "ligand_field": {
+      "description": "不对称局域场模拟两个有效位点受到的不同扰动。",
+      "exchange_coupling_mev": 1.2,
+      "exchange_paths": [
+        {
+          "id": "exchange",
+          "jxy_multiplier": 1.0,
+          "jz_multiplier": 1.0,
+          "left": "spin.m1",
+          "right": "spin.m2"
+        }
+      ],
+      "fields": [
+        {
+          "multiplier": 1.0,
+          "site": "spin.m1"
+        },
+        {
+          "multiplier": -0.25,
+          "site": "spin.m2"
+        }
+      ],
+      "label": "配体场扰动",
+      "local_field_mev": 0.4
     }
   }
 }

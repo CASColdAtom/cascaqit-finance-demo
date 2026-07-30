@@ -37,6 +37,7 @@ def test_catalog_declares_four_biomedicine_scenarios_and_truthful_status() -> No
     assert {item[0] for item in electronic.presets} == {
         "h2_bond_scan",
         "lih_active_space",
+        "lih_potential_scan",
         "h2o_minimal",
     }
     assert {
@@ -79,6 +80,25 @@ def test_h2_scan_contains_three_consistent_reference_points() -> None:
     ] == 0.735
 
 
+def test_advanced_lih_scan_contains_five_four_qubit_reference_points() -> None:
+    analysis = analyze_electronic_structure("lih_potential_scan", {})
+    scan = analysis["domain"]["potentialScanReference"]
+
+    assert [item["bondLengthAngstrom"] for item in scan] == [
+        1.2,
+        1.4,
+        1.6,
+        1.8,
+        2.2,
+    ]
+    assert sum(item["selected"] for item in scan) == 1
+    assert analysis["resource"]["logicalQubits"] == 4
+    assert all(
+        len(load_electronic_fixture(item["dataset"]).manifest["logical_order"]) == 4
+        for item in scan
+    )
+
+
 def test_manifest_contract_rejects_missing_provenance_fields() -> None:
     manifest = deepcopy(load_electronic_fixture("h2_sto3g_0735").manifest)
     manifest["source"].pop("input_sha256")
@@ -91,6 +111,7 @@ def test_manifest_contract_rejects_missing_provenance_fields() -> None:
     (
         ("h2_bond_scan", "H2", 2),
         ("lih_active_space", "LiH", 4),
+        ("lih_potential_scan", "LiH", 4),
         ("h2o_minimal", "H2O", 4),
     ),
 )
@@ -120,6 +141,7 @@ def test_electronic_values_reject_unknown_dataset_and_noise_model() -> None:
     (
         ("h2_bond_scan", "h2_equilibrium_benchmark"),
         ("lih_active_space", "error_report_only"),
+        ("lih_potential_scan", "error_report_only"),
         ("h2o_minimal", "error_report_only"),
     ),
 )

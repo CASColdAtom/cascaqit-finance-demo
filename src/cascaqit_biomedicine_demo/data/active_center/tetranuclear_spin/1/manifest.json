@@ -6,22 +6,22 @@
   "artifacts": [
     {
       "path": "domain.json",
-      "sha256": "7a23100a389487589663a89571eb1ab0df7ec7e47b9e7937a699b91a30acdebc"
+      "sha256": "5b5d097748af581445bfb83c6c96681a7153aba1390e122e5f3bb7a93835f55e"
     },
     {
       "path": "pauli.json",
-      "sha256": "706388d2e403c787e742cf1f814115fb7fccc6efdfb7147803359a703e7292f0"
+      "sha256": "bd2cb439307033e0ee1debaec53e70dfc7bbe95445ab9f007c9f10a047de616a"
     }
   ],
   "coordinate_system": {
     "domain": "effective spin graph without spatial coordinates",
     "hardware": "not_applicable; effective spins are not atom positions"
   },
-  "dataset_id": "active-center.bimetal-spin.effective-model",
+  "dataset_id": "active-center.tetranuclear-spin.effective-model",
   "generation": {
     "parameters": {
-      "model": "桥联双金属中心各向异性 Heisenberg 模型",
-      "site_count": 2,
+      "model": "四中心环形各向异性 Heisenberg 模型",
+      "site_count": 4,
       "units": "meV"
     },
     "script": "scripts/generate_active_center_fixtures.py",
@@ -38,30 +38,20 @@
   ],
   "logical_order": [
     "spin.m1",
-    "spin.m2"
+    "spin.m2",
+    "spin.m3",
+    "spin.m4"
   ],
   "reference": {
     "method": "exact diagonalization of the resolved Pauli Hamiltonian",
     "software": "numpy.linalg.eigvalsh",
     "software_version": "2.0.2",
     "standard_presets": {
-      "antiferromagnetic": {
-        "exact_first_gap_mev": 1.218465843842649,
-        "exact_ground_energy_mev": -0.918465843842649,
-        "exchange_coupling_mev": 1.2,
-        "local_field_mev": 0.15
-      },
-      "coupling_imbalance": {
-        "exact_first_gap_mev": 0.9314504817756013,
-        "exact_ground_energy_mev": -0.8407252408878007,
-        "exchange_coupling_mev": 1.2,
-        "local_field_mev": 0.15
-      },
-      "ligand_field": {
-        "exact_first_gap_mev": 1.0999999999999999,
-        "exact_ground_energy_mev": -0.95,
-        "exchange_coupling_mev": 1.2,
-        "local_field_mev": 0.4
+      "tetranuclear_ligand_field": {
+        "exact_first_gap_mev": 0.9413861412416287,
+        "exact_ground_energy_mev": -1.8282790317231647,
+        "exchange_coupling_mev": 0.9,
+        "local_field_mev": 0.18
       }
     }
   },

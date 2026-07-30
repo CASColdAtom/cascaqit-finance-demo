@@ -61,7 +61,7 @@ def test_profiles_keep_released_and_planned_levels_separate() -> None:
         "research",
     ]
     assert profiles[0].status == "available"
-    assert profiles[1].status == "planned"
+    assert profiles[1].status == "available"
     assert profiles[1].max_logical_qubits == 6
     assert profiles[2].max_logical_qubits == 8
 
@@ -106,7 +106,7 @@ def test_unreleased_advanced_batch_plan_reports_all_blockers() -> None:
     assert plan["runCount"] == 3
     assert plan["executionPolicy"] == "rejected"
     assert {item["code"] for item in plan["diagnostics"]} == {
-        "COMPLEXITY_PROFILE_NOT_AVAILABLE",
+        "ADVANCED_PRESET_REQUIRED",
         "BATCH_EXECUTION_NOT_AVAILABLE",
     }
 

@@ -2,11 +2,11 @@
 
 ## 1. 清单结论
 
-当前发布包包含 8 组生物医药 fixture：5 组小分子电子结构、1 组公开结构派生的离散构象匹配数据、1 组项目生成的有效自旋模型、1 组项目生成的小肽离散构象库。
+当前开发分支包含 14 组生物医药 fixture：9 组小分子电子结构、1 组公开结构派生的离散构象匹配数据、3 组项目生成的有效自旋模型、1 组项目生成的小肽离散构象库。新增高级 fixture 在 V2 发布验收完成前仍属于开发资产，不表示高级入口已经正式发布。
 
 只有构象匹配使用外部公开结构，来源为 RCSB Protein Data Bank 的 `1HSG`。其余数据由项目固定参数生成。仓库不包含患者、临床试验受试者、内部化合物或未公开研发项目数据。运行时不访问网络，也不需要 PySCF、OpenFermion、RDKit、AutoDock 或 PDB 服务。
 
-八组 manifest 均通过统一运行时契约校验，明确记录原始输入 checksum 状态、生成工具版本和参数、单位、坐标系、变量顺序、经典参考方法与软件版本、标准预设参考结果、允许说法和限制。项目生成且没有外部原始文件的数据以 `raw_file_sha256: null` 明确记录，不用缺失字段掩盖来源边界。
+十四组 manifest 均通过统一运行时契约校验，明确记录原始输入 checksum 状态、生成工具版本和参数、单位、坐标系、变量顺序、经典参考方法与软件版本、标准预设参考结果、允许说法和限制。项目生成且没有外部原始文件的数据以 `raw_file_sha256: null` 明确记录，不用缺失字段掩盖来源边界。
 
 ## 2. 数据集明细
 
@@ -15,17 +15,23 @@
 | `electronic.h2.sto3g.0500` | H2，0.500 Å，STO-3G，2e/2o | 项目生成，2026-07-30 | `project_generated` | `3781ba55...7fe7cb` | PySCF 2.10.0 + OpenFermion 1.7.1 + OpenFermion-PySCF 0.5 |
 | `electronic.h2.sto3g.0735` | H2，0.735 Å，STO-3G，2e/2o | 项目生成，2026-07-30 | `project_generated` | `2df612f9...8b69e7` | 同上 |
 | `electronic.h2.sto3g.1500` | H2，1.500 Å，STO-3G，2e/2o | 项目生成，2026-07-30 | `project_generated` | `8961734c...85709` | 同上 |
+| `electronic.lih.sto3g.1200.active-2e-3o` | LiH，1.200 Å，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `ca16342e...9b988` | 同上，冻结占据轨道 0 |
+| `electronic.lih.sto3g.1400.active-2e-3o` | LiH，1.400 Å，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `ce5cb222...288ca` | 同上，冻结占据轨道 0 |
 | `electronic.lih.sto3g.1600.active-2e-3o` | LiH，1.600 Å，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `38c697dd...d7c72` | 同上，冻结占据轨道 0 |
+| `electronic.lih.sto3g.1800.active-2e-3o` | LiH，1.800 Å，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `e02acc2f...26715f` | 同上，冻结占据轨道 0 |
+| `electronic.lih.sto3g.2200.active-2e-3o` | LiH，2.200 Å，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `19dad269...e6a1e` | 同上，冻结占据轨道 0 |
 | `electronic.h2o.sto3g.equilibrium.active-2e-3o` | H2O，0.9584 Å / 104.45°，STO-3G，2e/3o | 项目生成，2026-07-30 | `project_generated` | `855bb5d6...00b4` | 同上，冻结占据轨道 0–3 |
 | `docking.1hsg.indinavir.discrete-match` | HIV-1 Protease/Indinavir 固定离散特征匹配 | RCSB PDB `1HSG`，2026-07-29 | CC0-1.0 | mmCIF `d2ba73b5...3c268`，DOI `10.2210/pdb1hsg/pdb` | `docking-fixture-v1`，2 个 pose、8 个候选匹配 |
-| `active-center.bimetal-spin.effective-model` | 双位点各向异性 spin-1/2 Heisenberg 有效模型 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `active-center-fixture-v1`，单位 meV |
+| `active-center.bimetal-spin.effective-model` | 双位点各向异性 spin-1/2 Heisenberg 有效模型 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `active-center-fixture-v2`，单位 meV |
+| `active-center.trinuclear-spin.effective-model` | 三位点三角受挫各向异性 Heisenberg 有效模型 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `active-center-fixture-v2`，单位 meV |
+| `active-center.tetranuclear-spin.effective-model` | 四位点环形配体场各向异性 Heisenberg 有效模型 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `active-center-fixture-v2`，单位 meV |
 | `peptide.six-residue.square-lattice` | 6 残基、二维方格、D4 对称归一化的 10 个自回避构象 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `peptide-fixture-v1`，确定性枚举 |
 
 电子结构表中的“原始输入标识”是规范化分子、几何、基组、活性空间和映射参数的 SHA-256，不是外部文件 checksum。每个 manifest 还保存完整参数，不依赖缩略值复核。
 
 ## 3. 电子结构生成与复核
 
-生成脚本为 `scripts/generate_electronic_structure_fixtures.py`，当前 SHA-256 为 `252df6cc41998d8326e206bb925326bdbe8d1bf68df4c1f246ef7b55f993b632`。固定环境命令：
+生成脚本为 `scripts/generate_electronic_structure_fixtures.py`，当前 SHA-256 为 `669253abba78ff95255d3c4b7430ab97479e694965aa06811f05b9bc7efd9f03`。固定环境命令：
 
 ```bash
 uv run --no-project --isolated --python 3.11 \
@@ -60,9 +66,9 @@ uv run --no-project --isolated --python 3.11 \
 
 ### 有效自旋模型
 
-数据是为了演示 `XX/YY/ZZ` 交换项、局域场和 QWC 可观测量而固定的低能模型，没有引用具体金属酶文献参数。它只能称为“双金属语境下的两自旋有效模型”，不能称为从真实蛋白结构或电子轨道自动得到的 Hamiltonian。
+三组数据用于演示 `XX/YY/ZZ` 交换项、局域场和 QWC 可观测量，没有引用具体金属酶文献参数。双位点模型用于标准实验；三位点三角网络和四位点环形网络用于高级实验。它们只能称为“金属活性中心语境下的低能有效自旋模型”，不能称为从真实蛋白结构或电子轨道自动得到的 Hamiltonian。
 
-`domain.json` SHA-256 为 `997632f18b2c5eccebf3e0465e642d681a4f929b9fc607da4f5ca9334e5fecd7`；`pauli.json` SHA-256 为 `72a25fdb54a7e3df582cb57a3df4ec4e53c0381b731548e5920627c6a6850476`。
+生成脚本 `scripts/generate_active_center_fixtures.py` 的 SHA-256 为 `66e14e0a0fba02df27b2b1cd90873f3168c0daaff9d164c6dbe1fc06f0e9ad4b`。每组 manifest 分别登记 `domain.json`、`pauli.json` 和脚本 checksum，并保存经典精确基态能量与第一能隙；第一能隙只能标记为经典参考。
 
 ### 小肽构象库
 
@@ -84,9 +90,10 @@ cascaqit_biomedicine_demo/data/peptide_landscape/
 发布检查应同时验证：
 
 1. manifest 与 artifact checksum 一致；
-2. 五组电子结构 fixture 的生成脚本 hash 一致；
+2. 九组电子结构 fixture 的生成脚本 hash 一致；
 3. 外部来源只有 `1HSG`，许可证状态为 CC0-1.0；
 4. 项目生成数据明确标记为 `project_generated`；
 5. 页面显示来源、许可证、允许说法和限制；
 6. 标准运行不发起网络请求。
-7. 坐标系、变量顺序和三个标准预设的经典参考值与运行时重算结果一致。
+7. 坐标系、变量顺序和全部登记预设的经典参考值与运行时重算结果一致；
+8. 三组有效自旋 fixture 的生成脚本 hash 一致，模板 hash 和参数实例 Hamiltonian hash 分开保存。

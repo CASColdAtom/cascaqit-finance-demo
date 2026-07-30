@@ -260,7 +260,7 @@ function ActiveCenterResultView({
       <div className="biomed-metric-band">
         <div><small><QuantumTerm short="VQE" title="变分量子本征求解器" /> EXACT OBJECTIVE</small><strong>{result.vqeExactEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
         <div><small><QuantumTerm short="QWC" title="逐量子比特可对易测量分组" /> CONFIRMATION</small><strong>{result.sampledEnergyMeV.toFixed(5)}</strong><span>± {result.sampledStandardErrorMeV.toFixed(4)} meV</span></div>
-        <div><small>EXACT REFERENCE</small><strong>{result.exactGroundEnergyMeV.toFixed(5)}</strong><span>meV</span></div>
+        <div><small>EXACT REFERENCE</small><strong>{result.exactGroundEnergyMeV.toFixed(5)}</strong><span>classic gap {result.exactFirstGapMeV.toFixed(4)} meV</span></div>
         <div data-pass={hashesMatch}><small>HAMILTONIAN IDENTITY</small><strong>{hashesMatch ? "MATCH" : "MISMATCH"}</strong><span>{compactId(run.audit.hamiltonianHash, 14)}</span></div>
       </div>
       <div className="split-layout spin-observable-split">
@@ -271,7 +271,7 @@ function ActiveCenterResultView({
               <div key={item.siteId}><small>LOCAL Z / {item.siteId}</small><strong>{item.expectation.toFixed(4)}</strong><span>± {item.standardError.toFixed(4)}</span></div>
             ))}
             {result.correlations.map((item) => (
-              <div key={item.operator}><small>CORRELATION / {item.operator}</small><strong>{item.expectation.toFixed(4)}</strong><span>± {item.standardError.toFixed(4)}</span></div>
+              <div key={`${item.pathId}-${item.operator}`}><small>{item.pathId} / {item.operator}</small><strong>{item.expectation.toFixed(4)}</strong><span>{item.leftSiteId} · {item.rightSiteId} / ± {item.standardError.toFixed(4)}</span></div>
             ))}
           </div>
         </section>
@@ -458,6 +458,7 @@ export function BiomedicineComparisonView({
             { source: "VQE 目标", candidate: "optimized state", value: `${run.domain.vqeExactEnergyMeV.toFixed(5)} meV`, evidence: "同一固化 Hamiltonian" },
             { source: "QWC 采样", candidate: "measurement groups", value: `${run.domain.sampledEnergyMeV.toFixed(5)} ± ${run.domain.sampledStandardErrorMeV.toFixed(4)} meV`, evidence: "有限 shots 统计量" },
             { source: "经典精确对角化", candidate: run.comparison.referenceMethod, value: `${run.domain.exactGroundEnergyMeV.toFixed(5)} meV`, evidence: `绝对误差 ${run.domain.absoluteErrorMeV.toFixed(5)} meV` },
+            { source: "经典第一能隙", candidate: "exact diagonalization", value: `${run.domain.exactFirstGapMeV.toFixed(5)} meV`, evidence: "经典参考，不是 VQD 结果" },
             { source: "关联对照", candidate: "XX / YY / ZZ", value: run.domain.correlations.map((item) => `${item.operator}=${item.expectation.toFixed(3)}`).join(" · "), evidence: "有效自旋模型内解释" },
           ]} />
         </section>

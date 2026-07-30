@@ -1,0 +1,67 @@
+{
+  "coefficient_definition": "H = sum_paths (Jxy/4)(XX+YY) + (Jz/4)ZZ + sum_sites (h/2)Z",
+  "constant_mev": 0.0,
+  "hamiltonian_id_prefix": "active-center.tetranuclear-spin.effective-model",
+  "logical_order": [
+    "spin.m1",
+    "spin.m2",
+    "spin.m3",
+    "spin.m4"
+  ],
+  "presets": {
+    "tetranuclear_ligand_field": {
+      "description": "四条不等价交换路径和交错局域场组成环形有效模型。",
+      "exchange_coupling_mev": 0.9,
+      "exchange_paths": [
+        {
+          "id": "exchange.m1-m2",
+          "jxy_multiplier": 1.0,
+          "jz_multiplier": 1.0,
+          "left": "spin.m1",
+          "right": "spin.m2"
+        },
+        {
+          "id": "exchange.m2-m3",
+          "jxy_multiplier": 0.8,
+          "jz_multiplier": 1.15,
+          "left": "spin.m2",
+          "right": "spin.m3"
+        },
+        {
+          "id": "exchange.m3-m4",
+          "jxy_multiplier": 1.1,
+          "jz_multiplier": 0.9,
+          "left": "spin.m3",
+          "right": "spin.m4"
+        },
+        {
+          "id": "exchange.m4-m1",
+          "jxy_multiplier": 0.95,
+          "jz_multiplier": 1.05,
+          "left": "spin.m4",
+          "right": "spin.m1"
+        }
+      ],
+      "fields": [
+        {
+          "multiplier": 1.0,
+          "site": "spin.m1"
+        },
+        {
+          "multiplier": -1.0,
+          "site": "spin.m2"
+        },
+        {
+          "multiplier": 0.5,
+          "site": "spin.m3"
+        },
+        {
+          "multiplier": -0.5,
+          "site": "spin.m4"
+        }
+      ],
+      "label": "四中心配体场网络",
+      "local_field_mev": 0.18
+    }
+  }
+}

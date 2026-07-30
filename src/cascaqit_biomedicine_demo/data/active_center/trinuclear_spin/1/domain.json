@@ -1,0 +1,55 @@
+{
+  "declaredSector": "total_magnetization_z",
+  "edges": [
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m1-m2",
+      "score": 1.05,
+      "source": "spin.m1",
+      "target": "spin.m2"
+    },
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m2-m3",
+      "score": 1.0,
+      "source": "spin.m2",
+      "target": "spin.m3"
+    },
+    {
+      "kind": "effective_exchange",
+      "pathId": "exchange.m3-m1",
+      "score": 0.95,
+      "source": "spin.m3",
+      "target": "spin.m1"
+    }
+  ],
+  "effectiveSpinSites": 3,
+  "modelLevel": "三金属语境下的三自旋低能有效模型",
+  "modelName": "三中心受挫各向异性 Heisenberg 模型",
+  "nodes": [
+    {
+      "group": "有效自旋",
+      "id": "spin.m1",
+      "label": "M1",
+      "role": "effective_spin_site",
+      "x": 25.0,
+      "y": 68.0
+    },
+    {
+      "group": "有效自旋",
+      "id": "spin.m2",
+      "label": "M2",
+      "role": "effective_spin_site",
+      "x": 75.0,
+      "y": 68.0
+    },
+    {
+      "group": "有效自旋",
+      "id": "spin.m3",
+      "label": "M3",
+      "role": "effective_spin_site",
+      "x": 50.0,
+      "y": 25.0
+    }
+  ]
+}

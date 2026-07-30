@@ -6,25 +6,26 @@
   "artifacts": [
     {
       "path": "domain.json",
-      "sha256": "c2cd8f89c7cb46c49ae808d8fe743b8eba267e192f9985d91bafd4f5922a5999"
+      "sha256": "a325f235b577403254e50cfd64369221413c30b096b7d0d4c47801f0b60f808f"
     },
     {
       "path": "pauli.json",
-      "sha256": "96a55f87118aea01bdd9719fb778955938f874b10f905f2a512b3f7ad2b38c1a"
+      "sha256": "0fc5efd1afd7ef09e1dc873cd77f03d0afff1813d70e8c5c51cead57ab822d32"
     }
   ],
   "coordinate_system": "Cartesian molecular geometry; 2D display projection",
-  "dataset_id": "electronic.h2.sto3g.0735",
+  "dataset_id": "electronic.lih.sto3g.2200.active-2e-3o",
   "generation": {
     "parameters": {
       "active_electrons": 2,
       "active_indices": [
-        0,
-        1
+        1,
+        2,
+        3
       ],
       "basis": "STO-3G",
       "charge": 0,
-      "final_qubit_count": 2,
+      "final_qubit_count": 4,
       "geometry_angstrom": [
         {
           "coordinates": [
@@ -32,22 +33,24 @@
             0.0,
             0.0
           ],
-          "element": "H"
+          "element": "Li"
         },
         {
           "coordinates": [
             0.0,
             0.0,
-            0.735
+            2.2
           ],
           "element": "H"
         }
       ],
       "mapping": "symmetry_conserving_bravyi_kitaev",
-      "molecule": "H2",
+      "molecule": "LiH",
       "multiplicity": 1,
-      "occupied_indices": [],
-      "spin_orbital_count": 4,
+      "occupied_indices": [
+        0
+      ],
+      "spin_orbital_count": 6,
       "tapered_qubit_count": 2
     },
     "script": "scripts/generate_electronic_structure_fixtures.py",
@@ -67,7 +70,9 @@
   ],
   "logical_order": [
     "q0",
-    "q1"
+    "q1",
+    "q2",
+    "q3"
   ],
   "recommended_initial_parameters": {
     "ansatz": "hardware_efficient_ry_rz_linear",
@@ -76,19 +81,23 @@
     "values": {
       "ry_0_0": 3.141592653589793,
       "ry_0_1": 0.0,
+      "ry_0_2": 0.0,
+      "ry_0_3": 0.0,
       "rz_0_0": 0.0,
-      "rz_0_1": 0.0
+      "rz_0_1": 0.0,
+      "rz_0_2": 0.0,
+      "rz_0_3": 0.0
     }
   },
   "reference": {
-    "exact_ground_energy_hartree": -1.1373060357534,
-    "full_space_fci_energy_hartree": -1.1373060357534,
-    "hartree_fock_bitstring": "11",
-    "hartree_fock_energy_hartree": -1.116998996754,
+    "exact_ground_energy_hartree": -7.80972412853327,
+    "full_space_fci_energy_hartree": -7.84568362319718,
+    "hartree_fock_bitstring": "1111",
+    "hartree_fock_energy_hartree": -7.80799436927297,
     "method": "exact diagonalization of the packaged tapered Pauli Hamiltonian"
   },
   "source": {
-    "input_sha256": "9cc6c50636de917db15fed4820534dabca18b7ccd48e78d400806997073a76e8",
+    "input_sha256": "19dad269c737546950a8dfc8711ff6f24e6c108c5ef2bdfd5a9f8c58326e6a1e",
     "kind": "project_generated_ab_initio_fixture",
     "license": "project_generated",
     "license_checked_at": "2026-07-30",

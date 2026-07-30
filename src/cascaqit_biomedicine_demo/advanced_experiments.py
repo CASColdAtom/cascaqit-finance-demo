@@ -206,6 +206,12 @@ _STANDARD_LIMITS: dict[str, tuple[int, int, int, int]] = {
     "peptide_landscape": (0, 16, 256, 0),
 }
 
+_ADVANCED_LIVE_AVAILABLE_CASES = {"electronic_structure", "active_center"}
+_ADVANCED_PRESETS = {
+    "electronic_structure": {"lih_potential_scan"},
+    "active_center": {"trinuclear_frustrated", "tetranuclear_ligand_field"},
+}
+
 
 def profiles_for(case_id: str) -> tuple[ComplexityProfile, ...]:
     try:
@@ -230,7 +236,7 @@ def profiles_for(case_id: str) -> tuple[ComplexityProfile, ...]:
             case_id,
             "advanced_live",
             "advanced_live",
-            "planned",
+            "available" if case_id in _ADVANCED_LIVE_AVAILABLE_CASES else "planned",
             6 if qubits else 0,
             16 if variables else 0,
             512,
@@ -370,6 +376,15 @@ def build_experiment_plan(
             _diagnostic(
                 "COMPLEXITY_PROFILE_NOT_AVAILABLE",
                 f"complexity profile {profile.profile_id} is planned but not released",
+            )
+        )
+    if experiment_level == "advanced" and preset not in _ADVANCED_PRESETS.get(
+        case_id, set()
+    ):
+        diagnostics.append(
+            _diagnostic(
+                "ADVANCED_PRESET_REQUIRED",
+                f"preset {preset} is not registered for advanced experiments",
             )
         )
 

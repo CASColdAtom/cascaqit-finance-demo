@@ -15,7 +15,11 @@ ELECTRONIC_DATASET_PATHS = {
     "h2_sto3g_0500": "h2_sto3g_0500",
     "h2_sto3g_0735": "h2_sto3g",
     "h2_sto3g_1500": "h2_sto3g_1500",
+    "lih_sto3g_1200": "lih_sto3g_1200",
+    "lih_sto3g_1400": "lih_sto3g_1400",
     "lih_sto3g_1600": "lih_sto3g_1600",
+    "lih_sto3g_1800": "lih_sto3g_1800",
+    "lih_sto3g_2200": "lih_sto3g_2200",
     "h2o_sto3g_equilibrium": "h2o_sto3g_equilibrium",
 }
 
@@ -23,6 +27,14 @@ H2_BOND_SCAN_DATASETS = (
     "h2_sto3g_0500",
     "h2_sto3g_0735",
     "h2_sto3g_1500",
+)
+
+LIH_BOND_SCAN_DATASETS = (
+    "lih_sto3g_1200",
+    "lih_sto3g_1400",
+    "lih_sto3g_1600",
+    "lih_sto3g_1800",
+    "lih_sto3g_2200",
 )
 
 

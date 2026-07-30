@@ -51,7 +51,7 @@
       "tapered_qubit_count": 2
     },
     "script": "scripts/generate_electronic_structure_fixtures.py",
-    "script_sha256": "252df6cc41998d8326e206bb925326bdbe8d1bf68df4c1f246ef7b55f993b632",
+    "script_sha256": "669253abba78ff95255d3c4b7430ab97479e694965aa06811f05b9bc7efd9f03",
     "tool": "PySCF + OpenFermion-PySCF + OpenFermion",
     "tool_versions": {
       "openfermion": "1.7.1",

@@ -493,11 +493,13 @@ const scenarioEnglish: Record<
     shortTitle: "Metal Active Site",
     title: "Metalloenzyme Active-site Effective Hamiltonian",
     description:
-      "Expose effective exchange coupling, local fields, and observable boundaries for a bimetallic center.",
+      "Expose effective exchange paths, local fields, and observable boundaries for two- to four-center models.",
     presets: {
       antiferromagnetic: "Antiferromagnetic Coupling",
       ligand_field: "Ligand-field Perturbation",
       coupling_imbalance: "Coupling Imbalance",
+      trinuclear_frustrated: "Trinuclear Frustrated Network",
+      tetranuclear_ligand_field: "Tetranuclear Ligand-field Network",
     },
     controls: {
       exchange_coupling: "Exchange Coupling J",
