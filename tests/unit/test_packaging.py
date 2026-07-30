@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import tarfile
 from io import BytesIO
 from pathlib import Path
@@ -9,11 +11,16 @@ from zipfile import ZipFile
 
 import pytest
 from scripts.build_windows_offline_bundle import (
+    PYTHON_RUNTIME_RELEASE,
     PYTHON_RUNTIME_SOURCE_SHA256,
     PYTHON_RUNTIME_ZIP_NAME,
     _audit_windows_dependency_closure,
     _copy_windows_template,
     _extract_runtime_archive,
+    _populate_windows_wheelhouse_from_cache,
+    _prepare_python_runtime,
+    _preserve_cache_for_rebuild,
+    _reset_directory,
 )
 
 from cascaqit_finance_demo.api.app import FRONTEND_DIST, HOST, PORT
@@ -60,6 +67,125 @@ def test_runtime_requires_validated_cascaqit_release_series() -> None:
     project = Path("pyproject.toml").read_text(encoding="utf-8")
 
     assert '"cascaqit>=1.0.5a0,<1.0.6"' in project
+
+
+def test_windows_bundle_uses_standard_pep517_wheel_build() -> None:
+    """发布构建不依赖会初始化宿主网络配置的第三方构建前端。"""
+
+    script = Path("scripts/build_windows_offline_bundle.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'sys.executable, "-m", "build"' in script
+    assert '"--no-isolation"' in script
+    assert '["uv", "build"' not in script
+
+
+def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None:
+    """缓存只提供第三方闭包，当前源码 wheel 必须覆盖旧发布版本。"""
+
+    cache_root = tmp_path / "cache"
+    cached_wheels = cache_root / "wheelhouse"
+    cached_wheels.mkdir(parents=True)
+    _write_test_wheel(cached_wheels, "cascaqit", "9.9.9")
+    _write_test_wheel(cached_wheels, "cascaqit-finance-demo", "9.9.9")
+    _write_test_wheel(cached_wheels, "third-party", "1.2.3")
+
+    current = tmp_path / "current"
+    current.mkdir()
+    _write_test_wheel(current, "cascaqit", "1.0.5a0", ["third-party>=1"])
+    _write_test_wheel(
+        current,
+        "cascaqit-finance-demo",
+        "0.1.1",
+        ["cascaqit>=1.0.5a0,<1.0.6"],
+    )
+    output = tmp_path / "output"
+    _populate_windows_wheelhouse_from_cache(
+        next(current.glob("cascaqit_finance_demo-*.whl")),
+        next(current.glob("cascaqit-*.whl")),
+        output,
+        cache_root,
+    )
+
+    names = {path.name for path in output.glob("*.whl")}
+    assert "cascaqit-9.9.9-py3-none-any.whl" not in names
+    assert "cascaqit_finance_demo-9.9.9-py3-none-any.whl" not in names
+    assert "cascaqit-1.0.5a0-py3-none-any.whl" in names
+    assert "cascaqit_finance_demo-0.1.1-py3-none-any.whl" in names
+    assert "third_party-1.2.3-py3-none-any.whl" in names
+
+
+def test_windows_bundle_cache_verifies_runtime_identity(tmp_path: Path) -> None:
+    """缓存 runtime 只有身份和派生 ZIP hash 全部匹配时才可复用。"""
+
+    cache_root = tmp_path / "cache"
+    runtime = cache_root / "python" / PYTHON_RUNTIME_ZIP_NAME
+    runtime.parent.mkdir(parents=True)
+    runtime.write_bytes(b"validated-runtime")
+    digest = hashlib.sha256(runtime.read_bytes()).hexdigest()
+    (cache_root / "bundle-info.json").write_text(
+        json.dumps(
+            {
+                "python": "3.11.9",
+                "python_runtime_release": PYTHON_RUNTIME_RELEASE,
+                "python_runtime_source_sha256": PYTHON_RUNTIME_SOURCE_SHA256,
+                "python_runtime_archive": PYTHON_RUNTIME_ZIP_NAME,
+                "python_runtime_archive_sha256": digest,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    destination = tmp_path / "out" / PYTHON_RUNTIME_ZIP_NAME
+    _prepare_python_runtime(destination, cache_root)
+    assert destination.read_bytes() == b"validated-runtime"
+
+    runtime.write_bytes(b"tampered")
+    with pytest.raises(RuntimeError, match="SHA256"):
+        _prepare_python_runtime(destination, cache_root)
+
+
+def test_windows_bundle_preserves_in_place_cache_during_rebuild(
+    tmp_path: Path,
+) -> None:
+    """默认输出目录可直接复用自身上一版，不会先删掉缓存输入。"""
+
+    bundle_root = tmp_path / "bundle"
+    cached_wheel = bundle_root / "wheelhouse" / "dependency.whl"
+    cached_wheel.parent.mkdir(parents=True)
+    cached_wheel.write_bytes(b"cached-wheel")
+    (bundle_root / "bundle-info.json").write_text("{}", encoding="utf-8")
+
+    with _preserve_cache_for_rebuild(bundle_root, bundle_root) as preserved:
+        assert preserved is not None
+        assert preserved != bundle_root
+        _reset_directory(bundle_root)
+        assert (preserved / "wheelhouse" / "dependency.whl").read_bytes() == (
+            b"cached-wheel"
+        )
+        assert (preserved / "bundle-info.json").is_file()
+
+
+def test_windows_bundle_restores_in_place_cache_after_failed_rebuild(
+    tmp_path: Path,
+) -> None:
+    """构建失败时恢复上一版目录，不能只留下半成品和旧 ZIP。"""
+
+    bundle_root = tmp_path / "bundle"
+    previous_manifest = bundle_root / "manifest-sha256.txt"
+    previous_manifest.parent.mkdir(parents=True)
+    previous_manifest.write_text("previous-release\n", encoding="utf-8")
+
+    with pytest.raises(
+        RuntimeError, match="wheel build failed"
+    ), _preserve_cache_for_rebuild(bundle_root, bundle_root):
+        _reset_directory(bundle_root)
+        (bundle_root / "partial-wheel.whl").write_bytes(b"partial")
+        raise RuntimeError("wheel build failed")
+
+    assert previous_manifest.read_text(encoding="utf-8") == "previous-release\n"
+    assert not (bundle_root / "partial-wheel.whl").exists()
 
 
 def test_default_server_is_local_only() -> None:

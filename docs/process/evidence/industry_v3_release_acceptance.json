@@ -1,0 +1,111 @@
+{
+  "claimBoundary": "Local simulation release evidence only; no hardware, quantum-advantage, drug, clinical, material-property, or full-atom dynamics claim.",
+  "failures": [],
+  "generatedAt": "2026-07-30T13:38:13.432338+00:00",
+  "scenarios": [
+    {
+      "caseId": "electronic_structure",
+      "domainId": "biomedicine",
+      "presetCount": 4,
+      "runCount": 12,
+      "source": "biomedicine_release_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "docking_match",
+      "domainId": "biomedicine",
+      "presetCount": 4,
+      "runCount": 12,
+      "source": "biomedicine_release_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "active_center",
+      "domainId": "biomedicine",
+      "presetCount": 4,
+      "runCount": 12,
+      "source": "biomedicine_release_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "peptide_landscape",
+      "domainId": "biomedicine",
+      "presetCount": 4,
+      "runCount": 12,
+      "source": "biomedicine_release_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "rna_structure",
+      "domainId": "biomedicine",
+      "presetCount": 3,
+      "runCount": 9,
+      "source": "rna_structure_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "protein_dynamics",
+      "domainId": "biomedicine",
+      "presetCount": 3,
+      "runCount": 9,
+      "source": "protein_dynamics_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "defect_adsorption",
+      "domainId": "materials",
+      "presetCount": 3,
+      "runCount": 9,
+      "source": "materials_defect_adsorption_calibration.json",
+      "status": "passed"
+    },
+    {
+      "caseId": "rydberg_dynamics",
+      "domainId": "materials",
+      "presetCount": 3,
+      "runCount": 9,
+      "source": "materials_analog_calibration.json",
+      "status": "passed"
+    }
+  ],
+  "schema": "industry.v3-release-evidence.v1",
+  "sources": {
+    "biomedicine_v2": {
+      "file": "biomedicine_release_calibration.json",
+      "generatedAt": "2026-07-30T05:17:40.985063+00:00",
+      "schema": "biomedicine.release-calibration.v1",
+      "sha256": "4a65e4401d6442d423877350c20cb29873c45df98963daeb4a1a27439093e704"
+    },
+    "defect_adsorption": {
+      "file": "materials_defect_adsorption_calibration.json",
+      "generatedAt": "2026-07-30",
+      "schema": "materials.defect-adsorption-calibration.v1",
+      "sha256": "510625cf26681df100a1b4da32e0d74c7ab8f640be144377257dead7b37ca474"
+    },
+    "protein_dynamics": {
+      "file": "protein_dynamics_calibration.json",
+      "generatedAt": "2026-07-30",
+      "schema": "protein-dynamics-calibration.v1",
+      "sha256": "938793a7386391a021aab421d953718870849567b4adb95a9ab2b652715a21d4"
+    },
+    "rna_structure": {
+      "file": "rna_structure_calibration.json",
+      "generatedAt": "2026-07-30",
+      "schema": "biomedicine.rna.calibration.v1",
+      "sha256": "5ffa51f04121297ba38e1285f41fca727c051dcc777679994c600ed89e72de6d"
+    },
+    "rydberg_dynamics": {
+      "file": "materials_analog_calibration.json",
+      "generatedAt": "2026-07-30T12:55:02.715661+00:00",
+      "schema": "materials.analog-release-calibration.v1",
+      "sha256": "4d70549070b6cec475321f630c384e0cc7d13d308faa7b2ecca374194af802fc"
+    }
+  },
+  "summary": {
+    "failedScenarioCount": 0,
+    "passed": true,
+    "passedScenarioCount": 8,
+    "runCount": 84,
+    "scenarioCount": 8
+  }
+}

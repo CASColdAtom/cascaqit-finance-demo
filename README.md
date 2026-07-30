@@ -153,7 +153,7 @@ python3 -m pip install -e ".[dev]"
 
 ```bash
 python3 -m pytest -q
-python3 -m ruff check src tests
+python3 -m ruff check src tests scripts
 cd frontend
 npm run typecheck
 npm test
@@ -164,6 +164,21 @@ node scripts/browser-smoke.mjs
 curl http://127.0.0.1:8000/api/health
 ```
 
-浏览器验收脚本覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`，实际执行四个生物医药场景，检查量子与经典结果分离、页面级横向溢出、结构 SVG 和量子图表 canvas 实绘像素。
+八个生物医药与材料场景的固定 seed 发布证据可统一复核：
+
+```bash
+PYTHONPATH=.:src:../cascaqit-new/CASCAQit/src \
+  .venv/bin/python scripts/validate_v3_release_evidence.py
+```
+
+断网重建 Windows 包时，可以显式复用上一份已验收包中的第三方 wheel 和已验签 Python runtime；当前 Demo 与 CASCAQit wheel 始终从源码重建：
+
+```bash
+python3 scripts/build_windows_offline_bundle.py \
+  --sdk-root ../cascaqit-new/CASCAQit \
+  --cache-root offline/cascaqit-finance-demo-windows-x64-py311
+```
+
+浏览器验收脚本覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`，实际执行六个生物医药场景和两个材料场景，检查量子与经典结果分离、页面级横向溢出、结构 SVG、量子图表 canvas 实绘像素和 Pure Analog 页面无数字线路。
 
 设计说明见[文档索引](docs/README.md)。

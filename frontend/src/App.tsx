@@ -1,4 +1,4 @@
-import { AlertTriangle, LoaderCircle, RadioTower } from "lucide-react";
+import { AlertTriangle, LoaderCircle, RadioTower, Telescope } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   analyzeScenario,
@@ -784,6 +784,16 @@ function Workbench() {
               </div>
             </div>
           </header>
+
+          {domainId !== "finance" ? (
+            <section className="frontier-outlook" aria-label={t("frontierOutlook")}>
+              <Telescope size={18} aria-hidden="true" />
+              <div>
+                <small>{t("frontierOutlook")}</small>
+                <p>{t("frontierOutlookDescription")}</p>
+              </div>
+            </section>
+          ) : null}
 
           {error ? (
             <div className="error-banner" role="alert">

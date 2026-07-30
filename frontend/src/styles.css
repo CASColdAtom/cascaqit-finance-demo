@@ -794,6 +794,41 @@ code,
   text-overflow: ellipsis;
 }
 
+.frontier-outlook {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.frontier-outlook > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.frontier-outlook > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.frontier-outlook small {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.frontier-outlook p {
+  max-width: 920px;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
 .mode-orbit {
   position: relative;
   display: grid;

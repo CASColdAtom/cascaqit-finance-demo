@@ -1,12 +1,12 @@
-# 生物医药演示数据来源清单
+# 生物医药与材料演示数据来源清单
 
 ## 1. 清单结论
 
-当前开发分支包含 17 组生物医药 fixture：9 组小分子电子结构、2 组公开结构派生的离散构象匹配数据、3 组项目生成的有效自旋模型、2 组项目生成的小肽离散构象库，以及 1 组短 RNA 候选配对基准。新增高级 fixture 在 V2 发布验收完成前仍属于开发资产，不表示高级入口已经正式发布。
+当前开发分支包含 20 组版本化 fixture：18 组生物医药数据和 2 组材料数据。生物医药包括 9 组小分子电子结构、2 组公开结构派生的离散构象匹配、3 组项目生成的有效自旋模型、2 组项目生成的小肽离散构象库、1 组短 RNA 候选配对基准和 1 组蛋白构象状态网络；材料包括 1 组周期表面缺陷-吸附模型和 1 组四位点有效 Rydberg 晶格模型。
 
-构象匹配使用 RCSB Protein Data Bank 的 `1HSG` 派生数据；RNA 发卡预设引用 RCSB PDB `1ZIH` 的公开序列和二级结构元数据，其候选配对与教学评分由项目整理。其余数据由项目固定参数生成。仓库不包含患者、临床试验受试者、内部化合物或未公开研发项目数据。运行时不访问网络，也不需要 PySCF、OpenFermion、RDKit、AutoDock 或 PDB 服务。
+构象匹配使用 RCSB Protein Data Bank 的 `1HSG` 派生数据；RNA 发卡预设引用 RCSB PDB `1ZIH` 的公开序列和二级结构元数据；蛋白状态网络只使用 RCSB PDB `4AKE`、`1AKE` 作为开放/闭合端点标签，中间态和边权由项目编写。其余数据由项目固定参数生成。仓库不包含患者、临床试验受试者、内部化合物或未公开研发项目数据。运行时不访问网络，也不需要 PySCF、OpenFermion、RDKit、AutoDock、DFT 程序、材料数据库或 PDB 服务。
 
-十七组 manifest 均通过统一运行时契约校验，明确记录原始输入 checksum 状态、生成工具版本和参数、单位、坐标系、变量顺序、经典参考方法与软件版本、标准预设参考结果、允许说法和限制。项目生成且没有外部原始文件的数据以 `raw_file_sha256: null` 明确记录，不用缺失字段掩盖来源边界。
+二十组 manifest 均通过运行时契约校验，明确记录原始输入 checksum 状态、生成工具版本和参数、单位、坐标系或坐标身份、变量顺序、经典参考方法、标准预设、允许说法和限制。项目生成且没有外部原始文件的数据显式记录来源类型，不用缺失字段掩盖来源边界。
 
 ## 2. 数据集明细
 
@@ -29,7 +29,9 @@
 | `peptide.six-residue.square-lattice` | 6 残基、二维方格、D4 对称归一化的 10 个自回避构象 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `peptide-fixture-v1`，确定性枚举 |
 | `peptide.eight-residue.square-lattice` | 8 残基、二维方格、D4 对称归一化的 48 个自回避构象和 8 个盆地 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件 | `peptide-fixture-v2`，确定性枚举，活动窗口 12 个构象 |
 | `rna.short-pairing-benchmarks` | 3 个短 RNA 预设、8–9 个候选配对、声明的假结策略 | RCSB PDB `1ZIH` 元数据 + 项目整理，2026-07-30 | RCSB PDB usage policy / project-generated candidate model | 不打包外部原始文件 | `rna-pairing-fixture-v1`，经典枚举和无假结动态规划参考 |
+| `protein.adenylate-kinase.conformation-network.teaching-v1` | 7 状态、15 条有向转移、3 个边权预设 | RCSB PDB `4AKE` / `1AKE` 端点元数据 + 项目教学网络，2026-07-30 | CC0-1.0 endpoint metadata / project-authored network | domain SHA-256 `16f48c10...387ba9` | 有界动态规划经典路径；中间态和代价为教学数据 |
 | `materials.surface-defect-adsorption.educational` | 3 个周期表面预设、3 个缺陷候选、8 个吸附构型候选 | 项目生成，2026-07-30 | `project_generated` | 无外部原始文件；domain SHA-256 `9c3c28d1...2c38c15` | `surface-config-fixture-v1`，完整枚举和独立默认控制参考 |
+| `materials.effective-lattice.rydberg-quench.teaching-v1` | 3 个材料有效模型预设、每个 4 个活动位点、声明初态与脉冲 | 项目生成，2026-07-30 | `project_generated` | domain SHA-256 `7972c2ca...53a411` | 同初态 AHS 前缀程序与独立 DOP853 对照 |
 
 电子结构表中的“原始输入标识”是规范化分子、几何、基组、活性空间和映射参数的 SHA-256，不是外部文件 checksum。每个 manifest 还保存完整参数，不依赖缩略值复核。
 
@@ -90,11 +92,23 @@ uv run --no-project --isolated --python 3.11 \
 
 `canonical-pairing.educational.v1` 的配对收益、未配对代价和堆叠奖励均为无量纲教学分数。它不包含温度、溶剂、离子、三维坐标或动力学参数，不能解释为自由能模型。运行时只加载已固化预设，不联网查询 PDB，也不从 QAOA counts 推导配对概率。
 
+### 蛋白构象状态网络
+
+版本化网络使用 `4AKE` 开放态和 `1AKE` 闭合态作为端点标签。7 个节点中的教学中间态、二维展示坐标、15 条允许转移和边权均由项目编写，不是实验解析的动态轨迹或经典 MD 产物。三个预设的完整网络经典路径由有界动态规划复核。
+
+路径代价单位为 `dimensionless_model_cost`，不能解释为时间、速率、驻留时间或自由能。QAOA counts 不是状态转移概率；场景不从氨基酸序列预测结构，也不执行全原子折叠或量子分子动力学。
+
 ### 周期表面缺陷与吸附教学模型
 
 材料 fixture 固化 CeO2(111) / CO、TiO2(110) / H2O 和 MoS2 / H 三个预设，共用 12 个材料晶格显示位点、3 个缺陷候选和 8 个吸附构型候选。`domain.json` 明确记录二维周期单元、周期边界、对称操作、候选取向、局域互斥、禁配组合、形成能、吸附能、协同和近邻系数；`reference.json` 单独保存默认控制下的离线参考构型。
 
 全部系数为无量纲项目生成教学值，没有引用或打包外部 DFT 数据。运行时不执行 DFT，不访问材料数据库。页面只能比较给定离散模型内的构型目标，不得把这些值解释为真实形成能、吸附自由能、催化活性、反应速率、选择性、稳定性或可合成性。
+
+### 四位点材料有效 Rydberg 晶格
+
+材料 Analog fixture 提供理想晶格、单空位和多缺陷/局域杂质三个预设。完整材料显示晶格、四位点有效活动窗口和 Rydberg 寄存器使用不同单位与身份；不能把编译坐标称为真实材料原子位置。初态、Rabi/Detuning/phase、演化时长和采样时刻均为声明输入，不从实验反演。
+
+该模型只用于验证四位点有效 Rydberg Hamiltonian 的 Pure Analog 本地演化。独立 DOP853 是经典数值对照，不能回填 Analog 字段。结果不得解释为材料全电子/全原子动力学、输运、寿命、硬件测量或量子优势。
 
 ## 6. 发布包检查
 
@@ -106,14 +120,16 @@ cascaqit_biomedicine_demo/data/docking_match/
 cascaqit_biomedicine_demo/data/active_center/
 cascaqit_biomedicine_demo/data/peptide_landscape/
 cascaqit_biomedicine_demo/data/rna_structure/
+cascaqit_biomedicine_demo/data/protein_dynamics/
 cascaqit_materials_demo/data/defect_adsorption/
+cascaqit_materials_demo/data/rydberg_dynamics/
 ```
 
 发布检查应同时验证：
 
 1. manifest 与 artifact checksum 一致；
 2. 九组电子结构 fixture 的生成脚本 hash 一致；
-3. 外部引用限于 `1HSG` 派生数据和 `1ZIH` 公开元数据，并分别显示许可证/使用政策边界；
+3. 外部引用限于 `1HSG` 派生数据、`1ZIH` 公开元数据和 `4AKE`/`1AKE` 端点元数据，并分别显示许可证/使用政策边界；
 4. 项目生成数据明确标记为 `project_generated`；
 5. 页面显示来源、许可证、允许说法和限制；
 6. 标准运行不发起网络请求。

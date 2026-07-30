@@ -311,6 +311,8 @@ describe("App", () => {
       }),
     ).toBeTruthy();
     expect(await screen.findByText("周期晶格与缺陷")).toBeTruthy();
+    expect(screen.getByText("前沿探索价值")).toBeTruthy();
+    expect(screen.getByText(/当前量子计算尚不能替代成熟经典计算流程/)).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "运行" }) as HTMLButtonElement).disabled,
     ).toBe(false);
@@ -346,6 +348,8 @@ describe("App", () => {
     ).toBeTruthy();
     expect(screen.queryByText("投资组合")).toBeNull();
     expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
+    expect(screen.getByText("前沿探索价值")).toBeTruthy();
+    expect(screen.getByText(/为未来硬件和算法成熟后的真实科研应用建立可复用基线/)).toBeTruthy();
     expect(screen.getByRole("tab", { name: "对照分析" })).toBeTruthy();
     expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(window.location.pathname).toBe("/biomedicine/electronic_structure");
@@ -366,6 +370,7 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "多资产投资组合优化" }),
     ).toBeTruthy();
+    expect(screen.queryByText("前沿探索价值")).toBeNull();
     expect(
       screen.getByRole("img", { name: "CASColdAtom 中科酷原" }).getAttribute("src"),
     ).toBe("/cascoldatom-logo-transparent.png");

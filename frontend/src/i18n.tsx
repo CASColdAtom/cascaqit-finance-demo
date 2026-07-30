@@ -24,6 +24,9 @@ const zh = {
   localSimulation: "LOCAL SIMULATION",
   noHardwareExecution: "NO HARDWARE EXECUTION",
   researchDemonstration: "RESEARCH DEMONSTRATION",
+  frontierOutlook: "前沿探索价值",
+  frontierOutlookDescription:
+    "当前量子计算尚不能替代成熟经典计算流程，但可以验证问题映射、量子-经典协同与中性原子 Digital / Hybrid / Analog 路线，为未来硬件和算法成熟后的真实科研应用建立可复用基线。",
   experiments: "行业场景",
   financeScenarios: "金融场景",
   biomedicineScenarios: "生物医药场景",
@@ -182,6 +185,9 @@ const en: MessageDictionary = {
   localSimulation: "LOCAL SIMULATION",
   noHardwareExecution: "NO HARDWARE EXECUTION",
   researchDemonstration: "RESEARCH DEMONSTRATION",
+  frontierOutlook: "Frontier Exploration Value",
+  frontierOutlookDescription:
+    "Quantum computing cannot yet replace mature classical workflows, but it can validate problem mappings, quantum-classical collaboration, and neutral-atom Digital, Hybrid, and Analog paths while building reusable baselines for future research applications.",
   experiments: "Industry Scenarios",
   financeScenarios: "Financial Scenarios",
   biomedicineScenarios: "Biomedicine Scenarios",

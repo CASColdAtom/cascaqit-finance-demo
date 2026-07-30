@@ -16,6 +16,8 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
 from email.message import Message
 from email.parser import BytesParser
 from pathlib import Path, PurePosixPath
@@ -120,14 +122,9 @@ def _build_local_wheels(sdk_root: Path, build_root: Path) -> tuple[Path, Path]:
     sdk_dir = build_root / "sdk"
     finance_dir.mkdir()
     sdk_dir.mkdir()
-    _run(
-        ["uv", "build", "--wheel", "--clear", "--out-dir", str(finance_dir), "."],
-        cwd=ROOT,
-    )
-    _run(
-        ["uv", "build", "--wheel", "--clear", "--out-dir", str(sdk_dir), "."],
-        cwd=sdk_root,
-    )
+    build_command = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
+    _run([*build_command, "--outdir", str(finance_dir)], cwd=ROOT)
+    _run([*build_command, "--outdir", str(sdk_dir)], cwd=sdk_root)
     finance_wheel = next(finance_dir.glob("cascaqit_finance_demo-*.whl"))
     sdk_wheel = next(sdk_dir.glob("cascaqit-*.whl"))
     return finance_wheel, sdk_wheel
@@ -137,8 +134,18 @@ def _download_windows_wheels(
     finance_wheel: Path,
     sdk_wheel: Path,
     wheelhouse: Path,
+    cache_root: Path | None = None,
 ) -> None:
     """解析并下载 CPython 3.11/Windows x64 的完整二进制依赖闭包。"""
+
+    if cache_root is not None:
+        _populate_windows_wheelhouse_from_cache(
+            finance_wheel,
+            sdk_wheel,
+            wheelhouse,
+            cache_root,
+        )
+        return
 
     wheelhouse.mkdir()
     _run(
@@ -173,6 +180,34 @@ def _download_windows_wheels(
     unexpected = [path.name for path in wheelhouse.iterdir() if path.suffix != ".whl"]
     if unexpected:
         raise RuntimeError(f"wheelhouse 中出现非 wheel 文件：{unexpected}")
+    _audit_windows_dependency_closure(wheelhouse)
+
+
+def _populate_windows_wheelhouse_from_cache(
+    finance_wheel: Path,
+    sdk_wheel: Path,
+    wheelhouse: Path,
+    cache_root: Path,
+) -> None:
+    """复用已验收第三方 wheel，并始终替换为当前源码的两个本地 wheel。"""
+
+    cached_wheelhouse = cache_root / "wheelhouse"
+    if not cached_wheelhouse.is_dir():
+        raise FileNotFoundError(f"离线缓存缺少 wheelhouse：{cached_wheelhouse}")
+
+    wheelhouse.mkdir()
+    local_packages = {"cascaqit", "cascaqit-finance-demo"}
+    for cached_wheel in sorted(cached_wheelhouse.glob("*.whl")):
+        metadata = _read_wheel_metadata(cached_wheel)
+        package_name = metadata.get("Name")
+        if not package_name:
+            raise RuntimeError(f"缓存 wheel 缺少 Name 元数据：{cached_wheel.name}")
+        if canonicalize_name(package_name) in local_packages:
+            continue
+        shutil.copy2(cached_wheel, wheelhouse / cached_wheel.name)
+
+    shutil.copy2(finance_wheel, wheelhouse / finance_wheel.name)
+    shutil.copy2(sdk_wheel, wheelhouse / sdk_wheel.name)
     _audit_windows_dependency_closure(wheelhouse)
 
 
@@ -280,10 +315,35 @@ def _extract_runtime_archive(archive: tarfile.TarFile, destination: Path) -> Non
         archive.extractall(destination)
 
 
-def _prepare_python_runtime(destination: Path) -> None:
+def _prepare_python_runtime(
+    destination: Path,
+    cache_root: Path | None = None,
+) -> None:
     """下载、验签并转为 PowerShell 可直接解压的 Windows Python runtime。"""
 
-    destination.parent.mkdir(parents=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if cache_root is not None:
+        info_path = cache_root / "bundle-info.json"
+        if not info_path.is_file():
+            raise FileNotFoundError(f"离线缓存缺少 bundle-info.json：{info_path}")
+        info = json.loads(info_path.read_text(encoding="utf-8"))
+        cached_runtime = cache_root / "python" / PYTHON_RUNTIME_ZIP_NAME
+        expected = info.get("python_runtime_archive_sha256")
+        if (
+            info.get("python") != PYTHON_VERSION
+            or info.get("python_runtime_release") != PYTHON_RUNTIME_RELEASE
+            or info.get("python_runtime_source_sha256")
+            != PYTHON_RUNTIME_SOURCE_SHA256
+            or info.get("python_runtime_archive") != PYTHON_RUNTIME_ZIP_NAME
+            or not isinstance(expected, str)
+            or len(expected) != 64
+        ):
+            raise RuntimeError("离线缓存的 Python runtime 身份与当前构建目标不一致")
+        if not cached_runtime.is_file() or _sha256(cached_runtime) != expected:
+            raise RuntimeError("离线缓存的 Python runtime SHA256 校验失败")
+        shutil.copy2(cached_runtime, destination)
+        return
+
     with tempfile.TemporaryDirectory(prefix="cascaqit-python-runtime-") as temporary:
         temporary_root = Path(temporary)
         source_archive = temporary_root / PYTHON_RUNTIME_SOURCE_NAME
@@ -358,7 +418,44 @@ def _write_manifest(bundle_root: Path) -> None:
     manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def build_bundle(output_root: Path, sdk_root: Path) -> Path:
+@contextmanager
+def _preserve_cache_for_rebuild(
+    cache_root: Path | None,
+    bundle_root: Path,
+) -> Iterator[Path | None]:
+    """在原目录重建时暂存缓存，避免输出清理先删除自己的输入。"""
+
+    if cache_root is None:
+        yield None
+        return
+    resolved_cache = cache_root.resolve()
+    resolved_bundle = bundle_root.resolve()
+    try:
+        resolved_cache.relative_to(resolved_bundle)
+    except ValueError:
+        yield resolved_cache
+        return
+    if not resolved_cache.is_dir():
+        raise FileNotFoundError(f"离线缓存目录不存在：{resolved_cache}")
+    with tempfile.TemporaryDirectory(
+        prefix="cascaqit-finance-offline-cache-"
+    ) as temporary:
+        staged_cache = Path(temporary) / "bundle-cache"
+        shutil.copytree(resolved_cache, staged_cache)
+        try:
+            yield staged_cache
+        except BaseException:
+            if resolved_bundle.exists():
+                shutil.rmtree(resolved_bundle)
+            shutil.copytree(staged_cache, resolved_bundle)
+            raise
+
+
+def build_bundle(
+    output_root: Path,
+    sdk_root: Path,
+    cache_root: Path | None = None,
+) -> Path:
     """生成目录版和 zip 版 Windows 离线交付物，并返回 zip 路径。"""
 
     if not (sdk_root / "pyproject.toml").is_file():
@@ -367,53 +464,66 @@ def build_bundle(output_root: Path, sdk_root: Path) -> Path:
 
     bundle_root = output_root / BUNDLE_NAME
     output_root.mkdir(parents=True, exist_ok=True)
-    _reset_directory(bundle_root)
-    with tempfile.TemporaryDirectory(prefix="cascaqit-finance-offline-") as temporary:
-        build_root = Path(temporary)
-        finance_wheel, sdk_wheel = _build_local_wheels(sdk_root, build_root)
-        _download_windows_wheels(finance_wheel, sdk_wheel, bundle_root / "wheelhouse")
+    with _preserve_cache_for_rebuild(cache_root, bundle_root) as effective_cache:
+        _reset_directory(bundle_root)
+        with tempfile.TemporaryDirectory(
+            prefix="cascaqit-finance-offline-"
+        ) as temporary:
+            build_root = Path(temporary)
+            finance_wheel, sdk_wheel = _build_local_wheels(sdk_root, build_root)
+            _download_windows_wheels(
+                finance_wheel,
+                sdk_wheel,
+                bundle_root / "wheelhouse",
+                effective_cache,
+            )
 
-    for template in TEMPLATE_ROOT.iterdir():
-        if template.is_file():
-            destination = bundle_root / template.name
-            _copy_windows_template(template, destination)
-    shutil.copy2(sdk_root / "LICENSE", bundle_root / "CASCAQit-LICENSE.txt")
-    runtime_archive = bundle_root / "python" / PYTHON_RUNTIME_ZIP_NAME
-    _prepare_python_runtime(runtime_archive)
-    requirements = _write_package_inventory(bundle_root / "wheelhouse", bundle_root)
-    info = {
-        "bundle": BUNDLE_NAME,
-        "target_os": "Windows 10/11",
-        "target_arch": "x64",
-        "python": PYTHON_VERSION,
-        "python_runtime": "python-build-standalone",
-        "python_runtime_release": PYTHON_RUNTIME_RELEASE,
-        "python_runtime_source_sha256": PYTHON_RUNTIME_SOURCE_SHA256,
-        "python_runtime_archive": PYTHON_RUNTIME_ZIP_NAME,
-        "python_runtime_archive_sha256": _sha256(runtime_archive),
-        "finance_demo": next(
-            item
-            for item in requirements
-            if item.lower().startswith("cascaqit-finance-demo==")
-        ),
-        "cascaqit": next(
-            item for item in requirements if item.lower().startswith("cascaqit==")
-        ),
-        "wheel_count": len(requirements),
-        "network_required_at_install": False,
-    }
-    (bundle_root / "bundle-info.json").write_text(
-        json.dumps(info, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    _write_manifest(bundle_root)
+        for template in TEMPLATE_ROOT.iterdir():
+            if template.is_file():
+                destination = bundle_root / template.name
+                _copy_windows_template(template, destination)
+        shutil.copy2(sdk_root / "LICENSE", bundle_root / "CASCAQit-LICENSE.txt")
+        runtime_archive = bundle_root / "python" / PYTHON_RUNTIME_ZIP_NAME
+        _prepare_python_runtime(runtime_archive, effective_cache)
+        requirements = _write_package_inventory(
+            bundle_root / "wheelhouse", bundle_root
+        )
+        info = {
+            "bundle": BUNDLE_NAME,
+            "target_os": "Windows 10/11",
+            "target_arch": "x64",
+            "python": PYTHON_VERSION,
+            "python_runtime": "python-build-standalone",
+            "python_runtime_release": PYTHON_RUNTIME_RELEASE,
+            "python_runtime_source_sha256": PYTHON_RUNTIME_SOURCE_SHA256,
+            "python_runtime_archive": PYTHON_RUNTIME_ZIP_NAME,
+            "python_runtime_archive_sha256": _sha256(runtime_archive),
+            "finance_demo": next(
+                item
+                for item in requirements
+                if item.lower().startswith("cascaqit-finance-demo==")
+            ),
+            "cascaqit": next(
+                item
+                for item in requirements
+                if item.lower().startswith("cascaqit==")
+            ),
+            "wheel_count": len(requirements),
+            "build_dependency_source": "offline_cache" if cache_root else "network",
+            "network_required_at_install": False,
+        }
+        (bundle_root / "bundle-info.json").write_text(
+            json.dumps(info, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        _write_manifest(bundle_root)
 
-    archive_base = output_root / BUNDLE_NAME
-    archive = archive_base.with_suffix(".zip")
-    if archive.exists():
-        archive.unlink()
-    shutil.make_archive(str(archive_base), "zip", output_root, BUNDLE_NAME)
-    return archive
+        archive_base = output_root / BUNDLE_NAME
+        archive = archive_base.with_suffix(".zip")
+        if archive.exists():
+            archive.unlink()
+        shutil.make_archive(str(archive_base), "zip", output_root, BUNDLE_NAME)
+        return archive
 
 
 def main() -> None:
@@ -432,8 +542,18 @@ def main() -> None:
         default=DEFAULT_SDK_ROOT,
         help="当前 CASCAQit 源码仓库目录",
     )
+    parser.add_argument(
+        "--cache-root",
+        type=Path,
+        help="可选的既有离线包目录；复用其第三方 wheel 与已验签 Python runtime",
+    )
     args = parser.parse_args()
-    archive = build_bundle(args.output_root.resolve(), args.sdk_root.resolve())
+    cache_root = args.cache_root.resolve() if args.cache_root else None
+    archive = build_bundle(
+        args.output_root.resolve(),
+        args.sdk_root.resolve(),
+        cache_root,
+    )
     print(f"Windows 离线包已生成：{archive}")
 
 

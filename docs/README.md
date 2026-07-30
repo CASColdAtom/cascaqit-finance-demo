@@ -1,9 +1,9 @@
 # 文档
 
-- [生物医药量子实验台 PRD](biomedicine_demo_prd.md)：定义四个正式场景、用户流程、数据要求、展示边界和发布条件。
-- [生物医药量子实验台架构设计](biomedicine_demo_architecture.md)：说明 Pauli/VQE 与组合优化两条执行链、数据 manifest、API、前端、审计和测试结构。
-- [生物医药客户演示手册](biomedicine_customer_demo_guide.md)：说明金融与生物医药如何共用工作台、四场景讲解顺序、可解释结论和禁止外推内容。
-- [生物医药数据来源清单](biomedicine_data_source_inventory.md)：登记 8 组 fixture 的来源、许可证、生成工具、checksum、允许说法和离线发布检查。
+- [生物医药与材料量子实验台 PRD](biomedicine_demo_prd.md)：定义八个正式场景、用户流程、数据要求、展示边界和发布条件。
+- [生物医药与材料量子实验台架构设计](biomedicine_demo_architecture.md)：说明 Pauli/VQE、组合优化和 Pure Analog AHS 三条执行链及其数据、API、前端、审计和测试结构。
+- [生物医药与材料客户演示手册](biomedicine_customer_demo_guide.md)：说明三个一级领域如何共用工作台、八场景讲解顺序、可解释结论和禁止外推内容。
+- [生物医药与材料数据来源清单](biomedicine_data_source_inventory.md)：登记 20 组 fixture 的来源、许可证、生成工具、checksum、允许说法和离线发布检查。
 - [客户演示技术讲解手册](customer_demo_technical_guide.md)：面向金融和量子计算初学者，解释业务建模、QUBO、Digital/Hybrid/Analog 原理、七个场景、页面解读、演示话术和当前限制。
 - [逐场景讲解与页面解读](scenario_presentation_guide.md)：逐项说明七个场景的业务问题、输入、输出、建模、算法选择、页面元素，并结合实际运行截图讲解固定配置结果。
 - [金融 Demo 架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
@@ -20,6 +20,12 @@
 - [生物医药第六阶段完成度报告](process/biomedicine_phase_6_completion_report.md)：逐条记录领域解耦、六视图、运行边界、缓存身份、报告落盘、错误契约、最终门禁和剩余外部验收项。
 - [生物医药第七阶段最终验收报告](process/biomedicine_phase_7_final_acceptance_report.md)：记录 PRD/架构逐项审计、manifest 与错误契约收口、平台用户数据目录、品牌统一、重新校准、三视口和最终交付制品证据。
 - [生物医药第八阶段高级实验骨架报告](process/biomedicine_phase_8_advanced_foundation_report.md)：记录 CASCAQit 能力注册、复杂度档位、稳定实验计划、成本门禁、分析 API 与标准模式回归。
+- [第十二阶段材料领域预览报告](process/biomedicine_phase_12_domain_materials_preview_report.md)：记录材料一级领域、四个 V3 入口和当时的严格 Preview 边界。
+- [第十三阶段 RNA 实现报告](process/biomedicine_phase_13_rna_structure_report.md)：记录 RNA 候选配对、Digital QAOA、经典对照和三 seed 校准。
+- [第十三阶段材料构型实现报告](process/biomedicine_phase_13_materials_defect_adsorption_report.md)：记录缺陷-吸附联合 QUBO、Hybrid 门禁、经典/离线参考和校准。
+- [第十四阶段蛋白路径实现报告](process/biomedicine_phase_14_protein_dynamics_report.md)：记录构象状态网络、路径 QUBO、失败结果和 Dijkstra 对照。
+- [第十五阶段材料 Analog 实现报告](process/biomedicine_phase_15_materials_analog_report.md)：记录四位点 Pure Analog AHS、同初态前缀语义、DOP853 对照和校准。
+- [第十六阶段 V3 总体验收审计](process/biomedicine_phase_16_v3_release_audit.md)：记录八场景 84 次校准聚合、当前 Windows 离线包和待完成的 Chromium 门禁。
 - [前后端分离金融工作台实现报告](process/problem_api_workbench_implementation_report.md)：记录 FastAPI + React 结构、七场景执行、状态隔离、自动验证和人工验收缺口。
 - [Hybrid 映射证据实现报告](process/hybrid_mapping_evidence_implementation_report.md)：记录完整 core group、QUBO 参考布局、漏边/补边检查和前端证据字段。
 - [逐系数业务证据账本实现报告](process/coefficient_ledger_implementation_report.md)：记录业务规则、QUBO contribution、Canonical term 和 Analog/Digital 实现的守恒链路。
