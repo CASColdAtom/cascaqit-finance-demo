@@ -22,13 +22,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {
-      detail?: string | { message?: string; code?: string };
+      detail?: string | { message?: string; code?: string; error_id?: string };
     } | null;
     const detail = payload?.detail;
-    const message =
+    const baseMessage =
       typeof detail === "string"
         ? detail
         : detail?.message ?? detail?.code ?? `请求失败：HTTP ${response.status}`;
+    const message =
+      typeof detail !== "string" && detail?.error_id
+        ? `${baseMessage}（error_id: ${detail.error_id}）`
+        : baseMessage;
     throw new Error(message);
   }
   return (await response.json()) as T;
