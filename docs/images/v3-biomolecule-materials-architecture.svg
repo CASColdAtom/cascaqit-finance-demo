@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1080" width="1200" height="1080" role="img" aria-labelledby="title desc">
+  <title id="title">中科酷原行业量子实验台 V3 目标架构</title>
+  <desc id="desc">金融、生物医药和材料科学共用领域 API、实验规划、持久任务、CASCAQit 执行与审计能力。RNA、蛋白构象转变和材料缺陷吸附分别由独立适配器转换为 QUBO。</desc>
+  <style>
+    text { font-family: 'Microsoft YaHei', '微软雅黑', SimHei, Arial, sans-serif; fill: #111827; }
+    .layer { fill: #f8fbff; stroke: #2563eb; stroke-width: 1.4; stroke-dasharray: 7 5; }
+    .node { fill: #ffffff; stroke: #2563eb; stroke-width: 1.8; }
+    .adapter-rna { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.8; }
+    .adapter-protein { fill: #f0fdf4; stroke: #2563eb; stroke-width: 1.8; }
+    .adapter-material { fill: #fff7ed; stroke: #2563eb; stroke-width: 1.8; }
+    .shared { fill: #f5f3ff; stroke: #2563eb; stroke-width: 1.8; }
+    .layer-label { fill: #1d4ed8; font-size: 13px; font-weight: 700; }
+    .node-title { font-size: 16px; font-weight: 700; text-anchor: middle; }
+    .node-subtitle { fill: #4b5563; font-size: 12px; text-anchor: middle; }
+    .arrow-label { fill: #1d4ed8; font-size: 12px; font-weight: 600; text-anchor: middle; }
+    .flow { fill: none; stroke: #2563eb; stroke-width: 2; marker-end: url(#arrow-blue); }
+    .rail { fill: none; stroke: #2563eb; stroke-width: 2; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="1080" fill="#ffffff"/>
+  <text x="600" y="34" text-anchor="middle" font-size="22" font-weight="700">中科酷原行业量子实验台 V3 目标架构</text>
+  <text x="600" y="58" text-anchor="middle" font-size="13" fill="#4b5563">RNA · 蛋白构象转变 · 催化表面缺陷与吸附构型</text>
+  <rect x="1010" y="22" width="130" height="30" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4"/>
+  <text x="1075" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">PLANNED</text>
+
+  <rect class="layer" x="50" y="78" width="1100" height="140" rx="8"/>
+  <text class="layer-label" x="70" y="102">入口与领域路由</text>
+  <rect class="layer" x="50" y="245" width="1100" height="180" rx="8"/>
+  <text class="layer-label" x="70" y="270">领域适配层</text>
+  <rect class="layer" x="50" y="450" width="1100" height="150" rx="8"/>
+  <text class="layer-label" x="70" y="476">规范化问题层</text>
+  <rect class="layer" x="50" y="625" width="1100" height="145" rx="8"/>
+  <text class="layer-label" x="70" y="651">公共规划与任务层</text>
+  <rect class="layer" x="50" y="795" width="1100" height="145" rx="8"/>
+  <text class="layer-label" x="70" y="821">量子执行层</text>
+  <rect class="layer" x="50" y="965" width="1100" height="90" rx="8"/>
+  <text class="layer-label" x="70" y="990">结果与证据</text>
+
+  <path class="flow" d="M 380 155 H 460"/>
+  <path class="flow" d="M 740 155 H 820"/>
+  <text class="arrow-label" x="420" y="143">领域请求</text>
+  <text class="arrow-label" x="780" y="143">目录解析</text>
+
+  <path class="rail" d="M 960 190 V 285 H 240"/>
+  <path class="flow" d="M 240 285 V 300"/>
+  <path class="flow" d="M 600 285 V 300"/>
+  <path class="flow" d="M 960 285 V 300"/>
+
+  <path class="flow" d="M 240 390 V 500"/>
+  <path class="flow" d="M 600 390 V 500"/>
+  <path class="flow" d="M 960 390 V 500"/>
+
+  <path class="rail" d="M 240 565 V 610 H 960 V 565"/>
+  <path class="rail" d="M 600 565 V 610"/>
+  <path class="flow" d="M 350 610 V 675"/>
+  <path class="flow" d="M 530 705 H 670"/>
+  <text class="arrow-label" x="600" y="693">稳定实验计划</text>
+
+  <path class="flow" d="M 850 735 V 782 H 350 V 845"/>
+  <path class="flow" d="M 530 875 H 670"/>
+  <text class="arrow-label" x="600" y="863">QUBO 与配置</text>
+  <path class="flow" d="M 850 905 V 952 H 600 V 995"/>
+
+  <rect class="node" x="100" y="120" width="280" height="70" rx="8"/>
+  <text class="node-title" x="240" y="149">React 行业工作台</text>
+  <text class="node-subtitle" x="240" y="173">金融 / 生物医药 / 材料科学</text>
+
+  <rect class="node" x="460" y="120" width="280" height="70" rx="8"/>
+  <text class="node-title" x="600" y="149">统一领域 API</text>
+  <text class="node-subtitle" x="600" y="173">分析 · 运行 · 持久任务</text>
+
+  <rect class="node" x="820" y="120" width="280" height="70" rx="8"/>
+  <text class="node-title" x="960" y="149">DomainRegistry</text>
+  <text class="node-subtitle" x="960" y="173">领域与场景发现</text>
+
+  <rect class="adapter-rna" x="100" y="300" width="280" height="90" rx="8"/>
+  <text class="node-title" x="240" y="334">RNA Adapter</text>
+  <text class="node-subtitle" x="240" y="358">候选配对 · 能量参数</text>
+  <text class="node-subtitle" x="240" y="376">环长与假结策略</text>
+
+  <rect class="adapter-protein" x="460" y="300" width="280" height="90" rx="8"/>
+  <text class="node-title" x="600" y="334">Conformation Network Adapter</text>
+  <text class="node-subtitle" x="600" y="358">亚稳构象 · 允许转变</text>
+  <text class="node-subtitle" x="600" y="376">边权来源与活动子图</text>
+
+  <rect class="adapter-material" x="820" y="300" width="280" height="90" rx="8"/>
+  <text class="node-title" x="960" y="334">Materials Adapter</text>
+  <text class="node-subtitle" x="960" y="358">周期晶格 · 对称性</text>
+  <text class="node-subtitle" x="960" y="376">缺陷 / 吸附离线能量</text>
+
+  <rect class="node" x="100" y="500" width="280" height="65" rx="8"/>
+  <text class="node-title" x="240" y="528">RNA 配对 QUBO</text>
+  <text class="node-subtitle" x="240" y="550">配对、互斥、茎与结构约束</text>
+
+  <rect class="node" x="460" y="500" width="280" height="65" rx="8"/>
+  <text class="node-title" x="600" y="528">构象路径 QUBO</text>
+  <text class="node-subtitle" x="600" y="550">起终点、流守恒与路径连续</text>
+
+  <rect class="node" x="820" y="500" width="280" height="65" rx="8"/>
+  <text class="node-title" x="960" y="528">缺陷-吸附 QUBO</text>
+  <text class="node-subtitle" x="960" y="550">占位、计量、覆盖度与近邻约束</text>
+
+  <rect class="shared" x="170" y="675" width="360" height="60" rx="8"/>
+  <text class="node-title" x="350" y="702">ExperimentPlanner</text>
+  <text class="node-subtitle" x="350" y="722">能力快照 · 成本门禁 · 稳定 hash</text>
+
+  <rect class="shared" x="670" y="675" width="360" height="60" rx="8"/>
+  <text class="node-title" x="850" y="702">LocalJobManager</text>
+  <text class="node-subtitle" x="850" y="722">有界队列 · 独立运行 · 原子持久化</text>
+
+  <rect class="shared" x="170" y="845" width="360" height="60" rx="8"/>
+  <text class="node-title" x="350" y="872">ProblemExecutor</text>
+  <text class="node-subtitle" x="350" y="892">Digital / Hybrid 编译与解码编排</text>
+
+  <rect class="shared" x="670" y="845" width="360" height="60" rx="8"/>
+  <text class="node-title" x="850" y="872">CASCAQit</text>
+  <text class="node-subtitle" x="850" y="892">QAOA · Hybrid D-A-D · LocalBackend</text>
+
+  <rect class="node" x="350" y="995" width="500" height="50" rx="8"/>
+  <text class="node-title" x="600" y="1018">领域解码、经典对照与审计</text>
+  <text class="node-subtitle" x="600" y="1037">量子候选失败时不使用经典结果替换</text>
+</svg>

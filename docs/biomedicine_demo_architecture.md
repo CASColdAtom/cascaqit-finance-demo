@@ -1,8 +1,8 @@
-# 中科酷原行业量子实验台 - 生物医药领域架构设计
+# 中科酷原行业量子实验台 - 生物医药与材料领域架构设计
 
 ## 1. 架构结论
 
-对外统一产品名称为“中科酷原行业量子实验台”。金融和生物医药作为产品内的一级领域，`CASCAQit` 仅表示底层量子编程 SDK 和执行引擎。
+对外统一产品名称为“中科酷原行业量子实验台”。金融和生物医药是当前已经实现的一级领域；V3 计划增加材料科学一级领域。`CASCAQit` 仅表示底层量子编程 SDK 和执行引擎。
 
 生物医药领域沿用金融 Demo 已验证的离线 FastAPI、React 工作台、CASCAQit 本地执行和审计报告结构，但不复用金融领域类型和命名。
 
@@ -955,3 +955,199 @@ V2 在现有测试基础上增加：
 | `BIO-V2-JOB-01` | `LocalJobManager`、运行单元调度器、`ResultAggregator` | `jobs/<job_id>/job.json`、run/report hash | 保留已完成证据，明确区分失败、未开始和取消的运行单元 |
 | `BIO-V2-UI-01` | 行业工作台外壳、高级控制区、复杂度视图、实验矩阵 | analysis/plan/job ID | 过期计划不能执行；领域切换不覆盖其他任务状态 |
 | `BIO-V2-REL-01` | 校准脚本、测试门禁、打包流程、验收报告 | calibration/report/package checksum | 任一场景或发布包未通过时，高级入口保持研究状态 |
+
+## 19. V3 生物分子动态、RNA 与材料架构
+
+### 19.1 状态与职责边界
+
+本节是 PRD 第 16 节对应的目标架构，当前状态为 `PLANNED`。V2 的四个生物医药场景和现有金融入口保持不变；V3 在领域注册层新增两个生物医药场景和一个材料科学场景，不建立第二套任务系统或量子执行器。
+
+架构将“动态”拆成两类能力：
+
+- 当前可实现的是已知构象状态网络上的离散路径优化，由现有 QUBO/QAOA 执行链负责；
+- 实时量子演化、时间关联函数和动力学速率属于新的 SDK 算法与观测量能力，没有验证前不进入正式接口。
+
+RNA 和材料场景同样只把离散优化子问题交给 CASCAQit。序列候选、构象网络、晶格、周期边界、对称性和能量参数由领域适配器离线生成并固化。
+
+### 19.2 领域与组件结构
+
+![V3 生物分子动态、RNA 与材料架构](images/v3-biomolecule-materials-architecture.svg)
+
+评审或演示文稿可使用 [PNG 版本](images/v3-biomolecule-materials-architecture.png)。
+
+`ExperimentPlanner`、`LocalJobManager`、`ProblemExecutor` 和审计链继续保持领域中性。新增代码只负责领域数据、QUBO 构造、结果解码和可视化模型。
+
+### 19.3 代码布局
+
+计划新增的模块边界如下，文件名是目标结构，不表示当前已经存在：
+
+```text
+src/
+  cascaqit_biomedicine_demo/
+    rna_structure.py
+    protein_dynamics.py
+    data/
+      rna_structure/
+      protein_dynamics/
+  cascaqit_materials_demo/
+    __init__.py
+    catalog.py
+    fixtures.py
+    defect_adsorption.py
+    data/
+      defect_adsorption/
+  cascaqit_industry_demo/
+    domain_registry.py
+    advanced_experiments.py
+    problem_executor.py
+```
+
+材料包不能导入生物医药或金融领域类型。三类领域只能依赖 `cascaqit_industry_demo` 的协议、规划器和执行器。统一 API 通过领域注册表发现目录，不再在路由中为每个新场景增加成组条件分支。
+
+### 19.4 三个新增数据流
+
+#### 19.4.1 RNA 二级结构集合
+
+```text
+versioned RNA sequence + energy parameters
+  -> candidate pair/stem generation
+  -> compatibility and pseudoknot policy
+  -> complete pairing ledger
+  -> deterministic active-window selection
+  -> pairing QUBO
+  -> Digital QAOA or verified Hybrid
+  -> feasible Top-K decoding
+  -> classical structure comparison
+```
+
+RNA Adapter 生成稳定的核苷酸 ID、候选配对 ID 和能量贡献。完整候选集合、活动窗口和 QUBO 分别保存 hash。解码器以原始序列重新检查每个核苷酸的配对次数、最小环长和假结策略；不可行 bitstring 不进入结构结果。
+
+量子 counts 只用于报告观测频率。经典分区函数、碱基配对概率或温度相关指标放入 `classicReference`，不能从 counts 复制或重命名得到。
+
+#### 19.4.2 蛋白构象转变路径
+
+```text
+versioned conformations + allowed transitions + edge provenance
+  -> state-network validation
+  -> connectivity-preserving active subgraph
+  -> node/edge path QUBO
+  -> Digital QAOA
+  -> path feasibility decoding
+  -> Dijkstra / dynamic-programming comparison
+```
+
+构象状态网络 fixture 必须记录节点结构来源、边的生成方法、边权含义和单位。活动子图选择器先锁定起点、终点和至少一条完整通路，再按能垒、结构多样性和路径覆盖裁剪。选择前后分别保存 network hash 和 selection hash。
+
+结果中的 `pathCost` 不自动转成时间。只有 fixture 提供经过验证的经典动力学模型时，响应才能在 `classicReference` 中返回速率或时间；量子结果仍只表示离散路径候选。
+
+#### 19.4.3 材料缺陷与吸附构型
+
+```text
+surface lattice + periodic cell + candidate defects/adsorbates
+  -> symmetry canonicalization
+  -> complete occupation and interaction ledger
+  -> deterministic active-variable selection
+  -> material QUBO
+  -> Digital QAOA / verified Hybrid D-A-D
+  -> periodic and stoichiometric validation
+  -> enumeration or integer-programming comparison
+```
+
+Materials Adapter 负责周期边界、晶格索引、空间群或表面对称操作、候选等价类和离线能量参数。量子执行器只接收规范化后的 QUBO，不导入 DFT 程序或材料数据库客户端。
+
+Hybrid 几何是独立派生物。`materialLatticeHash` 描述材料晶格，`rydbergLayoutHash` 描述编译后的原子布局，两者不得使用同一字段或暗示物理坐标相同。Hybrid 继续执行完整冲突贡献、无补边、无漏项、系数守恒和 Digital residual 非空门禁。
+
+### 19.5 数据契约与身份
+
+三个适配器都输出领域中性的 `OptimizationProblemDefinition`，并在 `domainEvidence` 中保留各自证据：
+
+```text
+RNA
+  sequenceHash
+  energyModelHash
+  completePairingHash
+  selectionHash
+  quboHash
+
+Protein transition
+  conformationSetHash
+  transitionNetworkHash
+  selectionHash
+  pathQuboHash
+
+Materials
+  materialStructureHash
+  materialLatticeHash
+  symmetryRuleHash
+  energyModelHash
+  completeConfigurationHash
+  selectionHash
+  quboHash
+```
+
+通用 `analysisHash` 必须覆盖领域证据、完整问题、活动子问题、配置和能力快照。任何序列、边权、周期单元、能量参数或选择规则变化都生成新的实验计划，不得复用旧任务结果。
+
+### 19.6 CASCAQit 能力使用与缺口
+
+| 能力 | 当前调用面 | V3 使用规则 |
+|---|---|---|
+| `QUBOProblemIR`、Digital QAOA | 已验证 | 三个场景的默认执行路径 |
+| `ProblemCompiler`、Hybrid D-A-D | 已验证但受几何门禁限制 | RNA 和材料只有在冲突图完整时开放；蛋白路径默认不推荐 Hybrid |
+| 多 seed、配置对照、持久任务 | 应用层已实现 | 复用现有规划和 `job.json` 状态机 |
+| 有限温度/Gibbs 态采样 | 未验证 | 不把 RNA 采样频率解释为热力学概率 |
+| 实时量子演化、时间关联函数 | 未验证 | 不提供量子蛋白真实时间动态 |
+| 周期性电子结构、运行时 DFT | 不属于现有 SDK 调用面 | 由外部工具离线生成材料参数 |
+
+新增算法能力只有同时满足 CASCAQit 版本门禁、独立契约测试、应用集成测试和固定 seed 校准，才能从研究状态改为正式可用。
+
+### 19.7 API 和前端扩展
+
+现有领域 API 继续使用：
+
+```text
+GET  /api/domains/{domain_id}/scenarios
+POST /api/domains/{domain_id}/scenarios/{case_id}/analyze
+POST /api/domains/{domain_id}/scenarios/{case_id}/run
+POST /api/domains/{domain_id}/scenarios/{case_id}/jobs
+```
+
+材料目录使用 `domain_id=materials`。RNA 和蛋白场景继续使用 `domain_id=biomedicine`。所有请求都由领域注册表解析；不存在的领域或场景返回 404，未通过能力门禁的配置返回结构化 422，不进入执行线程。
+
+前端一级导航增加“材料科学”。三个新增场景提供独立结构组件，但继续复用结果标签、任务矩阵和审计组件：
+
+- RNA 使用序列轨道、配对弧和候选茎视图；
+- 蛋白转变使用构象状态网络，不播放伪造的分子动力学动画；
+- 材料使用周期晶格、缺陷和吸附位点视图，并区分材料坐标与 Rydberg 编译布局。
+
+领域任务仍按 `domain_id + case_id + job_id` 隔离。用户切换领域时保留任务，但只在任务所属场景显示结果矩阵。
+
+### 19.8 测试和科学表述门禁
+
+V3 至少增加以下自动化和浏览器检查：
+
+- RNA 候选配对完整性、单碱基互斥、环长、假结策略和 Top-K 解码；
+- 蛋白状态网络连通性、起终点保留、流守恒、回路拒绝和无可行路径；
+- 材料周期邻居、对称等价去重、化学计量、覆盖度、占位互斥和能量系数守恒；
+- 三类完整问题到活动子问题的确定性选择和 hash 稳定性；
+- Digital/Hybrid 使用同一逻辑 QUBO，Hybrid 门禁失败时不静默回退或修改业务图；
+- 量子未观察到可行结果时不复制经典最优结果；
+- 金融和 V2 四个生物医药场景保持 API、页面和数值回归；
+- 桌面、紧凑桌面和移动端没有页面级横向溢出，结构视图存在实际图元；
+- 页面和报告禁止把 QAOA counts 写成 RNA 热力学概率、把路径代价写成蛋白真实时间、把离线 DFT 能量写成量子计算结果。
+
+### 19.9 分阶段实施与组件映射
+
+| 阶段 | 主要交付 | 退出条件 |
+|---|---|---|
+| 第十二阶段 | 领域注册表、材料包骨架、三类 manifest 和适配协议 | 三个一级领域目录可查询，新增场景保持 `preview`，现有场景全部回归 |
+| 第十三阶段 | RNA 与材料 QUBO、解码器、Digital/Hybrid 门禁和页面 | 两场景各有标准/高级预设、三个固定 seed 和三视口证据 |
+| 第十四阶段 | 蛋白状态网络、活动子图和路径优化研究入口 | 路径约束与经典基线通过，动态表述边界通过审计 |
+| 第十五阶段 | 七个生物医药与材料案例校准、离线包、客户讲解和发布报告 | 全量门禁、wheel、Windows 包和需求证据可追溯 |
+
+| 需求编号 | 主要组件 | 核心身份 | 失败时行为 |
+|---|---|---|---|
+| `IND-V3-DOMAIN-01` | `DomainRegistry`、统一 API、领域导航 | domain/catalog hash | 未注册领域返回 404，不猜测默认领域 |
+| `BIO-V3-RNA-01` | RNA Adapter、配对 QUBO、RNA Decoder | sequence/energy/pairing/selection/QUBO hash | 约束或数据不完整时不生成量子子问题 |
+| `MAT-V1-ADSORB-01` | Materials Adapter、对称性处理、材料 QUBO | material/symmetry/energy/selection/QUBO hash | 周期、计量或 Hybrid 几何失败时拒绝相应配置 |
+| `BIO-V3-PROTEIN-DYN-01` | Network Adapter、Subgraph Selector、Path Decoder | conformation/network/selection/path-QUBO hash | 没有完整通路时返回领域诊断，不构造伪路径 |
+| `IND-V3-REL-01` | 校准脚本、浏览器验收、打包和发布报告 | evidence/package checksum | 任一新增场景未通过时保持预览或研究状态 |
