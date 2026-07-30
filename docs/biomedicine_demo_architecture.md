@@ -609,3 +609,314 @@ source checksum
 - 经典参考不能替换量子候选；
 - 现有金融 Demo 在生物医药开发期间仍可运行和回归；
 - 文档、API、测试和页面使用一致的场景名称与限制。
+
+## 18. V2 高级实验模式架构
+
+### 18.1 状态与兼容策略
+
+本节是下一轮高级实验模式的目标架构，状态为 `PLANNED`。第 1～17 节描述的 V1 结构仍是当前已实现基线。V2 采用增量扩展，不替换现有四场景、同步运行接口或金融兼容入口。
+
+每个场景同时声明两个实验级别：
+
+```text
+standard
+  -> 已验收固定预设
+  -> 单次同步执行
+  -> 30 秒目标
+
+advanced
+  -> 更大领域数据和有限参数扫描
+  -> 完整问题到量子子问题的显式规划
+  -> 配置对照、重复 seed 和长任务编排
+```
+
+高级模式不建立第二套量子执行器。它在领域适配器之前增加实验规划，在现有 Pauli/VQE 或 QUBO/Problem 执行链之外增加批量编排和结果聚合。
+
+### 18.2 组件结构
+
+```mermaid
+flowchart LR
+    UI[Advanced Experiment UI]
+    API[Industry API]
+    CAP[Capability Registry]
+    PROF[Complexity Profile Registry]
+    PLAN[Experiment Planner]
+    DATA[Versioned Dataset Bundle]
+    REDUCE[Deterministic Subproblem Selector]
+    JOB[Local Job Manager]
+    PAULI[Pauli VQE Executor]
+    QUBO[Problem Executor]
+    SDK[CASCAQit LocalBackend]
+    AGG[Result Aggregator]
+    AUDIT[Audit Report Store]
+
+    UI --> API --> PLAN
+    PLAN --> CAP
+    PLAN --> PROF
+    PLAN --> DATA
+    PLAN --> REDUCE
+    PLAN --> JOB
+    JOB --> PAULI --> SDK
+    JOB --> QUBO --> SDK
+    SDK --> AGG --> AUDIT --> API --> UI
+```
+
+新增应用层职责：
+
+| 组件 | 职责 | 不负责 |
+|---|---|---|
+| `CapabilityRegistry` | 按 CASCAQit 版本和已验证测试声明 VQE、QAOA、Hybrid、激发态、混合算子和取消能力 | 不根据导入成功猜测算法可用 |
+| `ComplexityProfileRegistry` | 声明各预设的量子位、变量、项、shots、预算和时限上限 | 不动态扩大到未校准规模 |
+| `ExperimentPlanner` | 展开扫描点、配置和 seed，估算成本并选择同步或长任务 | 不执行量子算法 |
+| `SubproblemSelector` | 从完整领域问题确定性选择量子活动子问题，生成覆盖和排除证据 | 不修改原始评分或隐藏变量 |
+| `LocalJobManager` | 限制并发、持久化状态、调度独立运行和恢复可查询结果 | 不替代 CASCAQit Backend |
+| `ResultAggregator` | 聚合独立运行的成功率、分布和对照指标 | 不合并不同配置的 counts 或 hash |
+
+### 18.3 核心数据契约
+
+高级分析在现有 `ScenarioDefinition` 外增加规划结构：
+
+```python
+@dataclass(frozen=True)
+class ComplexityProfile:
+    profile_id: str
+    level: Literal["standard", "advanced_live", "research"]
+    max_logical_qubits: int
+    max_problem_variables: int
+    max_operator_terms: int
+    max_measurement_groups: int
+    max_shots: int
+    max_objective_evaluations: int
+    max_estimated_seconds: float
+
+
+@dataclass(frozen=True)
+class ExperimentPlan:
+    plan_id: str
+    case_id: str
+    dataset_id: str
+    dataset_manifest_hash: str
+    complete_domain_problem_hash: str
+    quantum_subproblem_hash: str
+    profile: ComplexityProfile
+    sweep_points: tuple[dict[str, object], ...]
+    configurations: tuple[dict[str, object], ...]
+    seeds: tuple[int, ...]
+    run_count: int
+    estimated_seconds: float
+    execution_policy: Literal["sync", "job", "rejected"]
+    diagnostics: tuple[DomainIssue, ...]
+```
+
+`run_count` 必须等于扫描点数、配置数和 seed 数的乘积。列表展开顺序固定为扫描点、配置、seed；聚合器依靠运行单元 ID，而不是数组位置关联结果。
+
+优化场景额外保存：
+
+```text
+complete_variable_ledger
+selected_variable_ids
+excluded_variables[{id, reason, score, constraint_coverage}]
+subproblem_coverage
+selection_rule_version
+selection_hash
+```
+
+Pauli 扫描额外保存模板 Hamiltonian hash、每个参数点的实例 Hamiltonian hash、Ansatz hash 和 QWC 计划 hash。聚合报告只引用各独立运行的 report hash，不复制或重写底层量子事实。
+
+### 18.4 四场景高级数据流
+
+#### 18.4.1 电子结构
+
+```text
+versioned geometry series
+  -> Hamiltonian fixture per geometry
+  -> profile and capability validation
+  -> Cartesian product of geometry x configuration x seed
+  -> existing PauliVQEExecutor
+  -> per-point result
+  -> potential-curve and stability aggregation
+```
+
+运行时仍不计算分子积分或费米子映射。一个几何系列 manifest 引用多个经过独立 checksum 校验的 Pauli fixture；缺失任一点时整个计划在执行前失败。研究档 6～8 量子位只有在发布机完成资源校准后开放。
+
+#### 18.4.2 构象匹配
+
+```text
+complete pose-feature graph
+  -> domain validation
+  -> deterministic candidate ranking
+  -> key-feature and conflict coverage guard
+  -> 10-16 active business variables
+  -> QUBO ledger and Hybrid feasibility analysis
+  -> existing Problem Executor
+  -> Top-K feasible candidates and sensitivity aggregation
+```
+
+裁剪发生在 QUBO 构造前，但完整问题和被排除候选必须进入审计。裁剪器先为每个强制关键特征保留局部评分最高的候选，再按局部评分、约束覆盖数和候选 ID 稳定排序填满剩余名额。排序规则和权重写入 profile 并单独版本化；不能根据某次量子或经典最优答案反向选择变量。Digital 与 Hybrid 配置必须复用同一个裁剪后 QUBO hash。
+
+#### 18.4.3 多中心有效自旋
+
+```text
+Hamiltonian template + bounded parameter grid
+  -> instantiate Pauli terms
+  -> Hermitian and capability validation
+  -> QWC measurement plan
+  -> existing PauliVQEExecutor
+  -> energy and correlation matrix
+  -> parameter-series aggregation
+```
+
+有效模型模板允许 `X/Y/Z` Pauli 字符串，但每种新项类型必须进入能力测试。V1 的精确对角化继续提供基态和激发态参考；没有 VQD 或子空间算法时，量子响应 schema 不出现 `quantumExcitedState` 字段。
+
+#### 18.4.4 小肽能景
+
+```text
+32-64 conformation library
+  -> full classic landscape and basin labels
+  -> diversity + energy-window + constraint coverage selection
+  -> 10-16 active conformations
+  -> one-hot QUBO
+  -> existing Digital QAOA executor
+  -> active-window samples
+  -> full-landscape coverage aggregation
+```
+
+离线生成器按接触图汉明距离和 manifest 中固定的阈值生成盆地标签；构象 ID 用于距离和能量相同时的稳定排序。选择器先保留每个主要盆地的最低能代表，再按能量窗、结构多样性和约束覆盖填满活动窗口，避免只包含同一结构族。完整经典能景和量子活动窗口使用不同字段。转向/接触（turn/contact）编码属于独立研究适配器，只有 `CapabilityRegistry` 确认约束保持混合算子后才可注册为正式配置。
+
+### 18.5 CASCAQit 能力边界
+
+V2 只依赖当前已经验证的 SDK 核心：`PauliHamiltonian`、`VQE`、`QUBOProblemIR`、`QAOA`、`ProblemCompiler`、Hybrid D-A-D 和 `LocalBackend`。化学与生物领域预处理继续在应用侧离线完成。
+
+| 待增强能力 | 所属层 | 最小接口要求 | 未完成时行为 |
+|---|---|---|---|
+| 批量扫描和重复 seed | 应用服务 | 独立调用现有 executor 并聚合 report hash | 高级配置不开放 |
+| 长任务状态 | 应用服务 | 持久化任务、运行和进度快照 | 超过同步预算的计划被拒绝 |
+| 目标评估进度 | SDK + 应用适配 | 优化器回调评估序号、预算和当前最佳值 | 只显示当前独立运行序号 |
+| 协作式取消 | SDK + Backend | 在优化迭代和 Backend job 之间检查取消信号 | 只允许取消未开始任务 |
+| VQD/子空间激发态 | CASCAQit 算法层 | 明确输入、正交约束、结果和审计契约 | 只显示经典精确能隙 |
+| 约束保持混合算子 | CASCAQit QAOA | 混合算子定义、可行子空间初态和编译能力检查 | 使用罚函数 QUBO |
+
+`CapabilityRegistry` 使用显式版本范围和通过的契约测试登记能力。环境中存在同名类、实验分支或未发布本地补丁，均不能自动提升正式能力状态。
+
+### 18.6 API 扩展
+
+现有标准请求保持兼容。高级请求增加可选字段：
+
+```json
+{
+  "preset": "advanced_reference",
+  "experimentLevel": "advanced",
+  "complexityProfile": "advanced_live",
+  "values": {},
+  "configurations": [
+    {"mode": "digital", "algorithm": "vqe", "layers": 2}
+  ],
+  "seeds": [7, 23, 41],
+  "sweep": {
+    "parameter": "bond_length_angstrom",
+    "values": [0.6, 0.735, 0.9]
+  }
+}
+```
+
+分析仍使用现有路径，并在响应中增加 `experimentPlan`：
+
+```text
+POST /api/domains/{domain_id}/scenarios/{case_id}/analyze
+```
+
+只有 `executionPolicy=sync`、`run_count=1` 的计划可以继续使用现有 `/run`。任何包含多个扫描点、配置或 seed 的计划，以及所有研究计划，都使用新增长任务接口：
+
+```text
+POST /api/domains/{domain_id}/scenarios/{case_id}/jobs
+GET  /api/jobs/{job_id}
+POST /api/jobs/{job_id}/cancel
+```
+
+任务创建必须携带最新 `plan_id`；服务端重新计算输入签名并拒绝过期计划。`job_id` 由服务端生成，不接受用户路径。取消能力按 `canCancelPending` 和 `canCancelRunning` 分开返回，前端不能假设运行中的 Backend 一定可中止。
+
+### 18.7 长任务、并发和恢复
+
+任务状态机：
+
+```text
+queued -> running -> succeeded
+                  -> partially_succeeded
+                  -> failed
+queued -> cancelled
+running -> cancel_requested -> cancelled  # 仅能力支持时
+```
+
+- 默认只运行一个重计算任务，队列长度有配置上限；
+- 每个扫描点、配置和 seed 是独立运行单元，失败不覆盖已完成证据；
+- `partially_succeeded` 必须列出成功、失败、未开始和取消的运行单元；
+- 任务元数据和 report hash 写入用户数据目录，进程重启后已完成结果仍可查询；
+- 任务状态保存在 `jobs/<job_id>/job.json`，写入时使用同目录临时文件和原子替换；进程内锁保证单服务进程不会并发覆盖状态；
+- 进程内执行继续使用线程池，事件循环必须能响应 health、静态资源和任务查询；
+- V2 首期不承诺跨进程继续执行正在运行的本地模拟，只恢复终态和把中断任务标记为失败；
+- 缓存键增加 `plan_id`、复杂度配置、扫描定义、配置集合和 seed 集合。
+
+### 18.8 前端结构
+
+标准模式保持当前三栏工作台。高级模式在中间控制区增加实验级别、复杂度配置、有限扫描、配置对照和 seed 控件；右侧增加两个领域中性视图：
+
+| 视图 | 内容 |
+|---|---|
+| 复杂度与成本 | 完整领域规模、量子子问题规模、资源估算、覆盖率、排除原因和能力诊断 |
+| 实验矩阵 | 扫描点 × 配置 × seed 状态、聚合指标和独立报告入口 |
+
+固定格式矩阵使用稳定网格尺寸和横向局部滚动，不造成页面级横向溢出。移动端先显示聚合摘要，单个运行通过标签或抽屉查看；不在同一画布叠加全部曲线。任务运行时允许切换结果标签和领域，但当前任务状态按 `job_id` 独立保存。
+
+### 18.9 测试与质量门禁
+
+V2 在现有测试基础上增加：
+
+- 复杂度配置上下界、成本估算和拒绝路径；
+- 扫描展开顺序、配置笛卡尔积和 seed 独立性；
+- 完整问题到量子子问题的确定性、关键覆盖和排除账本；
+- 多点 Pauli fixture、模板 Hamiltonian 和实例 hash；
+- 任务状态机、队列上限、部分成功、重启恢复和取消能力差异；
+- 单个运行失败不污染其他运行的 counts、报告或聚合统计；
+- 标准模式 API 和浏览器回归；
+- 高级模式三种视口、实验矩阵、长任务状态和局部滚动；
+- 每个高级推荐预设至少三个固定 seed 的发布校准；
+- wheel 和 Windows 离线包包含全部高级 fixture、profile 和前端资源。
+
+发布报告必须分别记录标准模式和高级模式的最大分析时间、最大单次运行时间、完整任务时间、峰值内存和失败率。模拟器规模数据不能外推为真实硬件性能。
+
+### 18.10 V2 分阶段实施
+
+#### 第八阶段：高级实验公共骨架
+
+- 实现 Capability Registry、Complexity Profile 和 Experiment Plan；
+- 实现成本门禁、完整问题/量子子问题身份和分析响应；
+- 保持标准模式行为和 API 回归。
+
+#### 第九阶段：高级 Pauli 场景
+
+- 接入多点电子结构 fixture 和配置对照；
+- 接入 3～4 位点有效自旋模板与参数扫描；
+- 完成批量运行、观测量聚合和经典参考分离。
+
+#### 第十阶段：高级组合优化场景
+
+- 接入多构象匹配完整业务图和确定性裁剪；
+- 接入更大小肽构象库、盆地识别和活动窗口；
+- 完成 Digital/Hybrid 对照及完整领域覆盖报告。
+
+#### 第十一阶段：长任务与发布验收
+
+- 完成长任务状态、并发限制、部分成功和可用的取消语义；
+- 完成三视口高级工作流、性能校准和离线包；
+- 逐条复核 V2 PRD、能力门禁、架构契约和发布说法。
+
+### 18.11 新增风险
+
+| 风险 | 影响 | 架构处理 |
+|---|---|---|
+| 本地状态向量模拟随量子位指数增长 | 高级配置无法现场完成 | 校准 profile、执行前成本门禁、量子子问题上限 |
+| 领域问题很大但量子子问题较小 | 用户误解为完整求解 | 同屏显示两种规模、裁剪账本和覆盖率 |
+| 批量运行放大失败和耗时 | 页面长时间不可用 | 有界队列、独立运行单元、部分成功和异步状态 |
+| 参数扫描产生大量近似结果 | 用户只选择最好看的点 | 固定扫描计划、完整点集报告、失败点不删除 |
+| 新 SDK 能力只存在本地分支 | 发布包无法复现 | 显式能力注册、版本门禁、禁止未发布补丁 |
+| 精确参考被误认为量子激发态 | 科学结论错误 | 响应 schema 和页面明确标记经典来源 |
