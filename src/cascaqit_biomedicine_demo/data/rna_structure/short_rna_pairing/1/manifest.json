@@ -1,0 +1,62 @@
+{
+  "dataset_id": "rna.short-pairing-benchmarks",
+  "version": "1",
+  "source": {
+    "kind": "public_structure_and_project_curated_candidates",
+    "uri": "https://www.rcsb.org/structure/1ZIH",
+    "raw_file_sha256": null,
+    "license": "RCSB PDB usage policy for referenced metadata; project-generated candidate model",
+    "license_checked_at": "2026-07-30"
+  },
+  "generation": {
+    "tool": "deterministic RNA candidate-pair curation",
+    "tool_version": "rna-pairing-fixture-v1",
+    "parameters": {
+      "allowed_bases": ["A", "C", "G", "U"],
+      "pair_rules": ["AU", "UA", "CG", "GC", "GU", "UG"],
+      "default_minimum_loop": 3,
+      "energy_model": "canonical-pairing.educational.v1"
+    }
+  },
+  "units": {
+    "pair_score": "dimensionless educational score",
+    "position": "one-based nucleotide index"
+  },
+  "coordinate_system": {
+    "domain": "RNA sequence index and secondary-structure pairing arcs",
+    "normalization": "one-based ordered nucleotide identifiers"
+  },
+  "variable_order": [
+    "pair.01.11",
+    "pair.01.12",
+    "pair.02.11",
+    "pair.02.12",
+    "pair.03.10",
+    "pair.04.08",
+    "pair.04.09",
+    "pair.05.09"
+  ],
+  "artifacts": [
+    {"path": "domain.json", "sha256": "993d2ebfb324ee8c20e2d6deb999642f983dd6d81bc8e2811b2f9acaaa2e61fa"}
+  ],
+  "reference": {
+    "method": "exact enumeration of packaged candidate pairs plus a pseudoknot-free dynamic-programming baseline",
+    "software": "CPython deterministic reference implementation",
+    "software_version": "3.9.6",
+    "standard_presets": {
+      "hairpin_reference": {"reference_source": "PDB:1ZIH", "reference_pair_count": 4},
+      "stem_competition": {"reference_source": "project_curated", "reference_pair_count": 4},
+      "limited_pseudoknot": {"reference_source": "project_curated_research", "reference_pair_count": 4}
+    }
+  },
+  "allowed_claims": [
+    "Demonstrate Digital QAOA sampling over a finite, versioned RNA candidate-pair QUBO.",
+    "Compare observed feasible pair sets with exact enumeration, a classical dynamic-programming baseline, and a separately identified reference structure."
+  ],
+  "limitations": [
+    "The candidate scores are dimensionless educational model values, not thermodynamic free energies.",
+    "QAOA counts are sampling frequencies and are not base-pair probabilities or a Boltzmann ensemble.",
+    "The experiment does not predict RNA three-dimensional coordinates, solvent effects, folding rates, or biological function.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

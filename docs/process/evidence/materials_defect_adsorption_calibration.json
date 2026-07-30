@@ -1,0 +1,33 @@
+{
+  "schema": "materials.defect-adsorption-calibration.v1",
+  "generatedAt": "2026-07-30",
+  "configuration": {
+    "mode": "hybrid",
+    "shots": 128,
+    "seeds": [7, 23, 41],
+    "layers": 1,
+    "searchStrategy": "preset",
+    "parameterBudget": 2,
+    "optimizerStarts": 1,
+    "hardwareExecution": false
+  },
+  "summary": {
+    "runCount": 9,
+    "observedFeasibleRunCount": 9,
+    "minimumFeasibleShotRatio": 0.0234375,
+    "maximumFeasibleShotRatio": 0.1015625,
+    "analogTermsPerRun": 15,
+    "digitalResidualTermsPerRun": 32
+  },
+  "runs": [
+    {"preset":"ceria_vacancy_co","seed":7,"quantumStatus":"observed_feasible","feasibleShotRatio":0.1015625,"observedFeasibleCount":12,"problemHash":"06c9419ec02bdc7e66c4a245f1ab026242cdc5e1c24040525a9026139400a1e0","compileHash":"7a8f1e4674d6fe61af918dcd46c5d09acf906c5f0d365b6e78795da8411315ff","resultHash":"090fdf67eeb590fc284a986a5a6412af02b08edff6a4054fb6e772b4e2795482","reportHash":"bc2f4bad343a88998866b2187e30eb8fa6e8ac06f1e1df3885475eb9022a0c8f"},
+    {"preset":"ceria_vacancy_co","seed":23,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0234375,"observedFeasibleCount":3,"problemHash":"06c9419ec02bdc7e66c4a245f1ab026242cdc5e1c24040525a9026139400a1e0","compileHash":"7a8f1e4674d6fe61af918dcd46c5d09acf906c5f0d365b6e78795da8411315ff","resultHash":"c17b2a45bfb3cc12823db961650c3463d2ae6de121341533f40ce193eb0d805c","reportHash":"b80515c348d99c569f5a1171350b46725ff1f647b47e5d5c19ad977b5f5e4e79"},
+    {"preset":"ceria_vacancy_co","seed":41,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0703125,"observedFeasibleCount":9,"problemHash":"06c9419ec02bdc7e66c4a245f1ab026242cdc5e1c24040525a9026139400a1e0","compileHash":"7a8f1e4674d6fe61af918dcd46c5d09acf906c5f0d365b6e78795da8411315ff","resultHash":"28c489cf07592a7150403eb84ba8fa056c398963f1878ef03f8661f0409f5cd5","reportHash":"334f3d7707242595603718a3cbde1b9b581824a37d062226b56035cb4856e96b"},
+    {"preset":"tio2_vacancy_water","seed":7,"quantumStatus":"observed_feasible","feasibleShotRatio":0.078125,"observedFeasibleCount":10,"problemHash":"493a0cac93838d68122b57c3683ed1aa700e3627cef54f1fb933b92d9ae26f53","compileHash":"975e73a95707b2a6537628853029ea2d90aba334a57da79eeee7b103e516509f","resultHash":"1fa9a8608d1c7f3333dc57675e1df014099e7f4e16c808d0ff193bbd89b710c4","reportHash":"e16c03231d9f510bbcfcbc31913660d59b66e22eb64ee29a8e693a9c0df64f82"},
+    {"preset":"tio2_vacancy_water","seed":23,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0390625,"observedFeasibleCount":4,"problemHash":"493a0cac93838d68122b57c3683ed1aa700e3627cef54f1fb933b92d9ae26f53","compileHash":"975e73a95707b2a6537628853029ea2d90aba334a57da79eeee7b103e516509f","resultHash":"e79cbe1563b9c06ddb1fc4244c5c4e65d9eb2635dbea2d717b402fd91c1de23a","reportHash":"b223233114b9e60f207879ab179089dc7f388cfd9cdd3db79155d9a6984c4490"},
+    {"preset":"tio2_vacancy_water","seed":41,"quantumStatus":"observed_feasible","feasibleShotRatio":0.046875,"observedFeasibleCount":6,"problemHash":"493a0cac93838d68122b57c3683ed1aa700e3627cef54f1fb933b92d9ae26f53","compileHash":"975e73a95707b2a6537628853029ea2d90aba334a57da79eeee7b103e516509f","resultHash":"1c411168cc00c972871c07d8f6251ad69cdcb36b88f52fb31476d2c87666f946","reportHash":"f1498fc075fc70efbf68b1b07a7b99a4f7db08447d4a20372f977658155069a9"},
+    {"preset":"mos2_vacancy_hydrogen","seed":7,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0703125,"observedFeasibleCount":8,"problemHash":"3b7d5bd726fb1506477125ecc5e7ce43adf9efca005df6e32be17f11c3781774","compileHash":"632950fe06e316e7dd7014a0561040352eeea5ac5f7dc9c90f0b1cc9e413df6d","resultHash":"d11bb62057777fecea9b970d77e4957c53423328075880125cc8f1683f31cd98","reportHash":"5af9ea99a65c75216bd9b857a66dd55a9594c2347b9cbf65b8b7913ab2bd0f18"},
+    {"preset":"mos2_vacancy_hydrogen","seed":23,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0546875,"observedFeasibleCount":6,"problemHash":"3b7d5bd726fb1506477125ecc5e7ce43adf9efca005df6e32be17f11c3781774","compileHash":"632950fe06e316e7dd7014a0561040352eeea5ac5f7dc9c90f0b1cc9e413df6d","resultHash":"3c071f2bae413d3db1a6875c7fb5fdb12c5ad33d42cc0768f51e18550c5692fc","reportHash":"b18ad7e2a20a614575467964bdb5d218c48603c318eb65cb0b5c5f1923c35f4d"},
+    {"preset":"mos2_vacancy_hydrogen","seed":41,"quantumStatus":"observed_feasible","feasibleShotRatio":0.0859375,"observedFeasibleCount":11,"problemHash":"3b7d5bd726fb1506477125ecc5e7ce43adf9efca005df6e32be17f11c3781774","compileHash":"632950fe06e316e7dd7014a0561040352eeea5ac5f7dc9c90f0b1cc9e413df6d","resultHash":"5c2197cbe534e1cefbee624b7f3c24a84d5aa81f1593cbcde1ab67d987710584","reportHash":"80a65f1a5f03a065b52f7a13d13fa0152a6e9f674197c04c76895bcd518ffbdd"}
+  ]
+}

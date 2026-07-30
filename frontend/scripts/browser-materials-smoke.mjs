@@ -36,6 +36,25 @@ def analyze(domain, case_id, preset):
     response.raise_for_status()
     return response.json()
 
+def run_material():
+    response = client.post(
+        "/api/domains/materials/scenarios/defect_adsorption/run",
+        json={
+            "preset": "ceria_vacancy_co",
+            "values": {},
+            "mode": "hybrid",
+            "algorithm": "qaoa",
+            "shots": 128,
+            "seed": 23,
+            "layers": 1,
+            "search_strategy": "preset",
+            "parameter_budget": 2,
+            "optimizer_starts": 1,
+        },
+    )
+    response.raise_for_status()
+    return response.json()
+
 print(json.dumps({
     "financeScenarios": get("/api/domains/finance/scenarios"),
     "financeAnalysis": analyze("finance", "portfolio", "base"),
@@ -48,6 +67,7 @@ print(json.dumps({
             "materials", "rydberg_dynamics", "perfect_lattice"
         ),
     },
+    "materialsRun": run_material(),
 }, ensure_ascii=False))
 `;
 
@@ -103,6 +123,13 @@ async function serveWorkbench(route) {
   );
   if (materialMatch && fixtures.materialsAnalysis[materialMatch[1]]) {
     await route.fulfill(jsonBody(fixtures.materialsAnalysis[materialMatch[1]]));
+    return;
+  }
+  if (
+    pathname ===
+    "/api/domains/materials/scenarios/defect_adsorption/run"
+  ) {
+    await route.fulfill(jsonBody(fixtures.materialsRun));
     return;
   }
   if (pathname.startsWith("/api/")) {
@@ -221,9 +248,35 @@ async function runViewport(browser, name, width, height) {
     },
   };
   let runButton = await exposeControls(page);
-  if (!(await runButton.isDisabled())) {
-    throw new Error(`${name}/defect-adsorption: preview run button is enabled`);
+  if (await runButton.isDisabled()) {
+    throw new Error(`${name}/defect-adsorption: available run button is disabled`);
   }
+  await runButton.click();
+  await page.getByText("QUANTUM OBSERVED", { exact: true }).waitFor();
+  result.defectAdsorption.resultLayout = await assertNoOverflow(
+    page,
+    `${name}/defect-adsorption-result`,
+  );
+  await page.screenshot({
+    path: path.join(outputDir, `materials-defect-result-${name}.png`),
+    fullPage: true,
+  });
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await page.getByText("构型位串 counts", { exact: true }).waitFor();
+  if ((await page.locator("canvas").count()) < 3) {
+    throw new Error(`${name}/defect-adsorption: quantum charts are missing`);
+  }
+  result.defectAdsorption.quantumLayout = await assertNoOverflow(
+    page,
+    `${name}/defect-adsorption-quantum`,
+  );
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByText("EXACT ENUMERATION", { exact: true }).waitFor();
+  await page.getByText("OFFLINE REFERENCE", { exact: true }).waitFor();
+  result.defectAdsorption.comparisonLayout = await assertNoOverflow(
+    page,
+    `${name}/defect-adsorption-comparison`,
+  );
 
   await page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click();
   await page.waitForURL("**/materials/rydberg_dynamics");

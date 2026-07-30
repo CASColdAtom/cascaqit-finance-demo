@@ -14,10 +14,6 @@ from cascaqit.algorithms.measurement import (
 )
 from cascaqit.simulators import NoiseChannel, NoiseModel, SimulationOptions
 
-from cascaqit_biomedicine_demo.audit import (
-    finalize_stable_audit,
-    local_backend_context,
-)
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import (
     ELECTRONIC_DATASET_PATHS,
@@ -30,6 +26,10 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
     build_pauli_hamiltonian,
     exact_diagonalization,
     hash_payload,
+)
+from cascaqit_industry_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
 )
 
 _PRESETS = {

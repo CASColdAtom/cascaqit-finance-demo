@@ -21,6 +21,8 @@ import type {
   ElectronicStructureRunPayload,
   Mode,
   PeptideRunPayload,
+  RNARunPayload,
+  RNAStructureSolutionPayload,
 } from "../types";
 import { compactId, MODE_LABELS } from "../utils";
 import { AtomChart, CountsChart, ParameterChart, WaveformChart } from "./charts/Charts";
@@ -36,6 +38,10 @@ function isActiveCenterRun(run: BiomedicineRunPayload): run is ActiveCenterRunPa
 
 function isPeptideRun(run: BiomedicineRunPayload): run is PeptideRunPayload {
   return run.domain.kind === "peptide_landscape_result";
+}
+
+function isRnaRun(run: BiomedicineRunPayload): run is RNARunPayload {
+  return run.domain.kind === "rna_structure_result";
 }
 
 function QuantumTerm({ short, title }: { short: string; title: string }) {
@@ -83,6 +89,50 @@ function StructureDiagram({ analysis }: { analysis: BiomedicineAnalysisPayload }
           ),
         )}
       </div>
+    </div>
+  );
+}
+
+function RNAArcDiagram({
+  sequence,
+  structure,
+  label,
+}: {
+  sequence: string;
+  structure: RNAStructureSolutionPayload;
+  label: string;
+}) {
+  const denominator = Math.max(1, sequence.length - 1);
+  const xFor = (position: number) => 6 + ((position - 1) * 88) / denominator;
+  return (
+    <div className="rna-arc-diagram" role="img" aria-label={label}>
+      <svg viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet">
+        <line className="rna-backbone" x1="6" y1="43" x2="94" y2="43" />
+        {structure.pairs.map((pair, index) => {
+          const left = xFor(pair.left);
+          const right = xFor(pair.right);
+          const height = Math.min(33, 7 + (pair.right - pair.left) * 2.25);
+          return (
+            <path
+              className="rna-pair-arc"
+              data-layer={index % 4}
+              d={`M ${left} 43 Q ${(left + right) / 2} ${43 - height} ${right} 43`}
+              key={pair.id}
+            />
+          );
+        })}
+        {[...sequence].map((nucleotide, index) => {
+          const x = xFor(index + 1);
+          return (
+            <g className="rna-nucleotide" key={`${nucleotide}-${index}`}>
+              <circle cx={x} cy="43" r="2.8" />
+              <text x={x} y="44" textAnchor="middle">{nucleotide}</text>
+              <text className="rna-position" x={x} y="51" textAnchor="middle">{index + 1}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div><code>{structure.dotBracket}</code><span>{structure.pairCount} pairs · {structure.unpairedCount} unpaired</span></div>
     </div>
   );
 }
@@ -150,6 +200,93 @@ function SubproblemSummary({ analysis }: { analysis: BiomedicineAnalysisPayload 
   );
 }
 
+function RNASolutionCard({
+  solution,
+  title,
+  tone,
+}: {
+  solution: RNAStructureSolutionPayload;
+  title: string;
+  tone: "quantum" | "classic" | "reference";
+}) {
+  return (
+    <div className="rna-solution-card" data-tone={tone} data-feasible={solution.feasible}>
+      <div><small>{title}</small><span>{solution.source.replaceAll("_", " ").toUpperCase()}</span></div>
+      <strong>{solution.dotBracket}</strong>
+      <dl>
+        <div><dt>EDUCATIONAL SCORE</dt><dd>{solution.energy.toFixed(3)}</dd></div>
+        <div><dt>PAIR COUNT</dt><dd>{solution.pairCount}</dd></div>
+        <div><dt>REFERENCE OVERLAP</dt><dd>{(solution.referenceOverlapRate * 100).toFixed(1)}%</dd></div>
+        <div><dt>CONSTRAINTS</dt><dd>{solution.feasible ? "PASS" : "FAIL"}</dd></div>
+      </dl>
+      <div className="rna-pair-token-list">
+        {solution.pairs.map((pair) => <span key={pair.id}>{pair.left}-{pair.right} {pair.pairType}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function RNAAnalysisView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  const reference = analysis.domain.referenceStructure;
+  return (
+    <div className="view-stack biomed-view rna-analysis-view">
+      <section className="data-section">
+        <div className="subsection-head">
+          <div><span className="section-kicker"><GitBranch size={14} /> VERSIONED PAIR SET</span><h3>{analysis.domain.sequence}</h3></div>
+          <span className="data-chip source-quantum">AVAILABLE</span>
+        </div>
+        {reference ? <RNAArcDiagram sequence={analysis.domain.sequence ?? ""} structure={reference} label="RNA 数据集参考二级结构" /> : null}
+        <div className="rna-model-strip">
+          <div><small>CANDIDATE PAIRS</small><strong>{analysis.domain.candidatePairs?.length ?? 0}</strong></div>
+          <div><small>MINIMUM LOOP</small><strong>{analysis.domain.minimumLoop ?? "-"} nt</strong></div>
+          <div><small>PSEUDOKNOT POLICY</small><strong>{analysis.domain.pseudoknotPolicy ?? "-"}</strong></div>
+          <div><small>MODEL UNITS</small><strong>{analysis.domain.energyModel?.units ?? "-"}</strong></div>
+        </div>
+      </section>
+      <InterpretationBoundary analysis={analysis} />
+    </div>
+  );
+}
+
+function RNAResultView({
+  analysis,
+  run,
+}: {
+  analysis: BiomedicineAnalysisPayload;
+  run: RNARunPayload;
+}) {
+  const candidate = run.domain.quantumCandidate;
+  const sequence = analysis.domain.sequence ?? "";
+  return (
+    <div className="view-stack biomed-view rna-result-view">
+      <div className="biomed-metric-band">
+        <div data-pass={candidate.feasible}><small>QUANTUM OBSERVED</small><strong>{candidate.feasible ? candidate.dotBracket : "NONE"}</strong><span>{candidate.feasible ? `${candidate.pairCount} base pairs` : "no classic fallback"}</span></div>
+        <div><small>FEASIBLE SHOT RATE</small><strong>{(run.domain.observedFeasibleRate * 100).toFixed(1)}%</strong><span>finite observed counts</span></div>
+        <div><small>LOW-SCORE COVERAGE</small><strong>{(run.domain.lowEnergyCoverage * 100).toFixed(1)}%</strong><span>within exact + 1.0</span></div>
+        <div><small>STRUCTURE DIVERSITY</small><strong>{run.domain.structureDiversity}</strong><span>unique observed dot-brackets</span></div>
+      </div>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> OBSERVED STRUCTURE</span><h3>量子观测二级结构</h3></div><span className={`data-chip ${candidate.feasible ? "source-quantum" : "status-preview"}`}>{candidate.feasible ? "OBSERVED FEASIBLE" : "NO FALLBACK"}</span></div>
+        <RNAArcDiagram sequence={sequence} structure={candidate} label="量子观测 RNA 二级结构" />
+      </section>
+      <section className="data-section rna-comparison-section">
+        <div className="subsection-head"><div><span className="section-kicker">OBSERVED / ENUMERATED / REFERENCE</span><h3>量子候选、经典最优与数据集参考</h3></div><span className="data-chip">DIMENSIONLESS SCORE</span></div>
+        <div className="rna-solution-grid">
+          <RNASolutionCard solution={candidate} title="量子观测候选" tone="quantum" />
+          <RNASolutionCard solution={run.domain.classicExact} title="经典精确枚举" tone="classic" />
+          <RNASolutionCard solution={run.domain.referenceStructure} title="数据集参考结构" tone="reference" />
+        </div>
+      </section>
+      <section className="data-section">
+        <div className="subsection-head"><div><span className="section-kicker">TOP-K OBSERVED FEASIBLE</span><h3>已观测低评分结构集合</h3></div><span className="data-chip">{run.domain.topObservedFeasible.length} STRUCTURES</span></div>
+        <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Rank</th><th>Dot-bracket</th><th>Score</th><th>Count</th><th>Reference overlap</th></tr></thead><tbody>{run.domain.topObservedFeasible.map((item, index) => <tr key={`${item.bitstring}-${index}`}><td>{index + 1}</td><td className="mono">{item.dotBracket}</td><td>{item.energy.toFixed(3)}</td><td>{item.count ?? 0}</td><td>{(item.referenceOverlapRate * 100).toFixed(1)}%</td></tr>)}</tbody></table></div>
+        <p className="subsection-note rna-count-warning"><CircleAlert size={14} /> {run.domain.interpretation}</p>
+      </section>
+      <InterpretationBoundary analysis={analysis} />
+    </div>
+  );
+}
+
 export function BiomedicineResultView({
   analysis,
   run,
@@ -158,6 +295,9 @@ export function BiomedicineResultView({
   run: BiomedicineRunPayload | null;
 }) {
   if (!run) {
+    if (analysis.domain.kind === "rna_structure") {
+      return <RNAAnalysisView analysis={analysis} />;
+    }
     return (
       <div className="view-stack biomed-view">
         <section className="data-section biomed-overview">
@@ -175,6 +315,7 @@ export function BiomedicineResultView({
   if (isDockingRun(run)) return <DockingResultView analysis={analysis} run={run} />;
   if (isActiveCenterRun(run)) return <ActiveCenterResultView analysis={analysis} run={run} />;
   if (isPeptideRun(run)) return <PeptideResultView analysis={analysis} run={run} />;
+  if (isRnaRun(run)) return <RNAResultView analysis={analysis} run={run} />;
   const result = run.domain;
   const accuracyApplies = result.withinChemicalAccuracy !== null;
   const energyRows: Array<[string, number]> = [
@@ -467,6 +608,23 @@ export function BiomedicineComparisonView({
       </div>
     );
   }
+  if (isRnaRun(run)) {
+    return (
+      <div className="view-stack biomed-view rna-comparison-view">
+        <section className="data-section">
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="QAOA" title="量子近似优化算法" /> / EXACT / DYNAMIC PROGRAMMING</span><h3>RNA 二级结构四方对照</h3></div><span className="data-chip">EDUCATIONAL SCORE</span></div>
+          <ComparisonTable rows={[
+            { source: "量子观测", candidate: run.domain.quantumCandidate.dotBracket, value: run.domain.quantumCandidate.feasible ? run.domain.quantumCandidate.energy.toFixed(3) : "N/A", evidence: run.domain.quantumCandidate.feasible ? "本次有限 shots 已观测可行结构" : "未观测到可行结构，未使用经典回填" },
+            { source: "经典精确枚举", candidate: run.domain.classicExact.dotBracket, value: run.domain.classicExact.energy.toFixed(3), evidence: "固化候选配对空间全枚举" },
+            { source: "经典动态规划", candidate: run.domain.classicDynamicProgramming.dotBracket, value: run.domain.classicDynamicProgramming.energy.toFixed(3), evidence: "无假结二级结构基线" },
+            { source: "数据集参考", candidate: run.domain.referenceStructure.declaredDotBracket ?? run.domain.referenceStructure.dotBracket, value: run.domain.referenceStructure.energy.toFixed(3), evidence: run.domain.referenceStructure.sourceId ?? "versioned reference" },
+          ]} />
+        </section>
+        <p className="subsection-note rna-count-warning"><CircleAlert size={14} /> {run.domain.interpretation}</p>
+        <InterpretationBoundary analysis={analysis} />
+      </div>
+    );
+  }
   if (isActiveCenterRun(run)) {
     const hashesMatch = run.comparison.hamiltonianHash === run.comparison.vqeHamiltonianHash;
     return (
@@ -504,6 +662,7 @@ export function BiomedicineComparisonView({
 
 export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
   const edges = analysis.domain.bonds ?? analysis.domain.edges ?? [];
+  const rnaReference = analysis.domain.referenceStructure;
   return (
     <div className="view-stack biomed-view">
       <section className="data-section">
@@ -511,7 +670,11 @@ export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAn
           <div><span className="section-kicker"><Atom size={14} /> DOMAIN STRUCTURE</span><h3>{analysis.domain.molecule ?? analysis.domain.sequence ?? analysis.domain.modelLevel ?? "场景结构"}</h3></div>
           <span className="data-chip">{analysis.problem.variables.length} OBJECTS</span>
         </div>
-        <StructureDiagram analysis={analysis} />
+        {analysis.domain.kind === "rna_structure" && rnaReference ? (
+          <RNAArcDiagram sequence={analysis.domain.sequence ?? ""} structure={rnaReference} label="RNA 数据集参考二级结构" />
+        ) : (
+          <StructureDiagram analysis={analysis} />
+        )}
       </section>
       <section className="data-section">
         <div className="subsection-head"><div><span className="section-kicker">RELATIONSHIP EVIDENCE</span><h3>结构关系</h3></div></div>
@@ -591,6 +754,7 @@ export function BiomedicineQuantumView({
   if (!run) return <div className="preview-contract quantum-empty"><Radio size={22} /><strong><QuantumText text={MODE_LABELS[mode]} /></strong><span><QuantumText text="运行可用场景后展示真实线路、QWC counts 和参数历史。" /></span></div>;
   if (isDockingRun(run)) return <DockingQuantumView run={run} />;
   if (isPeptideRun(run)) return <PeptideQuantumView run={run} />;
+  if (isRnaRun(run)) return <RNAQuantumView run={run} />;
   const counts = Object.entries(run.quantum.counts)
     .sort((left, right) => right[1] - left[1])
     .map(([state, count], index) => ({ state, count, rank: index + 1 }));
@@ -626,6 +790,16 @@ function PeptideQuantumView({ run }: { run: PeptideRunPayload }) {
       <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / ONE-HOT QUBO" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
       <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
       <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> FINAL SAMPLING</span><h3>构象选择态分布</h3></div></div><CountsChart counts={run.quantum.counts} /></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
+    </div>
+  );
+}
+
+function RNAQuantumView({ run }: { run: RNARunPayload }) {
+  return (
+    <div className="view-stack biomed-view rna-quantum-view">
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small><QuantumText text="QAOA / PAIR-SELECTION QUBO" /></small><strong>DIGITAL</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>EVALUATIONS</small><strong>{run.quantum.summary.evaluations}</strong></span><span><small>FEASIBLE STATES</small><strong>{run.quantum.summary.feasibleObserved}</strong></span></div></div>
+      <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 RNA 配对 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>
+      <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Radio size={14} /> OBSERVATION FREQUENCY</span><h3>有限 shots 观测分布</h3></div></div><CountsChart counts={run.quantum.counts} /><p className="subsection-note rna-count-warning"><CircleAlert size={14} /> Counts 不是热力学概率或碱基配对概率。</p></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
     </div>
   );
 }
@@ -689,7 +863,7 @@ export function BiomedicineAuditView({
           ["Presentation", run.audit.resultPresentationHash],
           ["Report", run.audit.reportHash],
         ]
-      : isPeptideRun(run)
+      : isPeptideRun(run) || isRnaRun(run)
         ? [
             ["Manifest", run.audit.manifestHash],
             ["Domain Input", run.audit.domainInputHash],

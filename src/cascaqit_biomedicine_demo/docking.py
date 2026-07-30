@@ -9,19 +9,19 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Literal
 
-from cascaqit_biomedicine_demo.audit import (
+from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
+from cascaqit_biomedicine_demo.subproblem_selection import select_docking_matches
+from cascaqit_industry_demo.audit import (
     finalize_stable_audit,
     local_backend_context,
 )
-from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
-from cascaqit_biomedicine_demo.problem_model import (
+from cascaqit_industry_demo.problem_executor import ScenarioExecutor
+from cascaqit_industry_demo.problem_model import (
     OptimizationProblemDefinition,
     QuboBuilder,
     TermGroup,
     with_isolated_pair_geometry,
 )
-from cascaqit_biomedicine_demo.subproblem_selection import select_docking_matches
-from cascaqit_industry_demo.problem_executor import ScenarioExecutor
 
 DATA_ROOT = Path(__file__).resolve().parent / "data" / "docking_match"
 _STANDARD_PRESETS = {

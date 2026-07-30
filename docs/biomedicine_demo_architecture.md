@@ -960,7 +960,7 @@ V2 在现有测试基础上增加：
 
 ### 19.1 状态与职责边界
 
-本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二阶段已经接入两个生物医药预览场景、两个材料科学预览场景、三领域统一导航、材料结构视图和纯 Analog UI 门禁；RNA/材料 QUBO、蛋白路径执行器和原生 AHS `AnalogExecutor` 尚未实现。V2 的四个生物医药场景和现有金融入口保持不变；V3 继续共用任务、审计和领域 API，但为原生 AHS 增加独立的 `AnalogExecutor`，避免把时间演化塞入 QUBO `ProblemExecutor`。
+本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二阶段已经接入两个生物医药入口、两个材料科学场景、三领域统一导航、材料结构视图和纯 Analog UI 门禁；第十三阶段已完成 RNA 版本化 fixture、配对 QUBO、Digital QAOA、经典枚举/动态规划对照，以及材料缺陷-吸附联合 QUBO、Digital/Hybrid 执行、经典枚举、离线参考、报告持久化和专用页面。蛋白路径执行器和原生 AHS `AnalogExecutor` 仍未实现，材料 Rydberg 动力学继续保持 `preview`。V2 的四个生物医药场景和现有金融入口保持不变；V3 继续共用任务、审计和领域 API，但为原生 AHS 增加独立的 `AnalogExecutor`，避免把时间演化塞入 QUBO `ProblemExecutor`。
 
 架构将“动态”拆成三类能力：
 
@@ -980,7 +980,7 @@ RNA、蛋白路径和材料构型优化只把离散优化子问题交给 CASCAQi
 
 ### 19.3 代码布局
 
-计划新增的模块边界如下，文件名是目标结构，不表示当前已经存在：
+模块边界如下；`rna_structure.py`、RNA 数据目录和材料目录骨架已经存在，其余文件仍是目标结构：
 
 ```text
 src/
@@ -1028,6 +1028,8 @@ RNA Adapter 生成稳定的核苷酸 ID、候选配对 ID 和能量贡献。完�
 
 量子 counts 只用于报告观测频率。经典分区函数、碱基配对概率或温度相关指标放入 `classicReference`，不能从 counts 复制或重命名得到。
 
+首版实现固定接受三个版本化短 RNA 预设，候选规模为 8–9 个配对变量。最小环长在构造 QUBO 前过滤；单核苷酸互斥和未声明交叉进入硬约束，声明的有限假结保留。执行器只开放 Digital QAOA；没有经过验证的 Rydberg 几何时不构造 Hybrid。`quantumCandidate` 只从实际 counts 的可行 bitstring 产生，空结果使用 `quantum_not_observed`，不会复制 `classicExact`。
+
 #### 19.4.2 蛋白构象转变路径
 
 ```text
@@ -1060,6 +1062,10 @@ surface lattice + periodic cell + candidate defects/adsorbates
 Materials Adapter 负责周期边界、晶格索引、空间群或表面对称操作、候选等价类和离线能量参数。量子执行器只接收规范化后的 QUBO，不导入 DFT 程序或材料数据库客户端。
 
 Hybrid 几何是独立派生物。`materialLatticeHash` 描述材料晶格，`rydbergLayoutHash` 描述编译后的原子布局，两者不得使用同一字段或暗示物理坐标相同。Hybrid 继续执行完整冲突贡献、无补边、无漏项、系数守恒和 Digital residual 非空门禁。
+
+首版实现位于 `cascaqit_materials_demo.defect_adsorption`，fixture 位于 `data/defect_adsorption/surface_configurations/1`。领域中性的 `OptimizationProblemDefinition`、`QuboBuilder`、`TermGroup`、几何证据与稳定审计 helper 已迁至 `cascaqit_industry_demo`，生物医药包只保留兼容导出，材料包不依赖金融或生物医药类型。当前逻辑问题有 11 个业务变量、47 个非零项；四组不相交局域互斥边进入验证过的 Rydberg 编译布局，其余形成能、吸附能、协同、近邻、计量、覆盖度和禁配项形成非空 Digital residual。
+
+`run_defect_adsorption` 只从真实 counts 解码 `quantumCandidate`，同时独立生成 `classicOptimum` 与 `offlineReference`。若有限 shots 没有可行态，响应写入 `quantumStatus=quantum_not_observed` 且 `quantumCandidate=null`，不使用共享执行器的诊断展示回退。报告采用 `materials.execution-report.v1`，配置、结果和报告 hash 与生物医药 schema 分离。
 
 #### 19.4.4 材料缺陷晶格 Rydberg 动力学
 

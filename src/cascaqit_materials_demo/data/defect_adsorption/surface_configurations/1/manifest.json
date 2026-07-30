@@ -1,0 +1,60 @@
+{
+  "dataset_id": "materials.surface-defect-adsorption.educational",
+  "version": "1",
+  "source": {
+    "kind": "project_generated_periodic_surface_benchmark",
+    "uri": "local://materials/surface-defect-adsorption",
+    "raw_file_sha256": null,
+    "license": "project_generated",
+    "license_checked_at": "2026-07-30"
+  },
+  "generation": {
+    "tool": "deterministic materials discrete-model curation",
+    "tool_version": "surface-config-fixture-v1",
+    "parameters": {
+      "runtime_dft": false,
+      "periodic_boundary": true,
+      "symmetry_canonicalization": "declared operations",
+      "energy_model": "dimensionless educational surrogate"
+    }
+  },
+  "units": {
+    "material_coordinate": "fractional surface cell",
+    "cell_vector": "angstrom",
+    "compiled_coordinate": "micrometer",
+    "model_energy": "dimensionless educational energy"
+  },
+  "coordinate_system": {
+    "material": "fractional surface-cell coordinates",
+    "effective": "canonical candidate identifiers",
+    "compiled": "target-derived Rydberg coordinates"
+  },
+  "variable_order": [
+    "defect.d0", "defect.d1", "defect.d2",
+    "ads.a0", "ads.a1", "ads.b0", "ads.b1",
+    "ads.c0", "ads.c1", "ads.d0", "ads.d1"
+  ],
+  "artifacts": [
+    {"path": "domain.json", "sha256": "9c3c28d17ba0b6ee06f40dd23449c901d9cf6fd36f555094a218b664c2c38c15"},
+    {"path": "reference.json", "sha256": "5e4ba1bc7eff4480251dbf826234677a969196b1f85f6e5eb3d8002e930fd66b"}
+  ],
+  "reference": {
+    "method": "independent exhaustive enumeration of the packaged default-control model",
+    "software": "CPython deterministic reference implementation",
+    "software_version": "3.9.6",
+    "standard_presets": {
+      "ceria_vacancy_co": {"defect_count": 1, "adsorption_count": 2},
+      "tio2_vacancy_water": {"defect_count": 1, "adsorption_count": 2},
+      "mos2_vacancy_hydrogen": {"defect_count": 1, "adsorption_count": 2}
+    }
+  },
+  "allowed_claims": [
+    "Demonstrate Digital and Hybrid QAOA sampling over one shared, versioned joint defect-and-adsorption QUBO.",
+    "Compare observed feasible configurations with exact enumeration and a separately packaged default-control reference."
+  ],
+  "limitations": [
+    "The coefficients are educational offline surrogate values and are not runtime DFT results.",
+    "The objective does not establish catalytic activity, reaction rate, selectivity, stability, or synthesizability.",
+    "Local simulation only; no hardware execution or quantum advantage claim."
+  ]
+}

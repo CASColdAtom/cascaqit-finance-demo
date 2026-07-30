@@ -1917,6 +1917,194 @@ code,
   height: 360px;
 }
 
+.rna-arc-diagram {
+  display: grid;
+  min-width: 0;
+  min-height: 270px;
+  grid-template-rows: minmax(220px, 1fr) auto;
+  border-top: 1px solid var(--line);
+  background:
+    linear-gradient(rgba(54, 73, 67, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(54, 73, 67, 0.08) 1px, transparent 1px),
+    #0a100f;
+  background-size: 32px 32px;
+}
+
+.rna-arc-diagram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+.rna-backbone {
+  stroke: #526b63;
+  stroke-width: 0.65;
+}
+
+.rna-pair-arc {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 0.7;
+  opacity: 0.86;
+}
+
+.rna-pair-arc[data-layer="1"] { stroke: var(--green); }
+.rna-pair-arc[data-layer="2"] { stroke: var(--amber); }
+.rna-pair-arc[data-layer="3"] { stroke: #c88bec; }
+
+.rna-nucleotide circle {
+  fill: #111b18;
+  stroke: var(--green);
+  stroke-width: 0.65;
+}
+
+.rna-nucleotide text {
+  fill: var(--text);
+  font-family: var(--mono);
+  font-size: 2.5px;
+  letter-spacing: 0;
+}
+
+.rna-nucleotide .rna-position {
+  fill: var(--muted);
+  font-size: 1.6px;
+}
+
+.rna-arc-diagram > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.rna-arc-diagram code {
+  overflow-wrap: anywhere;
+  color: var(--cyan);
+  font-size: 0.8rem;
+}
+
+.rna-arc-diagram span,
+.rna-model-strip small,
+.rna-solution-card small,
+.rna-solution-card span,
+.rna-solution-card dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+}
+
+.rna-model-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.rna-model-strip > div {
+  display: grid;
+  min-width: 0;
+  min-height: 78px;
+  align-content: center;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.rna-model-strip strong {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.rna-solution-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.rna-solution-card {
+  display: grid;
+  min-width: 0;
+  min-height: 246px;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.rna-solution-card > div:first-child {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rna-solution-card > strong {
+  overflow-wrap: anywhere;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.rna-solution-card[data-tone="classic"] > strong { color: var(--green); }
+.rna-solution-card[data-tone="reference"] > strong { color: var(--amber); }
+
+.rna-solution-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--line);
+}
+
+.rna-solution-card dl > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 9px;
+  background: #0d1312;
+}
+
+.rna-solution-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.rna-pair-token-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.rna-pair-token-list span {
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--text);
+  background: #0d1312;
+}
+
+.rna-count-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--amber);
+}
+
+.rna-count-warning svg { flex: 0 0 auto; }
+
 .structure-edge {
   stroke: var(--structure-line);
   stroke-width: 1.5;
@@ -2538,6 +2726,100 @@ code,
   background: rgba(8, 14, 12, 0.72);
 }
 
+.lattice-site[data-selected="true"] circle {
+  fill: rgba(240, 185, 76, 0.24);
+  stroke: #f0b94c;
+  stroke-width: 1.8;
+}
+
+.adsorbate-site[data-selected="false"] {
+  opacity: 0.28;
+}
+
+.adsorbate-site[data-selected="true"] rect {
+  fill: rgba(39, 217, 231, 0.2);
+  stroke: #27d9e7;
+  stroke-width: 1.2;
+}
+
+.material-solution-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  background: rgba(9, 15, 14, 0.5);
+}
+
+.material-solution-summary > div {
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid var(--line);
+}
+
+.material-solution-summary > div:last-child {
+  border-right: 0;
+}
+
+.material-solution-summary span,
+.material-solution-summary strong {
+  display: block;
+}
+
+.material-solution-summary span {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.material-solution-summary strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.constraint-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.constraint-check-grid > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: rgba(9, 15, 14, 0.46);
+}
+
+.constraint-check-grid > div[data-status="ok"] svg {
+  color: var(--green);
+}
+
+.constraint-check-grid > div[data-status="warn"] svg {
+  color: var(--amber);
+}
+
+.constraint-check-grid span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.constraint-check-grid strong {
+  grid-column: 2;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.materials-three-way {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .lattice-bonds line {
   stroke: var(--line-strong);
   stroke-width: 0.7;
@@ -3007,6 +3289,10 @@ code,
     grid-template-columns: 1fr;
   }
 
+  .rna-solution-grid {
+    grid-template-columns: 1fr;
+  }
+
   .docking-check-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3392,6 +3678,24 @@ code,
     grid-template-columns: 1fr;
   }
 
+  .rna-model-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rna-arc-diagram {
+    min-height: 240px;
+    grid-template-rows: minmax(190px, 1fr) auto;
+  }
+
+  .rna-arc-diagram svg {
+    min-height: 190px;
+  }
+
+  .rna-arc-diagram > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .spin-observable-split,
   .spin-observable-grid {
     grid-template-columns: 1fr;
@@ -3503,6 +3807,35 @@ code,
   .compact-chart,
   .counts-chart {
     height: 270px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .material-solution-summary,
+  .constraint-check-grid,
+  .materials-three-way {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .material-solution-summary > div:nth-child(2) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .material-solution-summary,
+  .constraint-check-grid,
+  .materials-three-way {
+    grid-template-columns: 1fr;
+  }
+
+  .material-solution-summary > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .material-solution-summary > div:last-child {
+    border-bottom: 0;
   }
 }
 

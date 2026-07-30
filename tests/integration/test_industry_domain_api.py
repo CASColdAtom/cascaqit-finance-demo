@@ -86,13 +86,17 @@ def test_domain_catalog_keeps_three_industry_domains_separate() -> None:
     ]
     assert statuses["rna_structure"] == ["available", "planned", "planned"]
     assert statuses["protein_dynamics"] == ["available", "planned", "planned"]
-    assert all(
-        item["implementationStatus"] == "preview"
+    material_statuses = {
+        item["caseId"]: item["implementationStatus"]
         for item in materials.json()["scenarios"]
-    )
+    }
+    assert material_statuses == {
+        "defect_adsorption": "available",
+        "rydberg_dynamics": "preview",
+    }
 
 
-def test_v3_biomedicine_research_entries_are_analysis_only() -> None:
+def test_rna_structure_analysis_is_available_and_planned_for_digital_qaoa() -> None:
     response = client.post(
         "/api/domains/biomedicine/scenarios/rna_structure/analyze",
         json={"preset": "hairpin_reference", "values": {}},
@@ -100,9 +104,67 @@ def test_v3_biomedicine_research_entries_are_analysis_only() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["scenario"]["implementationStatus"] == "preview"
+    assert payload["scenario"]["implementationStatus"] == "available"
+    assert payload["scenario"]["values"]["sequence"] == "GGACUUCGGUCC"
     assert payload["analysis"]["domain"]["kind"] == "rna_structure"
-    assert "experimentPlan" not in payload
+    assert payload["analysis"]["problem"]["type"] == "qubo"
+    assert payload["analysis"]["problem"]["coefficientLedger"]["balanced"] is True
+    assert payload["analysis"]["domain"]["classicExact"]["feasible"] is True
+    assert (
+        payload["analysis"]["domain"]["classicDynamicProgramming"]["feasible"] is True
+    )
+    assert payload["experimentPlan"]["executionPolicy"] == "sync"
+    assert payload["experimentPlan"]["configurations"][0]["algorithm"] == "qaoa"
+
+
+def test_rna_structure_validates_input_and_persists_separate_results(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
+    invalid = client.post(
+        "/api/domains/biomedicine/scenarios/rna_structure/analyze",
+        json={"preset": "hairpin_reference", "values": {"minimum_loop": 2}},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["detail"]["code"] == "RNA_INPUT_INVALID"
+
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/rna_structure/run",
+        json={
+            "preset": "hairpin_reference",
+            "mode": "digital",
+            "algorithm": "qaoa",
+            "shots": 64,
+            "seed": 7,
+            "layers": 1,
+            "parameter_budget": 8,
+            "optimizer_starts": 1,
+        },
+    )
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["domain"]["quantumCandidate"]["source"] in {
+        "quantum_observed",
+        "quantum_not_observed",
+    }
+    assert run["domain"]["classicExact"]["source"] == "classic_exact_enumeration"
+    assert run["domain"]["classicDynamicProgramming"]["source"] == (
+        "classic_dynamic_programming"
+    )
+    assert run["domain"]["referenceStructure"]["source"] == "dataset_reference"
+    assert run["quantum"]["summary"]["shots"] == 64
+    assert run["audit"]["hardwareExecution"] is False
+    report_path = (
+        tmp_path / "reports" / (f"rna_structure-{run['audit']['reportHash'][:16]}.json")
+    )
+    assert report_path.is_file()
+
+    unsupported = client.post(
+        "/api/domains/biomedicine/scenarios/rna_structure/run",
+        json={"preset": "hairpin_reference", "mode": "analog"},
+    )
+    assert unsupported.status_code == 422
+    assert unsupported.json()["detail"]["code"] == "RNA_MODE_UNSUPPORTED"
 
 
 def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> None:
@@ -143,12 +205,71 @@ def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> 
         "/api/domains/materials/scenarios/defect_adsorption/analyze",
         json={"preset": "ceria_vacancy_co", "values": {}},
     ).json()["analysis"]
+    assert defect["implementationStatus"] == "available"
+    assert defect["problem"]["coefficientLedger"]["balanced"] is True
+    assert defect["domain"]["targets"] == {
+        "defectCount": 1,
+        "coverage": 0.5,
+        "adsorptionCount": 2,
+    }
+    assert set(defect["domain"]["coordinateIdentities"]) == {
+        "material",
+        "effective",
+        "compiled",
+    }
     statuses = {item["mode"]: item["status"] for item in defect["decision"]["modes"]}
     assert statuses == {
         "digital": "comparable",
         "hybrid": "recommended",
         "analog": "unsuitable",
     }
+
+
+def test_materials_defect_adsorption_runs_without_classic_quantum_fallback(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
+    response = client.post(
+        "/api/domains/materials/scenarios/defect_adsorption/run",
+        json={
+            "preset": "ceria_vacancy_co",
+            "values": {},
+            "mode": "digital",
+            "algorithm": "qaoa",
+            "shots": 32,
+            "seed": 23,
+            "layers": 1,
+            "search_strategy": "preset",
+            "parameter_budget": 2,
+            "optimizer_starts": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    run = response.json()["run"]
+    assert run["domain"]["quantumStatus"] in {
+        "observed_feasible",
+        "quantum_not_observed",
+    }
+    if run["domain"]["quantumStatus"] == "quantum_not_observed":
+        assert run["domain"]["quantumCandidate"] is None
+    assert run["domain"]["classicOptimum"]["source"] == "complete_enumeration"
+    assert run["domain"]["offlineReference"]["source"] == "offline_reference"
+    assert run["quantum"]["summary"]["digitalTerms"] > 0
+    assert run["audit"]["hardwareExecution"] is False
+    report_path = tmp_path / "reports" / (
+        f"materials-defect_adsorption-{run['audit']['reportHash'][:16]}.json"
+    )
+    assert report_path.is_file()
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["schema"] == "materials.execution-report.v1"
+
+    unsupported = client.post(
+        "/api/domains/materials/scenarios/defect_adsorption/run",
+        json={"preset": "ceria_vacancy_co", "mode": "analog"},
+    )
+    assert unsupported.status_code == 422
+    assert unsupported.json()["detail"]["code"] == "MATERIALS_MODE_UNSUPPORTED"
 
 
 def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:

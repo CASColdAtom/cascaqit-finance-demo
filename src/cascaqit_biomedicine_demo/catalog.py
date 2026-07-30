@@ -325,32 +325,30 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             ("stem_competition", "竞争茎结构"),
             ("limited_pseudoknot", "有限假结研究预设"),
         ),
-        (
-            _select(
-                "sequence",
-                "RNA 序列",
-                (
-                    ("GGGAAACCC", "GGGAAACCC"),
-                    ("GCGCUUCGCGC", "GCGCUUCGCGC"),
-                    ("GGGAAAUCCCU", "GGGAAAUCCCU"),
-                ),
-            ),
-            _range("minimum_loop", "最小环长", 3, 6, 1, " nt"),
-        ),
-        {"sequence": "GGGAAACCC", "minimum_loop": 3},
+        (_range("minimum_loop", "最小环长", 3, 6, 1, " nt"),),
+        {"minimum_loop": 3},
         "digital",
         "problem",
         "rna_structure_ensemble",
         "rna-structure",
         (
+            "analysis",
             "candidate_pairs",
             "pairing_qubo",
             "digital_qaoa",
+            "classic_enumeration",
             "classic_dynamic_programming",
+            "dataset_reference",
             "audit",
         ),
-        "preview",
-        {**_QAOA_PROFILE, "estimatedSeconds": 2.0},
+        "available",
+        {
+            **_QAOA_PROFILE,
+            "shots": 256,
+            "seed": 7,
+            "parameterBudget": 24,
+            "estimatedSeconds": 1.2,
+        },
     ),
     "protein_dynamics": BiomedicineScenarioSpec(
         "protein_dynamics",
@@ -388,28 +386,6 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
 
 
 _PREVIEW_MODELS: dict[str, dict[str, Any]] = {
-    "rna_structure": {
-        "kind": "rna_structure",
-        "modelLevel": "短 RNA 候选二级结构集合",
-        "sequence": "GGGAAACCC",
-        "nodes": [
-            {
-                "id": f"nt.{index + 1}",
-                "label": nucleotide,
-                "group": "nucleotide",
-                "x": 10 + index * 10,
-                "y": 68 if index in {0, 1, 2, 6, 7, 8} else 42,
-                "role": "paired" if index in {0, 1, 2, 6, 7, 8} else "loop",
-            }
-            for index, nucleotide in enumerate("GGGAAACCC")
-        ],
-        "edges": [
-            {"source": "nt.1", "target": "nt.9", "kind": "base_pair", "score": -2.1},
-            {"source": "nt.2", "target": "nt.8", "kind": "base_pair", "score": -2.0},
-            {"source": "nt.3", "target": "nt.7", "kind": "base_pair", "score": -1.9},
-        ],
-        "limitations": ["不预测 RNA 三维结构", "QAOA counts 不解释为热力学概率"],
-    },
     "protein_dynamics": {
         "kind": "protein_dynamics",
         "modelLevel": "离散亚稳构象状态网络",

@@ -1,0 +1,8 @@
+{
+  "method": "independent exhaustive enumeration of the packaged default-control model",
+  "presets": {
+    "ceria_vacancy_co": {"defectIds": ["defect.d1"], "adsorptionIds": ["ads.a0", "ads.b1"], "note": "curated default-control reference"},
+    "tio2_vacancy_water": {"defectIds": ["defect.d1"], "adsorptionIds": ["ads.a1", "ads.b1"], "note": "curated default-control reference"},
+    "mos2_vacancy_hydrogen": {"defectIds": ["defect.d1"], "adsorptionIds": ["ads.b0", "ads.c1"], "note": "curated default-control reference"}
+  }
+}

@@ -9,6 +9,8 @@ import type {
   DockingSolutionPayload,
   ElectronicStructureRunPayload,
   PeptideRunPayload,
+  RNARunPayload,
+  RNAStructureSolutionPayload,
 } from "../types";
 import { I18nProvider } from "../i18n";
 import {
@@ -235,6 +237,106 @@ const peptideRun = {
   audit: {},
 } as unknown as PeptideRunPayload;
 
+const rnaAnalysis: BiomedicineAnalysisPayload = {
+  ...analysis,
+  caseId: "rna_structure",
+  decision: {
+    recommendedMode: "digital",
+    reason: "RNA pairing QUBO",
+    modes: [{ mode: "digital", algorithm: "qaoa", status: "recommended", reason: "complete QUBO" }],
+  },
+  domain: {
+    kind: "rna_structure",
+    modelLevel: "短 RNA 候选二级结构集合",
+    sequence: "GGACUUCGGUCC",
+    minimumLoop: 3,
+    pseudoknotPolicy: "forbidden",
+    energyModel: {
+      id: "canonical-pairing.educational.v1",
+      units: "dimensionless educational score",
+      unpairedPenalty: 0.15,
+      stackingBonus: -0.4,
+      hardPenalty: 8,
+      interpretation: "Educational score only.",
+    },
+    candidatePairs: [],
+    referenceStructure: rnaSolution("dataset_reference"),
+    nodes: [],
+    edges: [],
+    limitations: ["Counts are not base-pair probabilities"],
+  },
+};
+
+function rnaSolution(
+  source: RNAStructureSolutionPayload["source"],
+  dotBracket = "((((....))))",
+): RNAStructureSolutionPayload {
+  const pairs = [
+    { id: "pair.01.12", left: 1, right: 12, pairType: "GC", score: -3, sourceRule: "reference" },
+    { id: "pair.02.11", left: 2, right: 11, pairType: "GC", score: -3, sourceRule: "reference" },
+  ];
+  return {
+    source,
+    bitstring: "11000000",
+    pairIds: pairs.map((pair) => pair.id),
+    pairs,
+    pairCount: pairs.length,
+    unpairedCount: 8,
+    dotBracket,
+    energy: -6.2,
+    feasible: true,
+    referenceOverlap: 2,
+    referenceOverlapRate: 0.5,
+    checks: [],
+  };
+}
+
+const rnaRun = {
+  kind: "biomedicine",
+  analysis: rnaAnalysis,
+  domain: {
+    kind: "rna_structure_result",
+    quantumCandidate: { ...rnaSolution("quantum_observed"), count: 21 },
+    topObservedFeasible: [{ ...rnaSolution("quantum_observed"), count: 21 }],
+    observedFeasibleCount: 4,
+    observedFeasibleRate: 0.72,
+    lowEnergyCoverage: 0.55,
+    structureDiversity: 3,
+    classicExact: rnaSolution("classic_exact_enumeration"),
+    classicDynamicProgramming: rnaSolution("classic_dynamic_programming"),
+    referenceStructure: {
+      ...rnaSolution("dataset_reference"),
+      sourceId: "PDB:1ZIH",
+      declaredDotBracket: "((((....))))",
+    },
+    interpretation: "QAOA counts 仅表示本次有限 shots 的观测频率，不是热力学概率或碱基配对概率。",
+  },
+  quantum: {
+    kind: "problem_qaoa",
+    mode: "digital",
+    algorithm: "qaoa",
+    summary: { qubits: 8, shots: 64, evaluations: 8, feasibleObserved: 4 },
+    circuit: { qubits: ["q0"], gates: [{ depth: 0, name: "H", targets: ["q0"], controls: [], parameters: {} }], depth: 1 },
+    counts: [{ state: "11000000", count: 21, rank: 1 }],
+    parameterHistory: [{ index: 0, objective: -4.2, parameters: {}, selected: true }],
+  },
+  audit: {
+    manifestHash: "rna-manifest",
+    domainInputHash: "rna-input",
+    problemHash: "rna-problem",
+    hamiltonianHash: "rna-hamiltonian",
+    analysisHash: "rna-analysis",
+    ansatzHash: "rna-ansatz",
+    compileHash: "rna-compile",
+    backendHash: "rna-backend",
+    configurationHash: "rna-config",
+    executionHash: "rna-execution",
+    resultHash: "rna-result",
+    outcomeHash: "rna-outcome",
+    reportHash: "rna-report",
+  },
+} as unknown as RNARunPayload;
+
 afterEach(cleanup);
 
 describe("Biomedicine terminology", () => {
@@ -358,11 +460,42 @@ describe("Biomedicine comparison view", () => {
     expect(screen.getByText("小肽候选与完整能景对照")).toBeTruthy();
     expect(screen.getByText("完整能景位置")).toBeTruthy();
     expect(screen.getByTitle("量子近似优化算法")).toBeTruthy();
+
+    rerender(<BiomedicineComparisonView analysis={rnaAnalysis} run={rnaRun} />);
+    expect(screen.getByText("RNA 二级结构四方对照")).toBeTruthy();
+    expect(screen.getByText("经典动态规划")).toBeTruthy();
+    expect(screen.getByText("PDB:1ZIH")).toBeTruthy();
   });
 
   it("does not fabricate a comparison before execution", () => {
     render(<BiomedicineComparisonView analysis={analysis} run={null} />);
     expect(screen.getByText("执行后生成独立对照")).toBeTruthy();
     expect(screen.getByText(/不预填运行结论/)).toBeTruthy();
+  });
+});
+
+describe("Biomedicine RNA views", () => {
+  it("renders the pairing arc, separated references, and Top-K observations", () => {
+    render(<BiomedicineResultView analysis={rnaAnalysis} run={rnaRun} />);
+    expect(screen.getByRole("img", { name: "量子观测 RNA 二级结构" })).toBeTruthy();
+    expect(screen.getByText("量子观测候选")).toBeTruthy();
+    expect(screen.getByText("经典精确枚举")).toBeTruthy();
+    expect(screen.getByText("数据集参考结构")).toBeTruthy();
+    expect(screen.getByText("已观测低评分结构集合")).toBeTruthy();
+    expect(screen.getByText(/不是热力学概率或碱基配对概率/)).toBeTruthy();
+  });
+
+  it("labels QAOA counts as observation frequency and exposes the RNA audit", () => {
+    const { rerender } = render(
+      <I18nProvider>
+        <BiomedicineQuantumView run={rnaRun} mode="digital" />
+      </I18nProvider>,
+    );
+    expect(screen.getByText("有限 shots 观测分布")).toBeTruthy();
+    expect(screen.getByText(/Counts 不是热力学概率/)).toBeTruthy();
+
+    rerender(<BiomedicineAuditView analysis={rnaAnalysis} run={rnaRun} />);
+    expect(screen.getByText("Hamiltonian")).toBeTruthy();
+    expect(screen.getByText("rna-report")).toBeTruthy();
   });
 });

@@ -368,6 +368,44 @@ export interface BiomedicineStructureEdge {
   critical?: boolean;
 }
 
+export interface RNAPairPayload {
+  id: string;
+  left: number;
+  right: number;
+  pairType: string;
+  score: number;
+  sourceRule: string;
+}
+
+export interface RNAStructureSolutionPayload {
+  source:
+    | "quantum_observed"
+    | "quantum_not_observed"
+    | "classic_exact_enumeration"
+    | "classic_dynamic_programming"
+    | "dataset_reference";
+  bitstring: string;
+  pairIds: string[];
+  pairs: RNAPairPayload[];
+  pairCount: number;
+  unpairedCount: number;
+  dotBracket: string;
+  energy: number;
+  feasible: boolean;
+  referenceOverlap: number;
+  referenceOverlapRate: number;
+  count?: number;
+  scope?: string;
+  sourceId?: string;
+  sourceUri?: string | null;
+  declaredDotBracket?: string;
+  checks: Array<{
+    id: string;
+    passed: boolean;
+    violations: string[][];
+  }>;
+}
+
 export interface BiomedicineAnalysisPayload {
   kind: "biomedicine";
   caseId: string;
@@ -466,6 +504,22 @@ export interface BiomedicineAnalysisPayload {
       selected: boolean;
     }>;
     sequence?: string;
+    minimumLoop?: number;
+    pseudoknotPolicy?: string;
+    candidatePairs?: RNAPairPayload[];
+    completeCandidatePairs?: RNAPairPayload[];
+    allowedCrossings?: string[][];
+    energyModel?: {
+      id: string;
+      units: string;
+      unpairedPenalty: number;
+      stackingBonus: number;
+      hardPenalty: number;
+      interpretation: string;
+    };
+    referenceStructure?: RNAStructureSolutionPayload;
+    classicExact?: RNAStructureSolutionPayload;
+    classicDynamicProgramming?: RNAStructureSolutionPayload;
     conformations?: Array<{
       id: string;
       coordinates: number[][];
@@ -573,6 +627,7 @@ export interface MaterialsAnalysisPayload {
   problem: BiomedicineAnalysisPayload["problem"];
   resource: Record<string, number | string | boolean>;
   decision: BiomedicineAnalysisPayload["decision"];
+  layout?: Array<{ id: string; x: number; y: number }>;
   domain: {
     kind: "defect_adsorption" | "rydberg_dynamics";
     modelLevel: string;
@@ -583,6 +638,40 @@ export interface MaterialsAnalysisPayload {
       label: string;
       orientation: string;
     }>;
+    surface?: string;
+    adsorbateLabel?: string;
+    defectCandidates?: Array<{ id: string; site: string; orbit: string }>;
+    adsorptionCandidates?: Array<{
+      id: string;
+      site: string;
+      molecule: string;
+      orientation: string;
+    }>;
+    periodicBoundary?: {
+      cellVectorsAngstrom: number[][];
+      wrap: boolean[];
+      neighborCutoffAngstrom: number;
+    };
+    symmetryOperations?: Array<{ id: string; mapping: string }>;
+    localConflictPairs?: string[][];
+    forbiddenCombinations?: string[][];
+    coordinateIdentities?: Record<
+      string,
+      { unit: string; source: string }
+    >;
+    targets?: {
+      defectCount: number;
+      coverage: number;
+      adsorptionCount: number;
+    };
+    energyModel?: {
+      defectFormation: Record<string, number>;
+      adsorption: Record<string, number>;
+      synergies: Array<[string, string, number]>;
+      neighborInteractions: Array<[string, string, number]>;
+      interactionWeight: number;
+      unit: string;
+    };
     constraints?: string[];
     rydbergLayout?: Array<{
       id: string;
@@ -605,6 +694,103 @@ export interface MaterialsAnalysisPayload {
       status: string;
     };
     limitations: string[];
+  };
+}
+
+export interface MaterialSolutionPayload {
+  source: string;
+  bitstring: string;
+  selectedDefectIds: string[];
+  selectedAdsorptionIds: string[];
+  modelObjective: number;
+  physicalModelEnergy: number;
+  energyComponents: Record<string, number>;
+  feasible: boolean;
+  checks: Array<{
+    id: string;
+    label: string;
+    passed: boolean;
+    actual: number;
+    expected: number;
+  }>;
+}
+
+export interface MaterialsRunPayload {
+  kind: "materials";
+  analysis: MaterialsAnalysisPayload;
+  domain: {
+    kind: "defect_adsorption_result";
+    quantumStatus: "observed_feasible" | "quantum_not_observed";
+    quantumCandidate: MaterialSolutionPayload | null;
+    bestObservedRaw: MaterialSolutionPayload;
+    classicOptimum: MaterialSolutionPayload;
+    offlineReference: MaterialSolutionPayload;
+    topObservedFeasible: MaterialSolutionPayload[];
+    observedFeasibleCount: number;
+    feasibleShotRatio: number;
+    interpretation: string;
+  };
+  quantum: {
+    kind: "problem_qaoa";
+    mode: "digital" | "hybrid";
+    algorithm: "qaoa";
+    topology: string | null;
+    layerCount: number;
+    blocks: string[];
+    layers: string[];
+    circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
+    atoms: AtomPoint[];
+    waveforms: Record<string, WavePoint[]>;
+    counts: Array<{ state: string; count: number; rank: number }>;
+    parameterHistory: Array<{
+      index: number;
+      objective: number;
+      parameters: Record<string, number>;
+      selected: boolean;
+    }>;
+    termMapping: Array<{
+      termId: string;
+      operator: string;
+      targets: string[];
+      logical: number;
+      analog: number;
+      digital: number;
+      implementation: string;
+    }>;
+    summary: {
+      analogTerms: number;
+      digitalTerms: number;
+      qubits: number;
+      shots: number;
+      evaluations: number;
+    };
+  };
+  audit: {
+    domainId: "materials";
+    caseId: "defect_adsorption";
+    datasetId: string;
+    datasetVersion: string;
+    manifestHash: string;
+    domainInputHash: string;
+    problemHash: string;
+    analysisHash: string;
+    compileHash: string;
+    executionHash: string;
+    resultHash: string;
+    reportHash: string;
+    backendHash: string;
+    configurationHash: string;
+    outcomeHash: string;
+    seed: number;
+    shots: number;
+    hardwareExecution: false;
+    cloudExecution: false;
+    networkAccessed: false;
+    wallTimeSeconds: number;
+    optimalityClaim: string;
+    claimBoundary: string;
+    reportPath?: string;
+    timings?: ElectronicStructureRunPayload["audit"]["timings"];
   };
 }
 
@@ -1153,13 +1339,84 @@ export interface PeptideRunPayload {
   };
 }
 
+export interface RNARunPayload {
+  kind: "biomedicine";
+  analysis: BiomedicineAnalysisPayload;
+  domain: {
+    kind: "rna_structure_result";
+    quantumCandidate: RNAStructureSolutionPayload;
+    topObservedFeasible: RNAStructureSolutionPayload[];
+    observedFeasibleCount: number;
+    observedFeasibleRate: number;
+    lowEnergyCoverage: number;
+    structureDiversity: number;
+    classicExact: RNAStructureSolutionPayload;
+    classicDynamicProgramming: RNAStructureSolutionPayload;
+    referenceStructure: RNAStructureSolutionPayload;
+    interpretation: string;
+  };
+  quantum: {
+    kind: "problem_qaoa";
+    mode: "digital";
+    algorithm: "qaoa";
+    summary: {
+      qubits: number;
+      shots: number;
+      evaluations: number;
+      feasibleObserved: number;
+    };
+    circuit: { qubits: string[]; gates: CircuitGate[]; depth: number };
+    counts: Array<{ state: string; count: number; rank: number }>;
+    parameterHistory: Array<{
+      index: number;
+      objective: number;
+      parameters: Record<string, number>;
+      selected: boolean;
+    }>;
+  };
+  audit: {
+    domainId: "biomedicine";
+    caseId: "rna_structure";
+    datasetId: string;
+    datasetVersion: string;
+    manifestHash: string;
+    domainInputHash: string;
+    problemHash: string;
+    hamiltonianHash: string;
+    analysisHash: string;
+    ansatzHash: string;
+    compileHash: string;
+    backend: Record<string, unknown>;
+    backendHash: string;
+    configurationHash: string;
+    outcomeHash: string;
+    executionHash: string;
+    resultHash: string;
+    reportHash: string;
+    seed: number;
+    shots: number;
+    hardwareExecution: false;
+    cloudExecution: false;
+    networkAccessed: false;
+    wallTimeSeconds: number;
+    optimalityClaim: string;
+    claimBoundary: string;
+    reportPath?: string;
+    timings?: ElectronicStructureRunPayload["audit"]["timings"];
+  };
+}
+
 export type BiomedicineRunPayload =
   | ElectronicStructureRunPayload
   | ActiveCenterRunPayload
   | PeptideRunPayload
+  | RNARunPayload
   | DockingRunPayload;
 
-export type WorkbenchRunPayload = RunPayload | BiomedicineRunPayload;
+export type WorkbenchRunPayload =
+  | RunPayload
+  | BiomedicineRunPayload
+  | MaterialsRunPayload;
 
 export interface RepeatedRunStatistics {
   repeatCount: number;

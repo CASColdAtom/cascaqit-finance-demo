@@ -1,0 +1,94 @@
+{
+  "modelLevel": "短 RNA 候选二级结构集合",
+  "energyModel": {
+    "id": "canonical-pairing.educational.v1",
+    "units": "dimensionless educational score",
+    "unpairedPenalty": 0.15,
+    "stackingBonus": -0.4,
+    "hardPenalty": 8.0,
+    "interpretation": "Canonical-pair hierarchy with a project-defined stacking bonus; not a thermodynamic free-energy model."
+  },
+  "presets": {
+    "hairpin_reference": {
+      "sequence": "GGACUUCGGUCC",
+      "minimumLoop": 3,
+      "pseudoknotPolicy": "forbidden",
+      "allowWobble": true,
+      "candidatePairs": [
+        {"id": "pair.01.11", "left": 1, "right": 11, "pairType": "GC", "score": -2.5, "sourceRule": "canonical_gc_alternate"},
+        {"id": "pair.01.12", "left": 1, "right": 12, "pairType": "GC", "score": -3.0, "sourceRule": "pdb_1zih_reference"},
+        {"id": "pair.02.11", "left": 2, "right": 11, "pairType": "GC", "score": -3.0, "sourceRule": "pdb_1zih_reference"},
+        {"id": "pair.02.12", "left": 2, "right": 12, "pairType": "GC", "score": -2.5, "sourceRule": "canonical_gc_alternate"},
+        {"id": "pair.03.10", "left": 3, "right": 10, "pairType": "AU", "score": -2.0, "sourceRule": "pdb_1zih_reference"},
+        {"id": "pair.04.08", "left": 4, "right": 8, "pairType": "CG", "score": -2.4, "sourceRule": "canonical_cg_alternate"},
+        {"id": "pair.04.09", "left": 4, "right": 9, "pairType": "CG", "score": -3.0, "sourceRule": "pdb_1zih_reference"},
+        {"id": "pair.05.09", "left": 5, "right": 9, "pairType": "UG", "score": -1.2, "sourceRule": "declared_gu_wobble"}
+      ],
+      "allowedCrossings": [],
+      "reference": {
+        "kind": "public_experimental_structure",
+        "sourceId": "PDB:1ZIH",
+        "sourceUri": "https://www.rcsb.org/structure/1ZIH",
+        "dotBracket": "((((....))))",
+        "pairIds": ["pair.01.12", "pair.02.11", "pair.03.10", "pair.04.09"]
+      }
+    },
+    "stem_competition": {
+      "sequence": "GCGCUUCGCGC",
+      "minimumLoop": 3,
+      "pseudoknotPolicy": "forbidden",
+      "allowWobble": false,
+      "candidatePairs": [
+        {"id": "pair.01.09", "left": 1, "right": 9, "pairType": "GC", "score": -2.6, "sourceRule": "competing_stem_b"},
+        {"id": "pair.01.11", "left": 1, "right": 11, "pairType": "GC", "score": -3.0, "sourceRule": "competing_stem_a"},
+        {"id": "pair.02.08", "left": 2, "right": 8, "pairType": "CG", "score": -2.6, "sourceRule": "competing_stem_b"},
+        {"id": "pair.02.10", "left": 2, "right": 10, "pairType": "CG", "score": -3.0, "sourceRule": "competing_stem_a"},
+        {"id": "pair.03.07", "left": 3, "right": 7, "pairType": "GC", "score": -2.6, "sourceRule": "competing_stem_b"},
+        {"id": "pair.03.09", "left": 3, "right": 9, "pairType": "GC", "score": -3.0, "sourceRule": "competing_stem_a"},
+        {"id": "pair.03.11", "left": 3, "right": 11, "pairType": "GC", "score": -2.2, "sourceRule": "cross_stem_distractor"},
+        {"id": "pair.04.08", "left": 4, "right": 8, "pairType": "CG", "score": -3.0, "sourceRule": "competing_stem_a"},
+        {"id": "pair.04.10", "left": 4, "right": 10, "pairType": "CG", "score": -2.2, "sourceRule": "cross_stem_distractor"}
+      ],
+      "allowedCrossings": [],
+      "reference": {
+        "kind": "project_curated_secondary_structure",
+        "sourceId": "stem-competition-a",
+        "sourceUri": null,
+        "dotBracket": "((((...))))",
+        "pairIds": ["pair.01.11", "pair.02.10", "pair.03.09", "pair.04.08"]
+      }
+    },
+    "limited_pseudoknot": {
+      "sequence": "GGGAAAUCCCU",
+      "minimumLoop": 3,
+      "pseudoknotPolicy": "declared_crossings_only",
+      "allowWobble": true,
+      "candidatePairs": [
+        {"id": "pair.01.08", "left": 1, "right": 8, "pairType": "GC", "score": -2.5, "sourceRule": "alternate_stem"},
+        {"id": "pair.01.09", "left": 1, "right": 9, "pairType": "GC", "score": -2.6, "sourceRule": "alternate_stem"},
+        {"id": "pair.01.10", "left": 1, "right": 10, "pairType": "GC", "score": -3.0, "sourceRule": "declared_pseudoknot_reference"},
+        {"id": "pair.02.08", "left": 2, "right": 8, "pairType": "GC", "score": -2.4, "sourceRule": "alternate_stem"},
+        {"id": "pair.02.09", "left": 2, "right": 9, "pairType": "GC", "score": -3.0, "sourceRule": "declared_pseudoknot_reference"},
+        {"id": "pair.02.10", "left": 2, "right": 10, "pairType": "GC", "score": -2.5, "sourceRule": "alternate_stem"},
+        {"id": "pair.03.08", "left": 3, "right": 8, "pairType": "GC", "score": -3.0, "sourceRule": "declared_pseudoknot_reference"},
+        {"id": "pair.03.11", "left": 3, "right": 11, "pairType": "GU", "score": -1.2, "sourceRule": "declared_gu_wobble"},
+        {"id": "pair.04.11", "left": 4, "right": 11, "pairType": "AU", "score": -2.0, "sourceRule": "declared_pseudoknot_reference"}
+      ],
+      "allowedCrossings": [
+        ["pair.01.08", "pair.04.11"],
+        ["pair.01.09", "pair.04.11"],
+        ["pair.01.10", "pair.04.11"],
+        ["pair.02.09", "pair.04.11"],
+        ["pair.02.10", "pair.04.11"],
+        ["pair.03.08", "pair.04.11"]
+      ],
+      "reference": {
+        "kind": "project_curated_limited_pseudoknot",
+        "sourceId": "limited-pseudoknot-research-v1",
+        "sourceUri": null,
+        "dotBracket": "((([...)))]",
+        "pairIds": ["pair.01.10", "pair.02.09", "pair.03.08", "pair.04.11"]
+      }
+    }
+  }
+}

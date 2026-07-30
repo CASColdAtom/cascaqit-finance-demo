@@ -1,0 +1,86 @@
+{
+  "modelLevel": "版本化周期表面缺陷-吸附离散能量模型",
+  "coordinateSystem": {
+    "material": "fractional surface-cell coordinates",
+    "effective": "canonical candidate identifiers after symmetry reduction",
+    "compiled": "target-derived Rydberg coordinates in micrometers"
+  },
+  "periodicBoundary": {
+    "cellVectorsAngstrom": [[11.2, 0.0], [0.0, 8.4]],
+    "wrap": [true, true],
+    "neighborCutoffAngstrom": 4.2
+  },
+  "symmetryOperations": [
+    {"id": "identity", "mapping": "(x,y)->(x,y)"},
+    {"id": "mirror_x", "mapping": "(x,y)->(1-x,y)"}
+  ],
+  "latticeNodes": [
+    {"id": "site.0", "label": "S1", "x": 14, "y": 22},
+    {"id": "site.1", "label": "S2", "x": 38, "y": 22},
+    {"id": "site.2", "label": "S3", "x": 62, "y": 22},
+    {"id": "site.3", "label": "S4", "x": 86, "y": 22},
+    {"id": "site.4", "label": "S5", "x": 14, "y": 50},
+    {"id": "site.5", "label": "S6", "x": 38, "y": 50},
+    {"id": "site.6", "label": "S7", "x": 62, "y": 50},
+    {"id": "site.7", "label": "S8", "x": 86, "y": 50},
+    {"id": "site.8", "label": "S9", "x": 14, "y": 78},
+    {"id": "site.9", "label": "S10", "x": 38, "y": 78},
+    {"id": "site.10", "label": "S11", "x": 62, "y": 78},
+    {"id": "site.11", "label": "S12", "x": 86, "y": 78}
+  ],
+  "defectCandidates": [
+    {"id": "defect.d0", "site": "site.1", "orbit": "oxygen-a"},
+    {"id": "defect.d1", "site": "site.5", "orbit": "oxygen-b"},
+    {"id": "defect.d2", "site": "site.9", "orbit": "oxygen-c"}
+  ],
+  "adsorptionCandidates": [
+    {"id": "ads.a0", "site": "site.0", "molecule": "mol.0", "orientation": "top"},
+    {"id": "ads.a1", "site": "site.0", "molecule": "mol.0", "orientation": "bridge"},
+    {"id": "ads.b0", "site": "site.4", "molecule": "mol.1", "orientation": "top"},
+    {"id": "ads.b1", "site": "site.4", "molecule": "mol.1", "orientation": "tilted"},
+    {"id": "ads.c0", "site": "site.8", "molecule": "mol.2", "orientation": "top"},
+    {"id": "ads.c1", "site": "site.8", "molecule": "mol.2", "orientation": "bridge"},
+    {"id": "ads.d0", "site": "site.10", "molecule": "mol.3", "orientation": "top"},
+    {"id": "ads.d1", "site": "site.10", "molecule": "mol.3", "orientation": "tilted"}
+  ],
+  "localConflictPairs": [
+    ["ads.a0", "ads.a1"],
+    ["ads.b0", "ads.b1"],
+    ["ads.c0", "ads.c1"],
+    ["ads.d0", "ads.d1"]
+  ],
+  "presets": {
+    "ceria_vacancy_co": {
+      "surface": "CeO2(111)",
+      "adsorbate": "CO",
+      "defectFormation": {"defect.d0": 1.20, "defect.d1": 1.08, "defect.d2": 1.31},
+      "adsorptionEnergy": {"ads.a0": -1.05, "ads.a1": -0.72, "ads.b0": -0.84, "ads.b1": -0.66, "ads.c0": -0.91, "ads.c1": -0.63, "ads.d0": -0.78, "ads.d1": -0.58},
+      "synergies": [["defect.d0", "ads.a0", -0.72], ["defect.d1", "ads.b1", -0.55], ["defect.d2", "ads.d0", -0.46]],
+      "forbiddenCombinations": [["defect.d0", "ads.c1"], ["defect.d2", "ads.a1"]],
+      "neighborInteractions": [["ads.a0", "ads.b0", 0.24], ["ads.b1", "ads.c0", -0.16], ["ads.c0", "ads.d0", 0.21]]
+    },
+    "tio2_vacancy_water": {
+      "surface": "TiO2(110)",
+      "adsorbate": "H2O",
+      "defectFormation": {"defect.d0": 1.46, "defect.d1": 1.22, "defect.d2": 1.39},
+      "adsorptionEnergy": {"ads.a0": -0.92, "ads.a1": -1.08, "ads.b0": -0.74, "ads.b1": -0.96, "ads.c0": -0.81, "ads.c1": -0.88, "ads.d0": -0.69, "ads.d1": -0.82},
+      "synergies": [["defect.d0", "ads.a1", -0.42], ["defect.d1", "ads.b1", -0.68], ["defect.d2", "ads.c1", -0.51]],
+      "forbiddenCombinations": [["defect.d0", "ads.d0"], ["defect.d2", "ads.a0"]],
+      "neighborInteractions": [["ads.a1", "ads.b1", 0.31], ["ads.b0", "ads.c1", -0.19], ["ads.c1", "ads.d1", 0.27]]
+    },
+    "mos2_vacancy_hydrogen": {
+      "surface": "MoS2 basal plane",
+      "adsorbate": "H",
+      "defectFormation": {"defect.d0": 1.72, "defect.d1": 1.55, "defect.d2": 1.61},
+      "adsorptionEnergy": {"ads.a0": -0.61, "ads.a1": -0.83, "ads.b0": -0.77, "ads.b1": -0.58, "ads.c0": -0.69, "ads.c1": -0.91, "ads.d0": -0.73, "ads.d1": -0.62},
+      "synergies": [["defect.d0", "ads.a1", -0.63], ["defect.d1", "ads.c1", -0.71], ["defect.d2", "ads.d0", -0.48]],
+      "forbiddenCombinations": [["defect.d0", "ads.d1"], ["defect.d1", "ads.a0"]],
+      "neighborInteractions": [["ads.a1", "ads.b0", 0.18], ["ads.b0", "ads.c1", -0.23], ["ads.c1", "ads.d0", 0.20]]
+    }
+  },
+  "limitations": [
+    "运行时不执行 DFT；所有能量系数均来自版本化离线演示模型。",
+    "目标值仅比较给定离散模型内的构型，不推导催化活性、速率、选择性或可合成性。",
+    "材料晶格、有效候选变量和 Rydberg 编译坐标是三个独立坐标身份。"
+  ]
+}

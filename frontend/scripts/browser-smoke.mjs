@@ -14,7 +14,7 @@ const BIOMEDICINE_CASES = [
   ["docking_match", "构象匹配", false],
   ["active_center", "金属活性中心", false],
   ["peptide_landscape", "小肽能景", false],
-  ["rna_structure", "RNA 折叠路径", true],
+  ["rna_structure", "RNA 折叠路径", false],
   ["protein_dynamics", "蛋白转变路径", true],
 ];
 
@@ -354,6 +354,49 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await waitForPaintedCanvas(page, ".peptide-quantum-view canvas");
   result.peptideQuantum = await assertLayout(page, `${name}/peptide-quantum`);
 
+  await page.locator(".scenario-item", { hasText: "RNA 折叠路径" }).click();
+  await page.waitForURL("**/biomedicine/rna_structure");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  const referenceArc = page.locator(".rna-analysis-view .rna-arc-diagram svg");
+  if ((await referenceArc.locator("path.rna-pair-arc").count()) === 0) {
+    throw new Error(`${name}: RNA analysis contains no pairing arcs`);
+  }
+  await page.locator(".run-button").click();
+  await page.locator(".rna-result-view").waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  const rnaText = await page.locator(".rna-result-view").innerText();
+  for (const expected of [
+    "QUANTUM OBSERVED",
+    "量子观测候选",
+    "经典精确枚举",
+    "数据集参考结构",
+    "不是热力学概率或碱基配对概率",
+  ]) {
+    if (!rnaText.includes(expected)) {
+      throw new Error(`${name}: RNA result is missing ${expected}`);
+    }
+  }
+  result.rnaRun = await assertLayout(page, `${name}/rna-run`);
+  await page.screenshot({
+    path: path.join(outputDir, `rna-result-${name}.png`),
+    fullPage: true,
+  });
+
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByRole("heading", { name: "RNA 二级结构四方对照" }).waitFor();
+  result.rnaComparison = await assertLayout(page, `${name}/rna-comparison`);
+
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await waitForPaintedCanvas(page, ".rna-quantum-view canvas");
+  result.rnaQuantum = await assertLayout(page, `${name}/rna-quantum`);
+
   await page.locator(".scenario-item", { hasText: "电子结构" }).click();
   await page.waitForURL("**/biomedicine/electronic_structure");
   await waitForAnalysis(page);
@@ -440,9 +483,36 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   if (!(await runButton.isVisible())) {
     await page.locator(".control-collapse").click();
   }
-  if (!(await runButton.isDisabled())) {
-    throw new Error(`${name}/defect-adsorption: preview run button is enabled`);
+  if (await runButton.isDisabled()) {
+    throw new Error(`${name}/defect-adsorption: available run button is disabled`);
   }
+  await runButton.click();
+  await page.getByText("QUANTUM OBSERVED", { exact: true }).waitFor({
+    timeout: 60_000,
+  });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 60_000 },
+  );
+  result.materials.defectResult = await assertLayout(
+    page,
+    `${name}/defect-adsorption-result`,
+  );
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await page.getByText("构型位串 counts", { exact: true }).waitFor();
+  await waitForPaintedCanvas(page, ".view-stage canvas");
+  result.materials.defectQuantum = await assertLayout(
+    page,
+    `${name}/defect-adsorption-quantum`,
+  );
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByText("EXACT ENUMERATION", { exact: true }).waitFor();
+  await page.getByText("OFFLINE REFERENCE", { exact: true }).waitFor();
+  result.materials.defectComparison = await assertLayout(
+    page,
+    `${name}/defect-adsorption-comparison`,
+  );
 
   await page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click();
   await page.waitForURL("**/materials/rydberg_dynamics");

@@ -27,6 +27,7 @@ import type {
   Mode,
   LocalJob,
   MaterialsAnalysisPayload,
+  MaterialsRunPayload,
   RunPayload,
   RunRequest,
   ScenarioSpec,
@@ -131,6 +132,10 @@ function isMaterialsAnalysis(
 
 function isBiomedicineRun(run: WorkbenchRunPayload): run is BiomedicineRunPayload {
   return "kind" in run && run.kind === "biomedicine";
+}
+
+function isMaterialsRun(run: WorkbenchRunPayload): run is MaterialsRunPayload {
+  return "kind" in run && run.kind === "materials";
 }
 
 function cacheIdentity(
@@ -639,15 +644,21 @@ function Workbench() {
   const biomedicineRun = run && isBiomedicineRun(run) ? run : null;
   const materialsAnalysis =
     analysis && isMaterialsAnalysis(analysis) ? analysis : null;
+  const materialsRun = run && isMaterialsRun(run) ? run : null;
   const financeAnalysis =
     analysis &&
     !isBiomedicineAnalysis(analysis) &&
     !isMaterialsAnalysis(analysis)
       ? (analysis as AnalysisPayload)
       : null;
-  const financeRun = run && !isBiomedicineRun(run) ? (run as RunPayload) : null;
+  const financeRun =
+    run && !isBiomedicineRun(run) && !isMaterialsRun(run)
+      ? (run as RunPayload)
+      : null;
   const displayedShots = run
-    ? isBiomedicineRun(run)
+    ? isMaterialsRun(run)
+      ? run.audit.shots
+      : isBiomedicineRun(run)
       ? "shots" in run.audit
         ? run.audit.shots
         : run.audit.shotsPerGroup
@@ -862,7 +873,11 @@ function Workbench() {
             {analysis ? (
               <Suspense fallback={<ViewLoading />}>
                 {materialsAnalysis ? (
-                  <MaterialsView analysis={materialsAnalysis} view={activeView} />
+                  <MaterialsView
+                    analysis={materialsAnalysis}
+                    run={materialsRun}
+                    view={activeView}
+                  />
                 ) : biomedicineAnalysis ? (
                   <>
                     {activeView === "business" ? <BiomedicineResultView analysis={biomedicineAnalysis} run={biomedicineRun} /> : null}

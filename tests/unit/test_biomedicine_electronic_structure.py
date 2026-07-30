@@ -50,7 +50,7 @@ def test_catalog_declares_six_biomedicine_scenarios_and_truthful_status() -> Non
         "docking_match": "available",
         "active_center": "available",
         "peptide_landscape": "available",
-        "rna_structure": "preview",
+        "rna_structure": "available",
         "protein_dynamics": "preview",
     }
 
@@ -68,9 +68,10 @@ def test_electronic_fixtures_have_reproducible_provenance_and_reference(
         / "scripts"
         / "generate_electronic_structure_fixtures.py"
     )
-    assert hashlib.sha256(script.read_bytes()).hexdigest() == fixture.manifest[
-        "generation"
-    ]["script_sha256"]
+    assert (
+        hashlib.sha256(script.read_bytes()).hexdigest()
+        == fixture.manifest["generation"]["script_sha256"]
+    )
     hamiltonian = build_pauli_hamiltonian(fixture.pauli)
     exact = exact_diagonalization(hamiltonian)["energy"]
     assert exact == pytest.approx(
@@ -85,9 +86,10 @@ def test_h2_scan_contains_three_consistent_reference_points() -> None:
     scan = analysis["domain"]["bondScanReference"]
     assert [item["bondLengthAngstrom"] for item in scan] == [0.5, 0.735, 1.5]
     assert sum(item["selected"] for item in scan) == 1
-    assert min(scan, key=lambda item: item["exactGroundEnergy"])[
-        "bondLengthAngstrom"
-    ] == 0.735
+    assert (
+        min(scan, key=lambda item: item["exactGroundEnergy"])["bondLengthAngstrom"]
+        == 0.735
+    )
 
 
 def test_advanced_lih_scan_contains_five_four_qubit_reference_points() -> None:
@@ -197,6 +199,4 @@ def test_h2o_readout_noise_keeps_ideal_and_noisy_qwc_evidence_separate() -> None
     noisy_evidence = run["quantum"]["measurement"]["noisyGroups"][0][
         "executionEvidence"
     ]
-    assert noisy_evidence["noise_report"]["truthfulness"] == (
-        "measurement_model_only"
-    )
+    assert noisy_evidence["noise_report"]["truthfulness"] == ("measurement_model_only")

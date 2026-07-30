@@ -1,16 +1,30 @@
 import {
   AlertTriangle,
+  Activity,
   Atom,
   Braces,
   GitCompareArrows,
   Grid3X3,
   RadioTower,
+  CheckCircle2,
+  CircleX,
   Waves,
 } from "lucide-react";
-import type { MaterialsAnalysisPayload } from "../types";
+import type {
+  MaterialSolutionPayload,
+  MaterialsAnalysisPayload,
+  MaterialsRunPayload,
+} from "../types";
+import { AtomChart, CountsChart, ParameterChart, WaveformChart } from "./charts/Charts";
 import type { ViewId } from "./viewTabs";
 
-function MetricRail({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function MetricRail({
+  analysis,
+  run,
+}: {
+  analysis: MaterialsAnalysisPayload;
+  run?: MaterialsRunPayload | null;
+}) {
   const analog = analysis.executionFamily === "analog_ahs";
   const activeSites = analysis.domain.nodes.filter(
     (node) => node.role !== "vacancy",
@@ -20,7 +34,7 @@ function MetricRail({ analysis }: { analysis: MaterialsAnalysisPayload }) {
       <div>
         <span>EXPERIMENT KIND</span>
         <strong>{analog ? "ANALOG AHS" : "MATERIAL QUBO"}</strong>
-        <small>{analysis.implementationStatus.toUpperCase()}</small>
+        <small>{run ? run.quantum.mode.toUpperCase() : analysis.implementationStatus.toUpperCase()}</small>
       </div>
       <div>
         <span>EFFECTIVE SITES</span>
@@ -29,19 +43,25 @@ function MetricRail({ analysis }: { analysis: MaterialsAnalysisPayload }) {
       </div>
       <div>
         <span>COORDINATE IDENTITIES</span>
-        <strong>{analog ? "3" : "2"}</strong>
-        <small>material / effective{analog ? " / Rydberg" : ""}</small>
+        <strong>3</strong>
+        <small>material / effective / compiled</small>
       </div>
       <div>
         <span>EXECUTION GATE</span>
-        <strong>PREVIEW</strong>
-        <small>executor unavailable</small>
+        <strong>{run ? "EXECUTED" : analysis.implementationStatus === "available" ? "READY" : "PREVIEW"}</strong>
+        <small>{run ? `${run.audit.shots} local shots` : analysis.implementationStatus === "available" ? "local simulator" : "executor unavailable"}</small>
       </div>
     </div>
   );
 }
 
-function LatticeFigure({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function LatticeFigure({
+  analysis,
+  selected,
+}: {
+  analysis: MaterialsAnalysisPayload;
+  selected?: Set<string>;
+}) {
   const adsorbates = analysis.domain.adsorbates ?? [];
   const positions = new Map(
     analysis.domain.nodes.map((node) => [node.id, { x: node.x, y: node.y }]),
@@ -76,7 +96,7 @@ function LatticeFigure({ analysis }: { analysis: MaterialsAnalysisPayload }) {
           })}
         </g>
         {analysis.domain.nodes.map((node) => (
-          <g className="lattice-site" data-role={node.role} key={node.id}>
+          <g className="lattice-site" data-role={node.role} data-selected={analysis.domain.defectCandidates?.some((item) => item.site === node.id && selected?.has(item.id)) ?? false} key={node.id}>
             <circle cx={node.x} cy={node.y} r="4.5" />
             <text x={node.x} y={node.y + 1.3}>{node.role === "vacancy" ? "V" : node.label}</text>
           </g>
@@ -85,7 +105,7 @@ function LatticeFigure({ analysis }: { analysis: MaterialsAnalysisPayload }) {
           const position = positions.get(item.site);
           if (!position) return null;
           return (
-            <g className="adsorbate-site" key={item.id}>
+            <g className="adsorbate-site" data-selected={selected?.has(item.id) ?? false} key={item.id}>
               <line x1={position.x} y1={position.y - 5} x2={position.x} y2={position.y - 13} />
               <rect x={position.x - 6} y={position.y - 22} width="12" height="8" rx="2" />
               <text x={position.x} y={position.y - 16.3}>{item.label}</text>
@@ -171,8 +191,43 @@ function PulsePreview({ analysis }: { analysis: MaterialsAnalysisPayload }) {
   );
 }
 
-function ResultView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function SolutionSummary({ solution }: { solution: MaterialSolutionPayload }) {
+  return (
+    <div className="material-solution-summary">
+      <div><span>缺陷</span><strong>{solution.selectedDefectIds.join(" · ") || "NONE"}</strong></div>
+      <div><span>吸附构型</span><strong>{solution.selectedAdsorptionIds.join(" · ") || "NONE"}</strong></div>
+      <div><span>离散模型能量</span><strong>{solution.physicalModelEnergy.toFixed(4)}</strong></div>
+      <div><span>QUBO objective</span><strong>{solution.modelObjective.toFixed(4)}</strong></div>
+    </div>
+  );
+}
+
+function ResultView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
   const analog = analysis.executionFamily === "analog_ahs";
+  if (run) {
+    const candidate = run.domain.quantumCandidate;
+    return (
+      <div className="view-stack">
+        <MetricRail analysis={analysis} run={run} />
+        <section className="data-section materials-readiness">
+          <div className="subsection-head">
+            <div><span className="section-kicker">JOINT CONFIGURATION RESULT</span><h3>缺陷与吸附联合构型</h3></div>
+            <span className={`data-chip ${candidate ? "source-quantum" : "status-preview"}`}>{candidate ? "QUANTUM OBSERVED" : "NOT OBSERVED"}</span>
+          </div>
+          {candidate ? <SolutionSummary solution={candidate} /> : <p className="subsection-note">有限 shots 内未观测到可行构型；页面不使用经典最优回填量子结果。</p>}
+          <div className="constraint-check-grid">
+            {(candidate ?? run.domain.bestObservedRaw).checks.map((check) => (
+              <div data-status={check.passed ? "ok" : "warn"} key={check.id}>
+                {check.passed ? <CheckCircle2 size={15} /> : <CircleX size={15} />}
+                <span>{check.label}</span><strong>{check.actual} / {check.expected}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="subsection-note">可行 shot 比例 {(run.domain.feasibleShotRatio * 100).toFixed(1)}%；QAOA counts 是观测频次，不是热力学概率。</p>
+        </section>
+      </div>
+    );
+  }
   return (
     <div className="view-stack">
       <MetricRail analysis={analysis} />
@@ -182,7 +237,7 @@ function ResultView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
             <span className="section-kicker">SCENARIO READINESS</span>
             <h3>{analog ? "纯 Analog 实验门禁" : "材料构型优化门禁"}</h3>
           </div>
-          <span className="data-chip status-preview">PLANNED</span>
+          <span className={`data-chip status-${analysis.implementationStatus}`}>{analysis.implementationStatus.toUpperCase()}</span>
         </div>
         <div className="readiness-grid">
           {(analog
@@ -195,8 +250,8 @@ function ResultView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
             : [
                 ["周期晶格", "已建模", "ok"],
                 ["联合变量", "已定义", "ok"],
-                ["离线能量 fixture", "待固化", "warn"],
-                ["Hybrid 几何", "待验证", "warn"],
+                ["离线能量 fixture", "已校验", "ok"],
+                ["Hybrid 几何", "VERIFIED", "ok"],
               ]).map(([label, value, status]) => (
             <div data-status={status} key={label}>
               <span>{label}</span>
@@ -209,14 +264,14 @@ function ResultView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
   );
 }
 
-function MappingView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function MappingView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
   const analog = analysis.executionFamily === "analog_ahs";
   const stages = analog
     ? ["有效晶格", "AHS 定义", "目标校验", "AnalogExecutor", "时序观测量"]
     : ["周期表面", "对称归一", "材料 QUBO", "Digital / Hybrid", "构型解码"];
   return (
     <div className="view-stack">
-      <MetricRail analysis={analysis} />
+      <MetricRail analysis={analysis} run={run} />
       <section className="data-section">
         <div className="subsection-head">
           <div><span className="section-kicker">DOMAIN MAPPING</span><h3>领域到量子执行链</h3></div>
@@ -234,58 +289,77 @@ function MappingView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
           <pre className="hamiltonian-readout">H(t) = Σ Ωᵢ(t)Xᵢ/2 - Σ Δᵢ(t)nᵢ + Σ Vᵢⱼnᵢnⱼ</pre>
         ) : null}
       </section>
+      {!analog && analysis.problem.termGroups ? (
+        <div className="split-layout materials-model-details">
+          <section className="data-section">
+            <div className="subsection-head"><div><span className="section-kicker">DOMAIN TERM GROUPS</span><h3>联合 QUBO 分组</h3></div><span className="data-chip">{analysis.problem.termGroups.length} GROUPS</span></div>
+            <div className="hybrid-gate-list">{analysis.problem.termGroups.map((group) => <div key={group.group_id}><strong>{group.label}</strong><span>{group.kind}</span><small>{group.variables.length + group.pairs.length} declarations</small></div>)}</div>
+          </section>
+          <section className="data-section">
+            <div className="subsection-head"><div><span className="section-kicker">HYBRID GATE</span><h3>Analog block / Digital residual</h3></div><span className="data-chip">VERIFIED</span></div>
+            <div className="readiness-grid"><div data-status="ok"><span>局域冲突组</span><strong>{analysis.domain.localConflictPairs?.length ?? 0}</strong></div><div data-status="ok"><span>Analog terms</span><strong>{run?.quantum.summary.analogTerms ?? analysis.decision.modes.find((row) => row.mode === "hybrid")?.analogTermCount ?? 0}</strong></div><div data-status="ok"><span>Digital residual</span><strong>{run?.quantum.summary.digitalTerms ?? analysis.decision.modes.find((row) => row.mode === "hybrid")?.digitalTermCount ?? 0}</strong></div><div data-status="ok"><span>系数账本</span><strong>{analysis.problem.coefficientLedger?.balanced ? "BALANCED" : "MISSING"}</strong></div></div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function QuantumPreview({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function QuantumPreview({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
   if (analysis.executionFamily === "analog_ahs") {
     return <div className="view-stack"><MetricRail analysis={analysis} /><PulsePreview analysis={analysis} /></div>;
   }
+  if (run) return (
+    <div className="view-stack">
+      <MetricRail analysis={analysis} run={run} />
+      <div className="experiment-banner"><div className="experiment-mode"><span className="mode-pulse" /><div><small>QAOA / JOINT MATERIAL QUBO</small><strong>{run.quantum.mode.toUpperCase()}</strong></div></div><div className="experiment-telemetry"><span><small>QUBITS</small><strong>{run.quantum.summary.qubits}</strong></span><span><small>SHOTS</small><strong>{run.quantum.summary.shots}</strong></span><span><small>ANALOG</small><strong>{run.quantum.summary.analogTerms}</strong></span><span><small>DIGITAL</small><strong>{run.quantum.summary.digitalTerms}</strong></span></div></div>
+      <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><RadioTower size={14} /> OBSERVATION FREQUENCY</span><h3>构型位串 counts</h3></div></div><CountsChart counts={run.quantum.counts} /><p className="subsection-note">有限 shots 观测频次，不表示热力学概率。</p></section><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>QAOA 参数目标值</h3></div></div><ParameterChart history={run.quantum.parameterHistory} /></section></div>
+      <div className="split-layout sampling-split"><section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker">COMPILED REGISTER</span><h3>独立 Rydberg 编译坐标</h3></div></div><AtomChart atoms={run.quantum.atoms} /></section>{run.quantum.mode === "hybrid" ? <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker">ANALOG BLOCK</span><h3>Rydberg 波形</h3></div></div><WaveformChart waveforms={run.quantum.waveforms} /></section> : <section className="data-section circuit-gate-table"><div className="subsection-head"><div><span className="section-kicker"><Atom size={14} /> DIGITAL CIRCUIT</span><h3>实际绑定 QAOA 线路</h3></div><span className="data-chip">DEPTH {run.quantum.circuit.depth}</span></div><div className="gate-sequence">{run.quantum.circuit.gates.slice(0, 24).map((gate) => <div key={`${gate.depth}-${gate.name}`}><small>{String(gate.depth + 1).padStart(2, "0")}</small><strong>{gate.name}</strong><span>{gate.targets.join(" · ")}</span></div>)}</div></section>}</div>
+    </div>
+  );
   return (
     <div className="view-stack">
       <MetricRail analysis={analysis} />
       <section className="data-section materials-empty-execution">
         <Grid3X3 size={28} aria-hidden="true" />
-        <h3>材料 QUBO 执行链尚未开放</h3>
-        <p>周期、计量和对称性 fixture 固化后，Digital 与 Hybrid 将使用同一逻辑 QUBO。</p>
+        <h3>材料 QUBO 已通过执行门禁</h3>
+        <p>运行场景后展示真实 Digital / Hybrid 编译、counts、线路、波形和参数历史。</p>
       </section>
     </div>
   );
 }
 
-function ComparisonView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function ComparisonView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
   return (
     <div className="view-stack">
-      <MetricRail analysis={analysis} />
+      <MetricRail analysis={analysis} run={run} />
       <section className="data-section materials-comparison">
         <div className="subsection-head">
           <div><span className="section-kicker">REFERENCE SEPARATION</span><h3>量子结果与经典对照</h3></div>
           <GitCompareArrows size={18} aria-hidden="true" />
         </div>
-        <div className="comparison-columns">
-          <div><span>QUANTUM RESULT</span><strong>NOT EXECUTED</strong><small>不以经典结果回填</small></div>
-          <div><span>CLASSIC REFERENCE</span><strong>PLANNED</strong><small>{analysis.executionFamily === "analog_ahs" ? "独立精确时间演化" : "枚举 / 整数规划"}</small></div>
-        </div>
+        {run ? <div className="comparison-columns materials-three-way"><div><span>QUANTUM OBSERVED</span><strong>{run.domain.quantumCandidate ? run.domain.quantumCandidate.physicalModelEnergy.toFixed(4) : "NOT OBSERVED"}</strong><small>{run.domain.quantumCandidate ? `${run.domain.quantumCandidate.selectedDefectIds.length} defects / ${run.domain.quantumCandidate.selectedAdsorptionIds.length} adsorbates` : "不以经典结果回填"}</small></div><div><span>EXACT ENUMERATION</span><strong>{run.domain.classicOptimum.physicalModelEnergy.toFixed(4)}</strong><small>{run.domain.classicOptimum.bitstring}</small></div><div><span>OFFLINE REFERENCE</span><strong>{run.domain.offlineReference.physicalModelEnergy.toFixed(4)}</strong><small>{run.domain.offlineReference.feasible ? "compatible with current controls" : "default-control reference"}</small></div></div> : <div className="comparison-columns"><div><span>QUANTUM RESULT</span><strong>NOT EXECUTED</strong><small>不以经典结果回填</small></div><div><span>CLASSIC REFERENCE</span><strong>{analysis.executionFamily === "analog_ahs" ? "PLANNED" : "READY"}</strong><small>{analysis.executionFamily === "analog_ahs" ? "独立精确时间演化" : "完整枚举 / 离线参考"}</small></div></div>}
+        {run ? <p className="subsection-note">{run.domain.interpretation}</p> : null}
       </section>
     </div>
   );
 }
 
-function AuditView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
+function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
   return (
     <div className="view-stack">
-      <MetricRail analysis={analysis} />
+      <MetricRail analysis={analysis} run={run} />
       <section className="audit-section materials-audit">
         <div className="subsection-head">
-          <div><span className="section-kicker">IMMUTABLE IDENTITIES</span><h3>分析预览审计</h3></div>
-          <span className="data-chip">NO EXECUTION HASH</span>
+          <div><span className="section-kicker">IMMUTABLE IDENTITIES</span><h3>{run ? "材料执行审计链" : "分析预览审计"}</h3></div>
+          <span className="data-chip">{run ? "LOCAL SIMULATION" : "NO EXECUTION HASH"}</span>
         </div>
         <dl>
           <dt>Analysis</dt><dd><code>{analysis.analysisHash}</code></dd>
           <dt>Dataset</dt><dd><code>{analysis.dataset.manifestHash}</code></dd>
           <dt>Problem</dt><dd><code>{analysis.problem.hash}</code></dd>
-          <dt>Execution</dt><dd>未执行，不生成 execution/result hash</dd>
+          <dt>Execution</dt><dd>{run ? <code>{run.audit.executionHash}</code> : "未执行，不生成 execution/result hash"}</dd>
+          {run ? <><dt>Result</dt><dd><code>{run.audit.resultHash}</code></dd><dt>Report</dt><dd><code>{run.audit.reportHash}</code></dd><dt>Backend</dt><dd><code>{run.audit.backendHash}</code></dd></> : null}
         </dl>
         <div className="interpretation-boundary">
           {analysis.domain.limitations.map((limitation) => (
@@ -299,21 +373,25 @@ function AuditView({ analysis }: { analysis: MaterialsAnalysisPayload }) {
 
 export function MaterialsView({
   analysis,
+  run,
   view,
 }: {
   analysis: MaterialsAnalysisPayload;
+  run?: MaterialsRunPayload | null;
   view: ViewId;
 }) {
-  if (view === "business") return <ResultView analysis={analysis} />;
-  if (view === "mapping") return <MappingView analysis={analysis} />;
-  if (view === "quantum") return <QuantumPreview analysis={analysis} />;
-  if (view === "comparison") return <ComparisonView analysis={analysis} />;
-  if (view === "audit") return <AuditView analysis={analysis} />;
+  if (view === "business") return <ResultView analysis={analysis} run={run} />;
+  if (view === "mapping") return <MappingView analysis={analysis} run={run} />;
+  if (view === "quantum") return <QuantumPreview analysis={analysis} run={run} />;
+  if (view === "comparison") return <ComparisonView analysis={analysis} run={run} />;
+  if (view === "audit") return <AuditView analysis={analysis} run={run} />;
+  const selectedSolution = run?.domain.quantumCandidate;
+  const selected = selectedSolution ? new Set([...selectedSolution.selectedDefectIds, ...selectedSolution.selectedAdsorptionIds]) : undefined;
   return (
     <div className="view-stack">
-      <MetricRail analysis={analysis} />
+      <MetricRail analysis={analysis} run={run} />
       <div className={`materials-structure-split ${analysis.executionFamily === "analog_ahs" ? "has-register" : ""}`}>
-        <LatticeFigure analysis={analysis} />
+        <LatticeFigure analysis={analysis} selected={selected} />
         {analysis.executionFamily === "analog_ahs" ? <RydbergFigure analysis={analysis} /> : null}
       </div>
     </div>

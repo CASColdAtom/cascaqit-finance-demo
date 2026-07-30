@@ -12,20 +12,20 @@ from typing import Any
 
 from cascaqit.algorithms import QAOA, OptimizerConfig
 
-from cascaqit_biomedicine_demo.audit import (
-    finalize_stable_audit,
-    local_backend_context,
-)
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
 from cascaqit_biomedicine_demo.pauli_vqe import hash_payload
-from cascaqit_biomedicine_demo.problem_model import (
+from cascaqit_biomedicine_demo.subproblem_selection import (
+    select_peptide_conformations,
+)
+from cascaqit_industry_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
+)
+from cascaqit_industry_demo.problem_model import (
     OptimizationProblemDefinition,
     QuboBuilder,
     TermGroup,
-)
-from cascaqit_biomedicine_demo.subproblem_selection import (
-    select_peptide_conformations,
 )
 
 DATA_ROOT = Path(__file__).resolve().parent / "data" / "peptide_landscape"

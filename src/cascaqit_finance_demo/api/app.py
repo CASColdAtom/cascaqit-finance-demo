@@ -61,6 +61,11 @@ from cascaqit_biomedicine_demo.peptide_landscape import (
     peptide_values,
     run_peptide_landscape,
 )
+from cascaqit_biomedicine_demo.rna_structure import (
+    analyze_rna_structure,
+    rna_values,
+    run_rna_structure,
+)
 from cascaqit_finance_demo.api.catalog import (
     SCENARIO_SPECS,
     build_case_input,
@@ -77,6 +82,11 @@ from cascaqit_materials_demo.catalog import (
 )
 from cascaqit_materials_demo.catalog import (
     preview_analysis as materials_preview_analysis,
+)
+from cascaqit_materials_demo.defect_adsorption import (
+    analyze_defect_adsorption,
+    material_values,
+    run_defect_adsorption,
 )
 
 # 前端构建产物随 Python wheel 一起安装，不能依赖源码仓库中的 frontend/dist。
@@ -474,6 +484,13 @@ def _biomedicine_request(
             raise _biomedicine_error(
                 "PEPTIDE_INPUT_INVALID", str(exc), "preflight"
             ) from exc
+    elif case_id == "rna_structure":
+        try:
+            values = rna_values(preset, request.values)
+        except ValueError as exc:
+            raise _biomedicine_error(
+                "RNA_INPUT_INVALID", str(exc), "preflight"
+            ) from exc
     else:
         values = {**spec.values, **request.values}
     return preset, values
@@ -537,6 +554,18 @@ def _materials_request(
                 raise HTTPException(status_code=422, detail=f"{key} is below minimum")
             if control.maximum is not None and float(value) > control.maximum:
                 raise HTTPException(status_code=422, detail=f"{key} exceeds maximum")
+    if case_id == "defect_adsorption":
+        try:
+            values = material_values(preset, values)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_INPUT_INVALID",
+                    "message": str(exc),
+                    "stage": "preflight",
+                },
+            ) from exc
     return preset, values
 
 
@@ -551,6 +580,8 @@ def _analyze_biomedicine_case(
         return analyze_active_center(preset, values)
     if case_id == "peptide_landscape":
         return analyze_peptide_landscape(preset, values)
+    if case_id == "rna_structure":
+        return analyze_rna_structure(preset, values)
     return preview_analysis(case_id)
 
 
@@ -670,6 +701,58 @@ def _biomedicine_run_response(
     }
 
 
+def _materials_run_response(
+    spec: Any,
+    preset: str,
+    values: dict[str, Any],
+    run: dict[str, Any],
+    request_started: float,
+) -> dict[str, Any]:
+    """Persist one material execution without using a biomedicine report schema."""
+
+    audit = run.get("audit")
+    if not isinstance(audit, dict) or not isinstance(audit.get("reportHash"), str):
+        raise RuntimeError("materials run is missing its stable report hash")
+    report_started = time.perf_counter()
+    report_path = (
+        REPORT_DIR / f"materials-{spec.case_id}-{audit['reportHash'][:16]}.json"
+    ).resolve()
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    audit["reportPath"] = str(report_path)
+    audit["timings"] = {
+        "executionSeconds": float(audit.get("wallTimeSeconds", 0.0)),
+        "reportSeconds": 0.0,
+        "totalSeconds": report_started - request_started,
+    }
+    report_payload = {
+        "schema": "materials.execution-report.v1",
+        "domainId": "materials",
+        "caseId": spec.case_id,
+        "preset": preset,
+        "reportHash": audit["reportHash"],
+        "run": run,
+    }
+    report_path.write_text(
+        json.dumps(report_payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    audit["timings"]["reportSeconds"] = time.perf_counter() - report_started
+    audit["timings"]["totalSeconds"] = time.perf_counter() - request_started
+    report_path.write_text(
+        json.dumps(report_payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    scenario = spec.to_dict()
+    scenario["values"] = values
+    return {
+        "scenario": scenario,
+        "preset": preset,
+        "dataset": run["analysis"]["dataset"],
+        "analysis": run["analysis"],
+        "run": run,
+    }
+
+
 @app.post("/api/domains/{domain_id}/scenarios/{case_id}/analyze")
 def analyze_domain_scenario(
     domain_id: str, case_id: str, request: AnalysisRequest
@@ -682,7 +765,11 @@ def analyze_domain_scenario(
         spec = MATERIALS_SCENARIO_SPECS[case_id]
         scenario = spec.to_dict()
         scenario["values"] = values
-        analysis = materials_preview_analysis(case_id, preset, values)
+        analysis = (
+            analyze_defect_adsorption(preset, values)
+            if case_id == "defect_adsorption"
+            else materials_preview_analysis(case_id, preset, values)
+        )
         return {
             "scenario": scenario,
             "preset": preset,
@@ -766,6 +853,16 @@ def _execute_biomedicine_job_unit(
         )
     if case_id == "peptide_landscape":
         return run_peptide_landscape(
+            preset=preset,
+            values=unit.values,
+            shots=shots,
+            seed=unit.seed,
+            layers=layers,
+            parameter_budget=budget,
+            optimizer_starts=starts,
+        )
+    if case_id == "rna_structure":
+        return run_rna_structure(
             preset=preset,
             values=unit.values,
             shots=shots,
@@ -866,15 +963,66 @@ async def run_domain_scenario(
     if domain_id == "finance":
         return await run_scenario(case_id, request)
     if domain_id == "materials":
-        _materials_request(case_id, request)
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "MATERIALS_EXECUTOR_NOT_IMPLEMENTED",
-                "message": "该材料场景当前只开放可审计分析预览，执行器尚未接入。",
-                "stage": "preflight",
-            },
-        )
+        request_started = time.perf_counter()
+        preset, values = _materials_request(case_id, request)
+        spec = MATERIALS_SCENARIO_SPECS[case_id]
+        if spec.implementation_status != "available":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_EXECUTOR_NOT_IMPLEMENTED",
+                    "message": "该材料场景当前只开放可审计分析预览，执行器尚未接入。",
+                    "stage": "preflight",
+                },
+            )
+        if request.mode == "analog":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_MODE_UNSUPPORTED",
+                    "message": (
+                        "构型计量与覆盖度约束需要 Digital residual，"
+                        "不支持纯 Analog。"
+                    ),
+                    "stage": "preflight",
+                },
+            )
+        if request.algorithm not in {None, "recommended", "qaoa"}:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_ALGORITHM_UNSUPPORTED",
+                    "message": "缺陷与吸附构型优化只支持 QAOA。",
+                    "stage": "preflight",
+                },
+            )
+        profile = spec.to_dict()["recommendedExecution"]
+        try:
+            run = await run_in_threadpool(
+                run_defect_adsorption,
+                preset=preset,
+                values=values,
+                mode=request.mode,
+                shots=request.shots or int(profile["shots"]),
+                seed=request.seed if request.seed is not None else int(profile["seed"]),
+                layers=request.layers or int(profile["layers"]),
+                search_strategy=request.search_strategy
+                or str(profile["searchStrategy"]),
+                parameter_budget=request.parameter_budget
+                or int(profile["parameterBudget"]),
+                optimizer_starts=request.optimizer_starts
+                or int(profile["optimizerStarts"]),
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_EXECUTION_INVALID",
+                    "message": str(exc),
+                    "stage": "execution",
+                },
+            ) from exc
+        return _materials_run_response(spec, preset, values, run, request_started)
     if domain_id != "biomedicine":
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     request_started = time.perf_counter()
@@ -961,6 +1109,38 @@ async def run_domain_scenario(
         except ValueError as exc:
             raise _biomedicine_error(
                 "PEPTIDE_EXECUTION_INVALID", str(exc), "execution"
+            ) from exc
+        return _biomedicine_run_response(spec, preset, values, run, request_started)
+    if case_id == "rna_structure":
+        if request.mode not in {"recommended", "digital"}:
+            raise _biomedicine_error(
+                "RNA_MODE_UNSUPPORTED",
+                "RNA 候选配对模型只支持 Digital QAOA。",
+                "preflight",
+            )
+        if request.algorithm not in {None, "recommended", "qaoa"}:
+            raise _biomedicine_error(
+                "RNA_ALGORITHM_UNSUPPORTED",
+                "RNA 候选配对模型只支持 QAOA。",
+                "preflight",
+            )
+        profile = spec.recommended_execution
+        try:
+            run = await run_in_threadpool(
+                run_rna_structure,
+                preset=preset,
+                values=values,
+                shots=request.shots or int(profile["shots"]),
+                seed=request.seed if request.seed is not None else int(profile["seed"]),
+                layers=request.layers or int(profile["layers"]),
+                parameter_budget=request.parameter_budget
+                or int(profile["parameterBudget"]),
+                optimizer_starts=request.optimizer_starts
+                or int(profile["optimizerStarts"]),
+            )
+        except ValueError as exc:
+            raise _biomedicine_error(
+                "RNA_EXECUTION_INVALID", str(exc), "execution"
             ) from exc
         return _biomedicine_run_response(spec, preset, values, run, request_started)
     if request.mode not in {"recommended", "digital"}:

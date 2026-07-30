@@ -101,7 +101,10 @@ class CapabilityRegistry:
                 "sdk",
                 sdk_status,
                 sdk_reason,
-                ("test_biomedicine_peptide_landscape.py",),
+                (
+                    "test_biomedicine_peptide_landscape.py",
+                    "test_biomedicine_rna_structure.py",
+                ),
             ),
             Capability(
                 "hybrid_dad",
@@ -484,7 +487,9 @@ def build_experiment_plan(
             else {"recommended", "digital"}
         )
         expected_algorithm = (
-            "qaoa" if case_id in {"docking_match", "peptide_landscape"} else "vqe"
+            "qaoa"
+            if case_id in {"docking_match", "peptide_landscape", "rna_structure"}
+            else "vqe"
         )
         if mode not in allowed_modes:
             diagnostics.append(

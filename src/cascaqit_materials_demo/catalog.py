@@ -51,6 +51,7 @@ class MaterialsScenarioSpec:
     result_kind: str
     visual_kind: str
     capabilities: tuple[str, ...]
+    implementation_status: Literal["available", "preview"] = "preview"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -76,10 +77,8 @@ class MaterialsScenarioSpec:
                 "layers": 1,
                 "maxLayers": 1 if self.execution_family == "analog_ahs" else 2,
                 "minImprovement": 0,
-                "searchStrategy": "preset"
-                if self.execution_family == "analog_ahs"
-                else "continuous",
-                "parameterBudget": 2 if self.execution_family == "analog_ahs" else 12,
+                "searchStrategy": "preset",
+                "parameterBudget": 2,
                 "optimizerStarts": 1,
                 "repeats": 1,
             },
@@ -87,7 +86,7 @@ class MaterialsScenarioSpec:
             "resultKind": self.result_kind,
             "visualKind": self.visual_kind,
             "capabilities": list(self.capabilities),
-            "implementationStatus": "preview",
+            "implementationStatus": self.implementation_status,
             "experimentLevels": ["standard"],
         }
 
@@ -130,11 +129,16 @@ MATERIALS_SCENARIO_SPECS: dict[str, MaterialsScenarioSpec] = {
         (
             "periodic_lattice",
             "symmetry_canonicalization",
+            "joint_defect_adsorption_qubo",
+            "coefficient_ledger",
             "material_qubo",
             "digital_qaoa",
             "hybrid_gate",
             "classic_enumeration",
+            "offline_reference",
+            "audit_hash_chain",
         ),
+        "available",
     ),
     "rydberg_dynamics": MaterialsScenarioSpec(
         "rydberg_dynamics",
@@ -317,7 +321,7 @@ def preview_analysis(
         "kind": "materials",
         "caseId": case_id,
         "executionFamily": spec.execution_family,
-        "implementationStatus": "preview",
+        "implementationStatus": spec.implementation_status,
         "analysisHash": identity,
         "dataset": {
             "id": f"materials.preview.{case_id}.{preset}",

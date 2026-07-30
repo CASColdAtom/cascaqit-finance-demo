@@ -15,10 +15,6 @@ from cascaqit.algorithms.measurement import (
     build_pauli_measurement_plan,
 )
 
-from cascaqit_biomedicine_demo.audit import (
-    finalize_stable_audit,
-    local_backend_context,
-)
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
 from cascaqit_biomedicine_demo.pauli_vqe import (
@@ -27,6 +23,10 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
     hash_payload,
     sector_occupancy_from_counts,
     sector_occupancy_from_probabilities,
+)
+from cascaqit_industry_demo.audit import (
+    finalize_stable_audit,
+    local_backend_context,
 )
 
 DATA_ROOT = Path(__file__).resolve().parent / "data" / "active_center"
