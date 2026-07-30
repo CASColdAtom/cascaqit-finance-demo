@@ -566,8 +566,8 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   if (!(await runButton.isVisible())) {
     await page.locator(".control-collapse").click();
   }
-  if (!(await runButton.isDisabled())) {
-    throw new Error(`${name}/rydberg-dynamics: preview run button is enabled`);
+  if (await runButton.isDisabled()) {
+    throw new Error(`${name}/rydberg-dynamics: available run button is disabled`);
   }
   const analogSnapshot = await assertLayout(page, `${name}/rydberg-dynamics`);
   if ((await page.locator(".rydberg-register-svg:visible").count()) !== 1) {
@@ -580,8 +580,33 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   if (/digital|hybrid/i.test(analogModes)) {
     throw new Error(`${name}/rydberg-dynamics: non-Analog mode is visible`);
   }
-  await page.getByRole("tab", { name: "领域结果" }).click();
-  await page.getByText("ANALOG ONLY", { exact: true }).waitFor();
+  await runButton.click();
+  await page.getByText("AHS COMPLETED", { exact: true }).waitFor({ timeout: 90_000 });
+  await page.waitForFunction(
+    () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
+    undefined,
+    { timeout: 90_000 },
+  );
+  result.materials.rydbergResult = await assertLayout(
+    page,
+    `${name}/rydberg-dynamics-result`,
+  );
+  await page.getByRole("tab", { name: "量子实验" }).click();
+  await page.getByText("终态位串 counts", { exact: true }).waitFor();
+  await page.locator(".analog-dynamics-svg:visible").waitFor();
+  result.materials.rydbergQuantum = await assertLayout(
+    page,
+    `${name}/rydberg-dynamics-quantum`,
+  );
+  if ((await page.getByText("数字量子线路", { exact: true }).count()) !== 0) {
+    throw new Error(`${name}/rydberg-dynamics: digital circuit leaked after run`);
+  }
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByText("AHS RK4 与 DOP853 对照", { exact: true }).waitFor();
+  result.materials.rydbergComparison = await assertLayout(
+    page,
+    `${name}/rydberg-dynamics-comparison`,
+  );
   result.materials.rydbergDynamics = analogSnapshot;
   await page.screenshot({
     path: path.join(outputDir, `materials-analog-${name}.png`),

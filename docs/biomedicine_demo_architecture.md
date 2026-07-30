@@ -2,7 +2,7 @@
 
 ## 1. 架构结论
 
-对外统一产品名称为“中科酷原行业量子实验台”。金融、生物医药和材料科学现已接入统一一级领域导航；材料科学及 V3 新场景当前仍是分析预览，执行器按本章门禁逐步实现。`CASCAQit` 仅表示底层量子编程 SDK 和执行引擎。
+对外统一产品名称为“中科酷原行业量子实验台”。金融、生物医药和材料科学已接入统一一级领域导航；六个生物医药场景和两个材料场景均已具备本地可执行链，当前处于第十五阶段发布验收。`CASCAQit` 仅表示底层量子编程 SDK 和执行引擎。
 
 生物医药领域沿用金融 Demo 已验证的离线 FastAPI、React 工作台、CASCAQit 本地执行和审计报告结构，但不复用金融领域类型和命名。
 
@@ -960,7 +960,7 @@ V2 在现有测试基础上增加：
 
 ### 19.1 状态与职责边界
 
-本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二阶段已经接入两个生物医药入口、两个材料科学场景、三领域统一导航、材料结构视图和纯 Analog UI 门禁；第十三阶段已完成 RNA 版本化 fixture、配对 QUBO、Digital QAOA、经典枚举/动态规划对照，以及材料缺陷-吸附联合 QUBO、Digital/Hybrid 执行、经典枚举、离线参考、报告持久化和专用页面。第十四阶段已完成蛋白状态网络、连接保持活动子图、时间片路径 QUBO、Digital QAOA、有界 Dijkstra 对照、校准和专用页面。原生 AHS `AnalogExecutor` 仍未实现，材料 Rydberg 动力学继续保持 `preview`。V2 的四个生物医药场景和现有金融入口保持不变；V3 继续共用任务、审计和领域 API，但为原生 AHS 增加独立的 `AnalogExecutor`，避免把时间演化塞入 QUBO `ProblemExecutor`。
+本节是 PRD 第 16 节对应的目标架构，当前状态为 `IN PROGRESS`。第十二至第十四阶段已完成领域注册、RNA、材料构型优化和蛋白路径；第十五阶段已接入材料 Pure Analog AHS 的版本化 fixture、显式初态、目标校验、同初态前缀程序、时点观测量、独立 DOP853 对照、稳定审计和专用页面。八个生物医药与材料场景现均为 `available`，剩余工作是全量发布验收与浏览器证据。V2 的四个生物医药场景和现有金融入口保持不变；V3 共用审计和领域 API，但材料 AHS 由 `cascaqit_materials_demo.rydberg_dynamics` 内的独立执行路径负责，不进入 QUBO `ProblemExecutor`。
 
 架构将“动态”拆成三类能力：
 
@@ -976,11 +976,11 @@ RNA、蛋白路径和材料构型优化只把离散优化子问题交给 CASCAQi
 
 评审或演示文稿可使用 [PNG 版本](images/v3-biomolecule-materials-architecture.png)。
 
-`ExperimentPlanner`、`LocalJobManager`、`ProblemExecutor`、`AnalogExecutor` 和审计链保持领域中性。领域代码只负责数据、QUBO 或 AHS 定义构造、结果解码和可视化模型。`ProblemExecutor` 不接收 `AnalogExperimentDefinition`，`AnalogExecutor` 也不接收 QUBO，防止以模式参数暗中切换语义。
+离散优化继续复用 `ExperimentPlanner`、`LocalJobManager`、`ProblemExecutor` 和领域中性审计链。材料 AHS 的定义构造、前缀程序执行、结果解码和报告聚合当前由 `cascaqit_materials_demo.rydberg_dynamics` 显式封装；它不调用 `ProblemExecutor`，也不接收 QUBO，防止以模式参数暗中切换语义。后续只有出现第二个 Analog 场景时，才提取独立的领域中性执行器。
 
 ### 19.3 代码布局
 
-模块边界如下；`rna_structure.py`、`protein_dynamics.py`、对应数据目录和材料目录已经存在，`analog_executor.py` 仍是目标结构：
+模块边界如下；RNA、蛋白和两个材料执行模块及其版本化数据均已存在：
 
 ```text
 src/
@@ -993,20 +993,19 @@ src/
   cascaqit_materials_demo/
     __init__.py
     catalog.py
-    fixtures.py
     defect_adsorption.py
     rydberg_dynamics.py
     data/
       defect_adsorption/
       rydberg_dynamics/
   cascaqit_industry_demo/
-    domain_registry.py
-    advanced_experiments.py
+    audit.py
+    problem_api.py
     problem_executor.py
-    analog_executor.py
+    problem_model.py
 ```
 
-材料包不能导入生物医药或金融领域类型。三类领域只能依赖 `cascaqit_industry_demo` 的协议、规划器和执行器。统一 API 通过领域注册表发现目录，不再在路由中为每个新场景增加成组条件分支。
+材料包不导入生物医药或金融领域类型，离散优化只依赖 `cascaqit_industry_demo` 的问题模型、执行器和审计 helper。AHS 的领域适配与执行聚合目前同置于 `rydberg_dynamics.py`，但只调用 CASCAQit Analog API，不进入行业 QUBO 执行器。统一 FastAPI 外壳显式分派三个领域；未来继续增加领域时再提取注册式路由，当前不虚构尚不存在的 `domain_registry.py` 或 `analog_executor.py`。
 
 ### 19.4 四个新增数据流
 
@@ -1080,7 +1079,7 @@ versioned material effective lattice + defect preset
   -> AnalogExperimentDefinition
   -> pure-Analog capability and target gate
   -> AHSProgram validation and discretization
-  -> AnalogExecutor -> CASCAQit LocalAhsSimulator
+  -> Analog execution adapter -> CASCAQit AnalogStateVectorKernel
   -> time-series observable decoder
   -> independent exact-evolution comparison and audit
 ```
@@ -1091,7 +1090,7 @@ versioned material effective lattice + defect preset
 
 材料晶格坐标、有效模型位点和编译后的 Rydberg 寄存器坐标分别持久化。材料结构只提供科学来源和有效模型依据，不能直接传给 `AtomRegister`；Rydberg 布局必须经过独立的单位转换、最小间距、边界和目标能力校验。
 
-相邻 CASCAQit `1.0.5a` 源码中的 `AHSProgram`、`AtomRegister`、`Waveform`、目标校验、离散化和 `LocalAhsSimulator` 可作为接入起点，且终态结果已有 occupation、mean excitation 和 `correlation_z`。本次最小探针能够完成两原子 AHS 本地执行，但当前解释器实际从另一源码目录加载 `1.0.0a1`，不满足本项目 `>=1.0.5a0,<1.0.6` 的依赖声明；公开本地运行入口还从全基态开始、一次只返回终态，MVP 核心最多支持 4 个原子。因此 `AnalogExecutor` 只有在发布 wheel、运行版本与模块来源、可编程初态、受测时间采样和规模计划全部满足时才进入 `available`；此前场景保持 `preview`，不得在应用层拼接终态运行并冒充一条连续轨迹。
+当前运行时解析到 CASCAQit `1.0.5a`。`AHSProgram`、`AtomRegister`、`Waveform`、目标校验、`SimulationState.from_amplitudes()` 和 `AnalogStateVectorKernel.evolve()` 已通过四位点探针。高层 `LocalAhsSimulator.run()` 仍从全基态开始且只返回终态，因此应用不调用它生成时序结果：每个非零采样时刻独立构造覆盖 `[0,t]` 的完整前缀程序，从同一个声明初态执行，零时刻返回声明初态。各时点不是插值，也不把上一个终态作为下一个时点的输入。MVP 核心最多支持 4 个原子，活动窗口和 16 维 Hilbert 空间在分析阶段固定门禁。
 
 ### 19.5 数据契约与身份
 
@@ -1142,11 +1141,12 @@ Materials Analog
 |---|---|---|
 | `QUBOProblemIR`、Digital QAOA | 已验证 | 三个场景的默认执行路径 |
 | `ProblemCompiler`、Hybrid D-A-D | 已验证但受几何门禁限制 | RNA 和材料只有在冲突图完整时开放；蛋白路径默认不推荐 Hybrid |
-| `AHSProgram`、`AtomRegister`、`Waveform`、目标校验与离散化 | CASCAQit `1.0.5a` 相邻源码及测试已验证；当前开发解释器却加载 `1.0.0a1`，demo 发布 wheel 尚未验证 | 启动时同时校验版本范围、模块来源和 capability snapshot；通过后才能从 `preview` 转为 `available` |
-| `LocalAhsSimulator` 终态、occupation、mean excitation、`correlation_z` | 两原子最小探针和相邻源码数值测试已验证；公开运行入口当前为全基态、小规模终态执行 | 作为 Analog 接入基础，不等于时分辨场景已经交付 |
+| `AHSProgram`、`AtomRegister`、`Waveform`、目标校验 | CASCAQit `1.0.5a` 运行时与模块来源已验证 | 每个分析保存版本、模块路径、目标 ID、target snapshot hash 和程序 hash |
+| `SimulationState`、`AnalogStateVectorKernel` | 显式 4 位点基态位串和 RK4 演化已通过契约、数值与 API 测试 | 每个时刻从同一初态执行 `[0,t]` 前缀程序；状态和 solver evidence 独立保存 |
+| `LocalAhsSimulator` 终态接口 | 仍为全基态、小规模终态执行 | 不用于构造当前时序结果，也不把多次终态拼接成连续轨迹 |
 | 多 seed、配置对照、持久任务 | 应用层已实现 | 复用现有规划和 `job.json` 状态机 |
 | 有限温度/Gibbs 态采样 | 未验证 | 不把 RNA 采样频率解释为热力学概率 |
-| 时分辨 AHS 采样、可编程初态、超过 4 原子的本地模拟 | 当前调用面未满足本场景验收 | 材料 Analog 保持预览；不以应用层插值或经典曲线填补 |
+| 时分辨 AHS 采样、可编程初态、超过 4 原子的本地模拟 | 时点与初态已在 4 原子边界内实现；超过 4 原子仍不支持 | 活动窗口固定为 4；不以经典曲线、插值或 Digital 路线填补 |
 | 蛋白实时量子演化、时间关联函数 | 未验证 | 不提供量子蛋白真实时间动态，材料有效模型结果不能外推到蛋白全原子动力学 |
 | 周期性电子结构、运行时 DFT | 不属于现有 SDK 调用面 | 由外部工具离线生成材料参数 |
 
@@ -1163,7 +1163,7 @@ POST /api/domains/{domain_id}/scenarios/{case_id}/run
 POST /api/domains/{domain_id}/scenarios/{case_id}/jobs
 ```
 
-材料目录使用 `domain_id=materials`。RNA 和蛋白场景继续使用 `domain_id=biomedicine`。所有请求都由领域注册表解析；不存在的领域或场景返回 404，未通过能力门禁的配置返回结构化 422，不进入执行线程。
+材料目录使用 `domain_id=materials`。RNA 和蛋白场景继续使用 `domain_id=biomedicine`。当前 FastAPI 外壳通过显式领域分派解析请求；不存在的领域或场景返回 404，未通过能力门禁的配置返回结构化 422，不进入执行线程。
 
 前端一级导航增加“材料科学”。四个新增场景提供独立结构组件，但继续复用结果标签、任务矩阵和审计组件：
 
@@ -1200,15 +1200,15 @@ V3 至少增加以下自动化和浏览器检查：
 | 阶段 | 主要交付 | 退出条件 |
 |---|---|---|
 | 第十二阶段 | 领域注册表、材料包骨架、四类场景 manifest 和适配协议 | 三个一级领域目录可查询，新增场景保持 `preview`，现有场景全部回归 |
-| 第十三阶段 | RNA 与材料 QUBO、材料 AHS 适配器/执行器、Digital/Hybrid/纯 Analog 门禁和页面 | 两个优化场景可运行；Analog 三预设完成 wheel 契约、时间序列、三个固定 seed 和三视口证据，否则保持 `preview` |
+| 第十三阶段（已完成） | RNA 与材料 QUBO、Digital/Hybrid 门禁和材料 AHS 预览 | RNA 与材料构型优化可运行，AHS 保留严格预览门禁 |
 | 第十四阶段（已完成） | 蛋白状态网络、活动子图和路径优化研究入口 | 路径约束、经典基线、九次校准、专用页面和动态表述边界已通过自动化审计；浏览器截图仍受托管环境阻塞 |
-| 第十五阶段 | 八个生物医药与材料案例校准、离线包、客户讲解和发布报告 | 全量门禁、wheel、Windows 包和需求证据可追溯 |
+| 第十五阶段（进行中） | 材料 Pure Analog AHS、八案例校准、离线包、客户讲解和发布报告 | AHS 实现与定向门禁已通过；全量门禁、wheel、Windows 包和浏览器证据完成后退出 |
 
 | 需求编号 | 主要组件 | 核心身份 | 失败时行为 |
 |---|---|---|---|
-| `IND-V3-DOMAIN-01` | `DomainRegistry`、统一 API、领域导航 | domain/catalog hash | 未注册领域返回 404，不猜测默认领域 |
+| `IND-V3-DOMAIN-01` | FastAPI 显式领域分派、统一 API、领域导航 | domain/catalog hash | 未注册领域返回 404，不猜测默认领域 |
 | `BIO-V3-RNA-01` | RNA Adapter、配对 QUBO、RNA Decoder | sequence/energy/pairing/selection/QUBO hash | 约束或数据不完整时不生成量子子问题 |
 | `MAT-V1-ADSORB-01` | Materials Adapter、对称性处理、材料 QUBO | material/symmetry/energy/selection/QUBO hash | 周期、计量或 Hybrid 几何失败时拒绝相应配置 |
-| `MAT-V1-AHS-01` | Materials Analog Adapter、`AnalogExecutor`、AHS Decoder、Time-series Aggregator | material/effective-model/layout/initial-state/pulse/sample-times/result hash | 纯 Analog、目标、初态、轨迹或规模门禁失败时返回结构化诊断，不切换到 Digital 或经典结果 |
+| `MAT-V1-AHS-01` | Materials Analog Adapter、Prefix AHS Runner、AHS Decoder、Time-series Aggregator | material/effective-model/layout/initial-state/pulse/sample-times/result hash | 纯 Analog、目标、初态、轨迹或规模门禁失败时返回结构化诊断，不切换到 Digital 或经典结果 |
 | `BIO-V3-PROTEIN-DYN-01` | Network Adapter、Subgraph Selector、Path Decoder | conformation/network/selection/path-QUBO hash | 没有完整通路时返回领域诊断，不构造伪路径 |
 | `IND-V3-REL-01` | 校准脚本、浏览器验收、打包和发布报告 | evidence/package checksum | 任一新增场景未通过时保持预览或研究状态 |

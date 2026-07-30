@@ -206,7 +206,7 @@ const materialsScenario: ScenarioSpec = {
   values: {},
   recommendedMode: "analog",
   executionFamily: "analog_ahs",
-  implementationStatus: "preview",
+  implementationStatus: "available",
   recommendedExecution: {
     shots: 128,
     seed: 23,
@@ -222,7 +222,7 @@ const materialsAnalysis: MaterialsAnalysisPayload = {
   kind: "materials",
   caseId: "rydberg_dynamics",
   executionFamily: "analog_ahs",
-  implementationStatus: "preview",
+  implementationStatus: "available",
   analysisHash: "materials-analysis-hash",
   dataset: {
     id: "materials.preview.rydberg",
@@ -242,7 +242,7 @@ const materialsAnalysis: MaterialsAnalysisPayload = {
   resource: { logicalQubits: 1 },
   decision: {
     recommendedMode: "analog",
-    reason: "完整模型目标为纯 Analog；时分辨 SDK 契约尚未通过。",
+    reason: "完整有效 Hamiltonian 已通过 Pure Analog AHS 门禁。",
     modes: [
       { mode: "analog", algorithm: "qaa", status: "recommended", reason: "纯 Analog" },
     ],
@@ -264,9 +264,9 @@ const materialsAnalysis: MaterialsAnalysisPayload = {
       digitalGateCount: 0,
       digitalResidualCount: 0,
       hybridBlockCount: 0,
-      status: "planned",
+      status: "verified",
     },
-    limitations: ["不执行 AHS 时间演化"],
+    limitations: ["四位点材料派生有效模型"],
   },
 };
 
@@ -285,7 +285,7 @@ afterEach(() => {
 });
 
 describe("App", () => {
-  it("opens the materials Analog preview without exposing a digital circuit", async () => {
+  it("opens the executable materials Analog scenario without a digital circuit", async () => {
     api.getScenarios.mockImplementation((domainId?: string) =>
       Promise.resolve(domainId === "materials" ? [materialsScenario] : [scenario]),
     );
@@ -312,10 +312,8 @@ describe("App", () => {
     ).toBeTruthy();
     expect(await screen.findByText("周期晶格与缺陷")).toBeTruthy();
     expect(
-      (screen.getByRole("button", {
-        name: "结构预览",
-      }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+      (screen.getByRole("button", { name: "运行" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
     expect(screen.queryByText("数字量子线路")).toBeNull();
     expect(screen.queryByText("digital")).toBeNull();
     expect(screen.queryByText("hybrid")).toBeNull();

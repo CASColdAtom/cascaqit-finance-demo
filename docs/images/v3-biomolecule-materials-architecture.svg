@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1320" width="1200" height="1320" role="img" aria-labelledby="title desc">
-  <title id="title">中科酷原行业量子实验台 V3 目标架构</title>
+  <title id="title">中科酷原行业量子实验台 V3 当前架构</title>
   <desc id="desc">金融、生物医药和材料科学共用领域 API、实验规划、持久任务与审计。RNA、蛋白构象和材料构型进入 QUBO Digital 或 Hybrid 路线；材料缺陷晶格动力学进入独立的纯 Analog AHS 路线。</desc>
   <style>
     text { font-family: 'Microsoft YaHei', '微软雅黑', SimHei, Arial, sans-serif; fill: #111827; letter-spacing: 0; }
@@ -29,10 +29,10 @@
   </defs>
 
   <rect width="1200" height="1320" fill="#ffffff"/>
-  <text x="600" y="34" text-anchor="middle" font-size="22" font-weight="700">中科酷原行业量子实验台 V3 目标架构</text>
+  <text x="600" y="34" text-anchor="middle" font-size="22" font-weight="700">中科酷原行业量子实验台 V3 当前架构</text>
   <text x="600" y="58" text-anchor="middle" font-size="13" fill="#4b5563">离散优化与原生 Analog 多体动力学并列，执行语义严格隔离</text>
   <rect x="1010" y="22" width="130" height="30" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4"/>
-  <text x="1075" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">PLANNED</text>
+  <text x="1075" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">IMPLEMENTED</text>
 
   <rect class="layer" x="50" y="78" width="1100" height="140" rx="8"/>
   <text class="layer-label" x="70" y="102">入口与领域路由</text>
@@ -89,8 +89,8 @@
   <text class="node-subtitle" x="600" y="173">分析 · 运行 · 持久任务</text>
 
   <rect class="node" x="820" y="120" width="280" height="70" rx="8"/>
-  <text class="node-title" x="960" y="149">DomainRegistry</text>
-  <text class="node-subtitle" x="960" y="173">领域与场景发现</text>
+  <text class="node-title" x="960" y="149">API 显式领域分派</text>
+  <text class="node-subtitle" x="960" y="173">finance / biomedicine / materials</text>
 
   <rect class="rna" x="80" y="286" width="230" height="90" rx="8"/>
   <text class="node-title" x="195" y="320">RNA Adapter</text>
@@ -108,7 +108,7 @@
   <text class="node-subtitle" x="735" y="362">缺陷 / 吸附离线能量</text>
 
   <rect class="analog" x="890" y="286" width="230" height="90" rx="8"/>
-  <text class="node-title" x="1005" y="320">Materials Analog Adapter</text>
+  <text class="node-title" x="1005" y="320">Materials Model Adapter</text>
   <text class="node-subtitle" x="1005" y="344">有效晶格 · 缺陷预设</text>
   <text class="node-subtitle" x="1005" y="362">模型与坐标来源映射</text>
 
@@ -151,14 +151,14 @@
   <text class="node-subtitle" x="480" y="960">LocalBackend</text>
 
   <rect class="analog" x="650" y="884" width="230" height="92" rx="8"/>
-  <text class="node-title" x="765" y="918">AnalogExecutor</text>
-  <text class="node-subtitle" x="765" y="942">纯 Analog 门禁与轨迹编排</text>
-  <text class="node-subtitle" x="765" y="960">无 Digital residual</text>
+  <text class="node-title" x="765" y="918">Materials AHS Adapter</text>
+  <text class="node-subtitle" x="765" y="942">同初态 Prefix AHS Programs</text>
+  <text class="node-subtitle" x="765" y="960">Pure Analog 完整项账本</text>
 
   <rect class="analog" x="940" y="884" width="180" height="92" rx="8"/>
-  <text class="node-title" x="1030" y="912">CASCAQit AHS</text>
-  <text class="node-subtitle" x="1030" y="936">AHSProgram</text>
-  <text class="node-subtitle" x="1030" y="954">LocalAhsSimulator</text>
+  <text class="node-title" x="1030" y="912" font-size="11.5">AnalogStateVectorKernel</text>
+  <text class="node-subtitle" x="1030" y="936">SimulationState</text>
+  <text class="node-subtitle" x="1030" y="954">evolve(AHSProgram)</text>
 
   <rect class="node" x="160" y="1112" width="340" height="64" rx="8"/>
   <text class="node-title" x="330" y="1138">优化结果解码与经典对照</text>

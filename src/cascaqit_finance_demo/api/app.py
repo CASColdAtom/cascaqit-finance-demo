@@ -85,13 +85,15 @@ from cascaqit_finance_demo.quantum.problem_executor import (
 from cascaqit_materials_demo.catalog import (
     MATERIALS_SCENARIO_SPECS,
 )
-from cascaqit_materials_demo.catalog import (
-    preview_analysis as materials_preview_analysis,
-)
 from cascaqit_materials_demo.defect_adsorption import (
     analyze_defect_adsorption,
     material_values,
     run_defect_adsorption,
+)
+from cascaqit_materials_demo.rydberg_dynamics import (
+    analyze_rydberg_dynamics,
+    run_rydberg_dynamics,
+    rydberg_dynamics_values,
 )
 
 # 前端构建产物随 Python wheel 一起安装，不能依赖源码仓库中的 frontend/dist。
@@ -578,6 +580,18 @@ def _materials_request(
                     "stage": "preflight",
                 },
             ) from exc
+    elif case_id == "rydberg_dynamics":
+        try:
+            values = rydberg_dynamics_values(preset, values)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "MATERIALS_AHS_INPUT_INVALID",
+                    "message": str(exc),
+                    "stage": "preflight",
+                },
+            ) from exc
     return preset, values
 
 
@@ -782,7 +796,7 @@ def analyze_domain_scenario(
         analysis = (
             analyze_defect_adsorption(preset, values)
             if case_id == "defect_adsorption"
-            else materials_preview_analysis(case_id, preset, values)
+            else analyze_rydberg_dynamics(preset, values)
         )
         return {
             "scenario": scenario,
@@ -998,6 +1012,50 @@ async def run_domain_scenario(
                     "message": "该材料场景当前只开放可审计分析预览，执行器尚未接入。",
                     "stage": "preflight",
                 },
+            )
+        if case_id == "rydberg_dynamics":
+            if request.mode not in {"recommended", "analog"}:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "MATERIALS_AHS_MODE_UNSUPPORTED",
+                        "message": "Rydberg 动力学只支持 Pure Analog AHS。",
+                        "stage": "preflight",
+                    },
+                )
+            if request.algorithm not in {None, "recommended", "qaa"}:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "MATERIALS_AHS_ALGORITHM_UNSUPPORTED",
+                        "message": "Rydberg 动力学只接受 Analog AHS 执行请求。",
+                        "stage": "preflight",
+                    },
+                )
+            profile = spec.to_dict()["recommendedExecution"]
+            try:
+                run = await run_in_threadpool(
+                    run_rydberg_dynamics,
+                    preset=preset,
+                    values=values,
+                    shots=request.shots or int(profile["shots"]),
+                    seed=(
+                        request.seed
+                        if request.seed is not None
+                        else int(profile["seed"])
+                    ),
+                )
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "MATERIALS_AHS_EXECUTION_INVALID",
+                        "message": str(exc),
+                        "stage": "execution",
+                    },
+                ) from exc
+            return _materials_run_response(
+                spec, preset, values, run, request_started
             )
         if request.mode == "analog":
             raise HTTPException(

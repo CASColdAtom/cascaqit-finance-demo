@@ -1,0 +1,379 @@
+{
+  "claimBoundary": "Local four-site effective-model simulation only; no hardware, material transport, lifetime, or quantum-advantage claim.",
+  "configuration": {
+    "classicReference": "scipy_dop853",
+    "execution": "independent_prefix_ahs_from_declared_initial_state",
+    "presets": [
+      "perfect_lattice",
+      "single_vacancy",
+      "multi_defect_impurity"
+    ],
+    "sampleCount": 9,
+    "seeds": [
+      7,
+      23,
+      41
+    ],
+    "shotsPerTime": 128,
+    "timeStepsAtTerminal": 320
+  },
+  "environment": {
+    "cascaqitModule": "/Users/tomcat/code/quantum-program/cascaqit-new/CASCAQit/src/cascaqit/__init__.py",
+    "cascaqitVersion": "1.0.5a",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.9.6"
+  },
+  "generatedAt": "2026-07-30T12:55:02.715661+00:00",
+  "runs": [
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 2.930988785010413e-14,
+        "maxCorrelationAbsoluteError": 9.814506272354251e-06,
+        "maxOccupationAbsoluteError": 5.112615205249416e-06,
+        "terminalStateFidelity": 0.999999999825169
+      },
+      "hashes": {
+        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
+        "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
+        "configurationHash": "2c3304699198ba56c56bf9460ad9d606d241db6f87f2c8f9f375e227682bda65",
+        "executionHash": "e2e5f0288488c09c589766b427fa4e512a905ba7249777c7279d2bda32e18397",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "666790055ced80029d365771249821af377d15ef3a85666f8a19372e4c732dd3",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "902628fd233064f1ccc9060609ae78ec2755ab42aed0d8f4fd10995981ebef82",
+        "resultHash": "8f09930fc6f841c59ef8c9e56e599015fc542663f6c1d8d4d88ab8702552dcb5",
+        "rydbergLayoutHash": "37584831405c03ec3d0feeebeea4c8bb3cf722b2dd9dc9b0c20c909618582512",
+        "trajectoryHash": "01ed2ca7db70c4588a3adf3b2b5d342c75111bfe4d90e15b96fc5ba6bb0e49ec"
+      },
+      "passed": true,
+      "preset": "perfect_lattice",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.5222476249999999,
+      "seed": 7,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 2.930988785010413e-14,
+        "maxCorrelationAbsoluteError": 9.814506272354251e-06,
+        "maxOccupationAbsoluteError": 5.112615205249416e-06,
+        "terminalStateFidelity": 0.999999999825169
+      },
+      "hashes": {
+        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
+        "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
+        "configurationHash": "5c7fc145b3fd7155a97a6da576259d54822696cf40a96bf982e42bdbbcb482df",
+        "executionHash": "4a9bad3e123574fe82284267f831d5e2d32ce4c663cc4618a26714b4e7c43566",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "11ccc37621aaf3f41197fd718f269919a240d5bb2425be938577aaa6d69efe54",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "6a272c1361810266d7c2a15ab1a6fea8d0d19044e082bb8d31d23d0f20a537b0",
+        "resultHash": "ceef8d63fd29a155f24b4d3ef734505ff892c5e6af03e3399f82c173c6d11b67",
+        "rydbergLayoutHash": "37584831405c03ec3d0feeebeea4c8bb3cf722b2dd9dc9b0c20c909618582512",
+        "trajectoryHash": "701381902eab25b6b9a37db79dee4fc61bf914911b0c678ea4aea219ae5c537f"
+      },
+      "passed": true,
+      "preset": "perfect_lattice",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.465336333,
+      "seed": 23,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 2.930988785010413e-14,
+        "maxCorrelationAbsoluteError": 9.814506272354251e-06,
+        "maxOccupationAbsoluteError": 5.112615205249416e-06,
+        "terminalStateFidelity": 0.999999999825169
+      },
+      "hashes": {
+        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
+        "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
+        "configurationHash": "6eeebac83c20f6924a6ae57b8f39b82cce405f7a928c3ebb6c81de73e04a5e8c",
+        "executionHash": "06bbac816d7fcbf68fc4ea651cbe0186cd7cf0df7bf3e099db150251376d8992",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "8cdf43be44486bc110a87cd8a835d6eb2b4271e38ec11366c0ae121f6e96f8d7",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "2d2e7adcfa291210a3f83c1f93157116aee46ffac38565911e091f82f67e6881",
+        "resultHash": "9081ae959001de2f0e56cd8bf82bb9de733777700899242b6e4e3b7e9ddfb52a",
+        "rydbergLayoutHash": "37584831405c03ec3d0feeebeea4c8bb3cf722b2dd9dc9b0c20c909618582512",
+        "trajectoryHash": "43e4aa5ce3844e803226112014fc00122151146b285409df6c7f91b50f754ff4"
+      },
+      "passed": true,
+      "preset": "perfect_lattice",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.4931157080000004,
+      "seed": 41,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 2.220446049250313e-16,
+        "maxClassicNormError": 6.483702463810914e-14,
+        "maxCorrelationAbsoluteError": 2.368193710911015e-06,
+        "maxOccupationAbsoluteError": 7.961828432656581e-07,
+        "terminalStateFidelity": 0.9999999998599005
+      },
+      "hashes": {
+        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
+        "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
+        "configurationHash": "91b264fe08024eed974cab1eaf5797ba3d51dc0dc94afd6ac01ed363616f9076",
+        "executionHash": "76e3e72a56837977141fdd33b6cd14a1417c5ddadc4e48e1fd26a3964576f152",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "183ea2a8618ae19982ba0a60d573a39b492c9c749062fe1573fd80ff9a4cf6e5",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "d7539df258eaf40dd0691120a423d9d73c7d885aded425dcb5cecf5c812fc884",
+        "resultHash": "3599a38a63d060e864c808ca19cc86260ae9d95254ca173f6eaae80d8f4658b8",
+        "rydbergLayoutHash": "371fcf6bcfaada69fff669eebcea027d3825de89da289e2003301c04713262e9",
+        "trajectoryHash": "3b9290cce44e71431d2f67ac4290b935e1cdb7e21e2c0aa590b40a0f06e7a2bf"
+      },
+      "passed": true,
+      "preset": "single_vacancy",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.4248362079999999,
+      "seed": 7,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 2.220446049250313e-16,
+        "maxClassicNormError": 6.483702463810914e-14,
+        "maxCorrelationAbsoluteError": 2.368193710911015e-06,
+        "maxOccupationAbsoluteError": 7.961828432656581e-07,
+        "terminalStateFidelity": 0.9999999998599005
+      },
+      "hashes": {
+        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
+        "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
+        "configurationHash": "b7540504e27be6ee145048c25556604a9a2324cbebc28658e011fadf57e03df5",
+        "executionHash": "66cb9b6e14df2b75201326a304ba8e552948e046e2655000c176bb9a92368a69",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "4478bada8fb6e7a2f2e136afb71c2f587503ed5657976cdb034149a8c8211229",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "fb3801cd252681876c9701d93bbe0d796f25384d39728a6c5368c272a91d51b5",
+        "resultHash": "16aa9631bfbed13e4cd045c79e1a98bea1f01daff7483010cd1e8ca06e6e3fd7",
+        "rydbergLayoutHash": "371fcf6bcfaada69fff669eebcea027d3825de89da289e2003301c04713262e9",
+        "trajectoryHash": "23575dc6996d1cd5ec990ae315b1dfdeece9ea88b8d19fcd801498337ae35bdd"
+      },
+      "passed": true,
+      "preset": "single_vacancy",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.4434975419999998,
+      "seed": 23,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 2.220446049250313e-16,
+        "maxClassicNormError": 6.483702463810914e-14,
+        "maxCorrelationAbsoluteError": 2.368193710911015e-06,
+        "maxOccupationAbsoluteError": 7.961828432656581e-07,
+        "terminalStateFidelity": 0.9999999998599005
+      },
+      "hashes": {
+        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
+        "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
+        "configurationHash": "35f564dea2d9976519b06aec6e9494327a868c99b3c2881025ccabb22d58c15e",
+        "executionHash": "7a973de4b961fa20f0db926f247b7111d761121775ef51548cc3ae18734e9876",
+        "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "c4fc08403a2673af0732a522730c5e01ba4b009ce34be7e98bcf72d31e02292c",
+        "pulseScheduleHash": "b6f6882de37a807dd141cb14cb475903f948a33ab068ed23080c0e8312a68201",
+        "reportHash": "df68f72852a1e01738e8f5c53262e3263e0e38f5d7ac64b727375d0b697693c2",
+        "resultHash": "b647b1442b8b51a2a1137ff1229357d7ce76101441f7cf4be271aaa788e0a178",
+        "rydbergLayoutHash": "371fcf6bcfaada69fff669eebcea027d3825de89da289e2003301c04713262e9",
+        "trajectoryHash": "0665c61b11c5d296f6d20fac9badd18108fb5f89c0b9cc7a08d2bbe562625c2f"
+      },
+      "passed": true,
+      "preset": "single_vacancy",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.3936903340000004,
+      "seed": 41,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 8.815170815523743e-14,
+        "maxCorrelationAbsoluteError": 3.484341790205292e-06,
+        "maxOccupationAbsoluteError": 1.0730500984434954e-06,
+        "terminalStateFidelity": 0.9999999998217326
+      },
+      "hashes": {
+        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
+        "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
+        "configurationHash": "c7a97d89371c45b2559c331b5d123b658e8bdf4c527dfc756e9f6720daa8ff85",
+        "executionHash": "a0b57f61dc163226cf295c83747c815f9a5b55e67a877d4c8b53ce73cc36896b",
+        "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "2a714c419b5eec1969856443ca54e0740582a1f850a365815d2341ca3a843747",
+        "pulseScheduleHash": "ed44f5bda273f5fa8571ec753e32c234aa613bdff371fb92ef71c64e0e26d76e",
+        "reportHash": "7f48e2f4594243aadae347a18e746381aa6bf80902ce0f6350e02bbec2402c78",
+        "resultHash": "5410123153c1eb89283a76c86c91dd23348cc53532b4d388198f94ab9f3d6bd4",
+        "rydbergLayoutHash": "f1553c57351e36b5c77e8d73896bd22507c52f6ee589d900c0cd9c24c5f4fdb3",
+        "trajectoryHash": "6d3462c02659a8920380df39ddecd701a4a20f94b4c8288a5d171c022c3e7f5a"
+      },
+      "passed": true,
+      "preset": "multi_defect_impurity",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.5166087910000003,
+      "seed": 7,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 8.815170815523743e-14,
+        "maxCorrelationAbsoluteError": 3.484341790205292e-06,
+        "maxOccupationAbsoluteError": 1.0730500984434954e-06,
+        "terminalStateFidelity": 0.9999999998217326
+      },
+      "hashes": {
+        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
+        "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
+        "configurationHash": "de8721a412a2fd8119aa181406b1d863bae63b4d8364244c1c2b7b844f78a072",
+        "executionHash": "d44f0687e46e0cd31bfee93e7857f24879f8c4721b1ed0a55c94b408be4d605e",
+        "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "2b76718e719bcd44f440f2d94a0b81c6a04338d534d6d7fda940d1ccc308daae",
+        "pulseScheduleHash": "ed44f5bda273f5fa8571ec753e32c234aa613bdff371fb92ef71c64e0e26d76e",
+        "reportHash": "2cdd7cc3a6fbd5d5116ff9d289aa44b005e3df447aef604936a5683ee78ff9d8",
+        "resultHash": "a99b64308375320625050e1c4109dd5f896ba0d286cd9b73f4946b449078d3e0",
+        "rydbergLayoutHash": "f1553c57351e36b5c77e8d73896bd22507c52f6ee589d900c0cd9c24c5f4fdb3",
+        "trajectoryHash": "262becf6b9afcad977fdc66739a4b6b14e718ac82ef914552230cc9d2e79db45"
+      },
+      "passed": true,
+      "preset": "multi_defect_impurity",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.5128966669999997,
+      "seed": 23,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    },
+    {
+      "comparison": {
+        "maxAnalogNormError": 4.440892098500626e-16,
+        "maxClassicNormError": 8.815170815523743e-14,
+        "maxCorrelationAbsoluteError": 3.484341790205292e-06,
+        "maxOccupationAbsoluteError": 1.0730500984434954e-06,
+        "terminalStateFidelity": 0.9999999998217326
+      },
+      "hashes": {
+        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
+        "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
+        "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
+        "configurationHash": "1c93157f46e110a2f8c1fb3a4d9918a797731685f35311368045a43ec89d8d18",
+        "executionHash": "8de82c99beb122ff41e8bdde8d93849d31a27bcef985105f96aca43d405f14b6",
+        "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
+        "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
+        "outcomeHash": "1a2caa192e08830987e6a1c2d2ba4be73051d1ac6417ca8d11efefe79da9b307",
+        "pulseScheduleHash": "ed44f5bda273f5fa8571ec753e32c234aa613bdff371fb92ef71c64e0e26d76e",
+        "reportHash": "5bfcff53cea960f6e0435f2eb9fc2d5f0e3a60aa15a69cb54f9c194590a2f518",
+        "resultHash": "c58da3d4a0ee8e7b33723fc180e0641faecd0a1d9b3e2e2502fb7d1dd374d02d",
+        "rydbergLayoutHash": "f1553c57351e36b5c77e8d73896bd22507c52f6ee589d900c0cd9c24c5f4fdb3",
+        "trajectoryHash": "ac0ad871bb70eac2f3c95a370900253dd9d0257a391f088f5523e0b516e3c624"
+      },
+      "passed": true,
+      "preset": "multi_defect_impurity",
+      "pureAnalog": {
+        "digitalGateCount": 0,
+        "digitalResidualCount": 0,
+        "hybridBlockCount": 0
+      },
+      "sampleCount": 9,
+      "seconds": 0.5608365830000004,
+      "seed": 41,
+      "shotsPerTime": 128,
+      "terminalCountsTotal": 128
+    }
+  ],
+  "schema": "materials.analog-release-calibration.v1",
+  "summary": {
+    "failedCount": 0,
+    "maximumCorrelationAbsoluteError": 9.814506272354251e-06,
+    "maximumOccupationAbsoluteError": 5.112615205249416e-06,
+    "maximumSeconds": 0.5608365830000004,
+    "minimumTerminalStateFidelity": 0.9999999998217326,
+    "passed": true,
+    "passedCount": 9,
+    "runCount": 9
+  },
+  "thresholds": {
+    "maxCorrelationAbsoluteError": 0.001,
+    "maxNormError": 1e-09,
+    "maxOccupationAbsoluteError": 0.001,
+    "minimumTerminalStateFidelity": 0.999
+  }
+}

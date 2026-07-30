@@ -1,0 +1,88 @@
+{
+  "schema": "materials.rydberg-dynamics-domain.v1",
+  "modelLevel": "material-derived effective Rydberg lattice",
+  "coordinateIdentities": {
+    "material": {
+      "unit": "angstrom",
+      "source": "project-authored teaching lattice"
+    },
+    "effective": {
+      "unit": "dimensionless_lattice_coordinate",
+      "source": "deterministic four-site activity window"
+    },
+    "rydberg": {
+      "unit": "micrometer",
+      "source": "target-valid local AHS register"
+    }
+  },
+  "materialLattice": {
+    "rows": 3,
+    "columns": 4,
+    "spacingX": 2.8,
+    "spacingY": 3.1,
+    "nodes": [
+      {"id": "site.0", "label": "S1", "x": 14, "y": 22},
+      {"id": "site.1", "label": "S2", "x": 38, "y": 22},
+      {"id": "site.2", "label": "S3", "x": 62, "y": 22},
+      {"id": "site.3", "label": "S4", "x": 86, "y": 22},
+      {"id": "site.4", "label": "S5", "x": 14, "y": 50},
+      {"id": "site.5", "label": "S6", "x": 38, "y": 50},
+      {"id": "site.6", "label": "S7", "x": 62, "y": 50},
+      {"id": "site.7", "label": "S8", "x": 86, "y": 50},
+      {"id": "site.8", "label": "S9", "x": 14, "y": 78},
+      {"id": "site.9", "label": "S10", "x": 38, "y": 78},
+      {"id": "site.10", "label": "S11", "x": 62, "y": 78},
+      {"id": "site.11", "label": "S12", "x": 86, "y": 78}
+    ]
+  },
+  "presets": {
+    "perfect_lattice": {
+      "label": "ideal four-site plaquette",
+      "vacancies": [],
+      "impuritySites": [],
+      "activeWindow": ["site.1", "site.2", "site.5", "site.6"],
+      "rydbergPositions": [[0.0, 0.0], [5.6, 0.0], [0.0, 5.6], [5.6, 5.6]],
+      "initialBitstring": "1000",
+      "detuningStart": -2.0,
+      "localDetuningAmplitude": 0.0,
+      "localDetuningWeights": [0.0, 0.0, 0.0, 0.0]
+    },
+    "single_vacancy": {
+      "label": "single-vacancy propagation window",
+      "vacancies": ["site.5"],
+      "impuritySites": [],
+      "activeWindow": ["site.1", "site.4", "site.6", "site.9"],
+      "rydbergPositions": [[0.0, 0.0], [5.6, 0.0], [11.2, 0.0], [16.8, 0.0]],
+      "initialBitstring": "1000",
+      "detuningStart": -2.0,
+      "localDetuningAmplitude": 0.0,
+      "localDetuningWeights": [0.0, 0.0, 0.0, 0.0]
+    },
+    "multi_defect_impurity": {
+      "label": "multi-defect window with a local impurity field",
+      "vacancies": ["site.2", "site.9"],
+      "impuritySites": ["site.10"],
+      "activeWindow": ["site.1", "site.3", "site.8", "site.10"],
+      "rydbergPositions": [[0.0, 0.0], [5.4, 0.0], [10.9, 0.8], [16.5, 0.0]],
+      "initialBitstring": "0100",
+      "detuningStart": -2.5,
+      "localDetuningAmplitude": 1.2,
+      "localDetuningWeights": [0.0, 0.0, 1.0, 0.0]
+    }
+  },
+  "pulsePolicy": {
+    "rabiShape": "piecewise_linear_0_peak_peak_0",
+    "rabiKnotFractions": [0.0, 0.25, 0.75, 1.0],
+    "detuningShape": "linear",
+    "phase": 0.0,
+    "timeUnit": "us",
+    "amplitudeUnit": "rad/us"
+  },
+  "limitations": [
+    "The lattice is a project-authored effective teaching model, not an ab-initio material Hamiltonian.",
+    "The executable activity window is capped at four sites by the validated local AHS kernel.",
+    "Rydberg register coordinates are compiler/runtime coordinates and are not material atom coordinates.",
+    "Time points are independent prefix-program simulations from one declared initial state, not interpolated trajectories.",
+    "All execution is local simulation with no hardware, cloud, or network access."
+  ]
+}

@@ -55,6 +55,21 @@ def run_material():
     response.raise_for_status()
     return response.json()
 
+def run_analog():
+    response = client.post(
+        "/api/domains/materials/scenarios/rydberg_dynamics/run",
+        json={
+            "preset": "perfect_lattice",
+            "values": {"sample_count": 5},
+            "mode": "analog",
+            "algorithm": "qaa",
+            "shots": 32,
+            "seed": 23,
+        },
+    )
+    response.raise_for_status()
+    return response.json()
+
 print(json.dumps({
     "financeScenarios": get("/api/domains/finance/scenarios"),
     "financeAnalysis": analyze("finance", "portfolio", "base"),
@@ -68,6 +83,7 @@ print(json.dumps({
         ),
     },
     "materialsRun": run_material(),
+    "materialsAnalogRun": run_analog(),
 }, ensure_ascii=False))
 `;
 
@@ -130,6 +146,10 @@ async function serveWorkbench(route) {
     "/api/domains/materials/scenarios/defect_adsorption/run"
   ) {
     await route.fulfill(jsonBody(fixtures.materialsRun));
+    return;
+  }
+  if (pathname === "/api/domains/materials/scenarios/rydberg_dynamics/run") {
+    await route.fulfill(jsonBody(fixtures.materialsAnalogRun));
     return;
   }
   if (pathname.startsWith("/api/")) {
@@ -282,8 +302,8 @@ async function runViewport(browser, name, width, height) {
   await page.waitForURL("**/materials/rydberg_dynamics");
   await waitForAnalysis(page);
   runButton = await exposeControls(page);
-  if (!(await runButton.isDisabled())) {
-    throw new Error(`${name}/rydberg-dynamics: preview run button is enabled`);
+  if (await runButton.isDisabled()) {
+    throw new Error(`${name}/rydberg-dynamics: available run button is disabled`);
   }
   if ((await page.getByText("数字量子线路", { exact: true }).count()) !== 0) {
     throw new Error(`${name}/rydberg-dynamics: digital circuit leaked into pure Analog`);
@@ -310,6 +330,13 @@ async function runViewport(browser, name, width, height) {
     fullPage: true,
   });
 
+  await runButton.click();
+  await page.getByText("AHS COMPLETED", { exact: true }).waitFor();
+  await waitForAnalysis(page);
+  result.rydbergDynamics.resultLayout = await assertNoOverflow(
+    page,
+    `${name}/rydberg-result`,
+  );
   await page.getByRole("tab", { name: "量子实验" }).click();
   result.rydbergDynamics.pulse = await assertMarkedSvg(
     page,
@@ -320,6 +347,12 @@ async function runViewport(browser, name, width, height) {
     page,
     `${name}/rydberg-quantum`,
   );
+  result.rydbergDynamics.dynamics = await assertMarkedSvg(
+    page,
+    ".analog-dynamics-svg",
+    `${name}/rydberg-dynamics-series`,
+  );
+  await page.getByText("终态位串 counts", { exact: true }).waitFor();
   if ((await page.getByText("数字量子线路", { exact: true }).count()) !== 0) {
     throw new Error(`${name}/rydberg-quantum: digital circuit leaked into pure Analog`);
   }
@@ -327,6 +360,12 @@ async function runViewport(browser, name, width, height) {
     path: path.join(outputDir, `materials-analog-pulse-${name}.png`),
     fullPage: true,
   });
+  await page.getByRole("tab", { name: "对照分析" }).click();
+  await page.getByText("AHS RK4 与 DOP853 对照", { exact: true }).waitFor();
+  result.rydbergDynamics.comparisonLayout = await assertNoOverflow(
+    page,
+    `${name}/rydberg-comparison`,
+  );
 
   await page.getByRole("tab", { name: "领域结果" }).click();
   await page.getByText("ANALOG ONLY", { exact: true }).waitFor();

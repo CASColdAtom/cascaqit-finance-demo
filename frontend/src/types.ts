@@ -700,11 +700,29 @@ export interface MaterialsAnalysisPayload {
   problem: BiomedicineAnalysisPayload["problem"];
   resource: Record<string, number | string | boolean>;
   decision: BiomedicineAnalysisPayload["decision"];
+  analogProgram?: {
+    schema: string;
+    experimentKind: "analog_ahs";
+    programHash: string;
+    targetSnapshotHash: string;
+    initialStateHash: string;
+    pulseScheduleHash: string;
+    sampleTimes: number[];
+    observableDefinitions: string[];
+  };
+  sdk?: {
+    name: "CASCAQit";
+    version: string;
+    validatedRange: string;
+    validatedRelease: boolean;
+    modulePath: string;
+    capabilities: string[];
+  };
   layout?: Array<{ id: string; x: number; y: number }>;
   domain: {
     kind: "defect_adsorption" | "rydberg_dynamics";
     modelLevel: string;
-    nodes: BiomedicineStructureNode[];
+    nodes: Array<BiomedicineStructureNode & { inActiveWindow?: boolean }>;
     adsorbates?: Array<{
       id: string;
       site: string;
@@ -753,18 +771,55 @@ export interface MaterialsAnalysisPayload {
       y: number;
       active: boolean;
     }>;
+    effectiveWindow?: Array<{ atomId: string; sourceSite: string }>;
+    rydbergLayoutHash?: string;
+    interactions?: Array<{
+      left: string;
+      right: string;
+      distance: number;
+      strength: number;
+      source: string;
+    }>;
     sampleTimes?: number[];
     pulse?: {
       duration: number;
       rabiPeak: number;
       detuningStart: number;
       detuningEnd: number;
+      rabiTimes?: number[];
+      rabiValues?: number[];
+    };
+    pulseSchedule?: {
+      duration: number;
+      timeUnit: string;
+      rabi: { times: number[]; values: number[]; unit: string };
+      detuning: { times: number[]; values: number[]; unit: string };
+      localDetuning: { amplitude: number; weights: number[]; unit: string };
+      phase: number;
+    };
+    initialState?: {
+      bitstring: string;
+      basis: string;
+      atomOrder: string[];
+      stateHash: string;
+      source: string;
+    };
+    targetValidation?: {
+      status: string;
+      diagnosticCodes: string[];
+      targetId: string;
+      targetSnapshotHash: string;
     };
     pureAnalogEvidence?: {
       digitalGateCount: number;
       digitalResidualCount: number;
       hybridBlockCount: number;
       status: string;
+      declaredHamiltonianTermCount?: number;
+      mappedHamiltonianTermCount?: number;
+      missingTermIds?: string[];
+      unexpectedTermIds?: string[];
+      interactionSource?: string;
     };
     limitations: string[];
   };
@@ -788,7 +843,40 @@ export interface MaterialSolutionPayload {
   }>;
 }
 
-export interface MaterialsRunPayload {
+export interface MaterialsRunAudit {
+  domainId: "materials";
+  caseId: "defect_adsorption" | "rydberg_dynamics";
+  datasetId: string;
+  datasetVersion: string;
+  manifestHash: string;
+  domainInputHash: string;
+  problemHash: string;
+  analysisHash: string;
+  compileHash: string;
+  executionHash: string;
+  resultHash: string;
+  reportHash: string;
+  backendHash: string;
+  configurationHash: string;
+  outcomeHash: string;
+  seed: number;
+  shots: number;
+  hardwareExecution: false;
+  cloudExecution: false;
+  networkAccessed: false;
+  wallTimeSeconds: number;
+  optimalityClaim: string;
+  claimBoundary: string;
+  reportPath?: string;
+  timings?: ElectronicStructureRunPayload["audit"]["timings"];
+  trajectoryHash?: string;
+  classicReferenceHash?: string;
+  initialStateHash?: string;
+  pulseScheduleHash?: string;
+  rydbergLayoutHash?: string;
+}
+
+export interface MaterialsOptimizationRunPayload {
   kind: "materials";
   analysis: MaterialsAnalysisPayload;
   domain: {
@@ -838,34 +926,99 @@ export interface MaterialsRunPayload {
       evaluations: number;
     };
   };
-  audit: {
-    domainId: "materials";
+  audit: MaterialsRunAudit & {
     caseId: "defect_adsorption";
-    datasetId: string;
-    datasetVersion: string;
-    manifestHash: string;
-    domainInputHash: string;
-    problemHash: string;
-    analysisHash: string;
-    compileHash: string;
-    executionHash: string;
-    resultHash: string;
-    reportHash: string;
-    backendHash: string;
-    configurationHash: string;
-    outcomeHash: string;
-    seed: number;
-    shots: number;
-    hardwareExecution: false;
-    cloudExecution: false;
-    networkAccessed: false;
-    wallTimeSeconds: number;
-    optimalityClaim: string;
-    claimBoundary: string;
-    reportPath?: string;
-    timings?: ElectronicStructureRunPayload["audit"]["timings"];
   };
 }
+
+export interface AnalogTimePointPayload {
+  requestedTime: number;
+  actualTime: number;
+  timeUnit: string;
+  programHash: string | null;
+  stateHash: string;
+  resultHash: string;
+  probabilityNorm: number;
+  occupation: Record<string, number>;
+  meanExcitation: number;
+  magnetizationZ: number;
+  correlations: Record<string, number>;
+  counts: Array<{ state: string; count: number }>;
+  diagnosticCodes: string[];
+  solver: string;
+}
+
+export interface ClassicAnalogTimePointPayload {
+  requestedTime: number;
+  actualTime: number;
+  timeUnit: string;
+  resultHash: string;
+  probabilityNorm: number;
+  occupation: Record<string, number>;
+  meanExcitation: number;
+  magnetizationZ: number;
+  correlations: Record<string, number>;
+}
+
+export interface MaterialsAnalogRunPayload {
+  kind: "materials";
+  analysis: MaterialsAnalysisPayload;
+  domain: {
+    kind: "rydberg_dynamics_result";
+    analogStatus: "completed";
+    classicReference: {
+      source: "independent_scipy_dop853";
+      method: string;
+      rtol: number;
+      atol: number;
+      resultHash: string;
+      timeSeries: ClassicAnalogTimePointPayload[];
+    };
+    comparison: {
+      maxOccupationAbsoluteError: number;
+      maxCorrelationAbsoluteError: number;
+      terminalStateFidelity: number;
+      maxAnalogNormError: number;
+      maxClassicNormError: number;
+    };
+    interpretation: string;
+  };
+  quantum: {
+    kind: "analog_ahs";
+    experimentKind: "analog_ahs";
+    mode: "analog";
+    algorithm: "ahs_time_evolution";
+    atomOrder: string[];
+    initialState: NonNullable<MaterialsAnalysisPayload["domain"]["initialState"]>;
+    pulseSchedule: NonNullable<MaterialsAnalysisPayload["domain"]["pulseSchedule"]>;
+    sampleTimes: number[];
+    timeSeries: AnalogTimePointPayload[];
+    terminalCounts: Array<{ state: string; count: number }>;
+    pureAnalogEvidence: NonNullable<MaterialsAnalysisPayload["domain"]["pureAnalogEvidence"]>;
+    summary: {
+      analogSites: number;
+      sampleCount: number;
+      shotsPerTime: number;
+      prefixProgramCount: number;
+      timeStepsAtTerminal: number;
+      digitalGateCount: 0;
+      digitalResidualCount: 0;
+      hybridBlockCount: 0;
+    };
+  };
+  audit: MaterialsRunAudit & {
+    caseId: "rydberg_dynamics";
+    trajectoryHash: string;
+    classicReferenceHash: string;
+    initialStateHash: string;
+    pulseScheduleHash: string;
+    rydbergLayoutHash: string;
+  };
+}
+
+export type MaterialsRunPayload =
+  | MaterialsOptimizationRunPayload
+  | MaterialsAnalogRunPayload;
 
 export type WorkbenchAnalysisPayload =
   | AnalysisPayload

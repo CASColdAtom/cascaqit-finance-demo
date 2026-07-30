@@ -3048,6 +3048,15 @@ code,
   fill: var(--amber);
 }
 
+.lattice-site[data-role="impurity"] circle {
+  fill: rgba(244, 114, 182, 0.16);
+  stroke: #f472b6;
+}
+
+.lattice-site[data-active-window="true"] circle {
+  stroke-width: 1.7;
+}
+
 .adsorbate-site line {
   stroke: var(--cyan);
   stroke-width: 0.8;
@@ -3084,6 +3093,12 @@ code,
 .materials-legend i[data-kind="vacancy"] {
   border-color: var(--amber);
   border-style: dashed;
+}
+
+.materials-legend i[data-kind="active"] {
+  border-width: 2px;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(74, 217, 135, 0.12);
 }
 
 .materials-legend i[data-kind="adsorbate"] {
@@ -3250,6 +3265,147 @@ code,
   stroke: rgba(238, 187, 82, 0.3);
   stroke-dasharray: 3 5;
   stroke-width: 1;
+}
+
+.analog-result-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.analog-result-metrics > div {
+  display: grid;
+  min-width: 0;
+  min-height: 98px;
+  align-content: center;
+  gap: 7px;
+  padding: 14px;
+  border-right: 1px solid var(--line);
+}
+
+.analog-result-metrics > div:last-child {
+  border-right: 0;
+}
+
+.analog-result-metrics span,
+.analog-result-metrics small {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+}
+
+.analog-result-metrics strong {
+  overflow-wrap: anywhere;
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.analog-dynamics-svg {
+  display: block;
+  width: 100%;
+  height: 360px;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 14, 12, 0.72);
+}
+
+.analog-dynamics-svg g line {
+  stroke: rgba(122, 144, 135, 0.15);
+  stroke-width: 1;
+}
+
+.analog-dynamics-svg text {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.analog-series {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.analog-series.classic-series {
+  opacity: 0.75;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+}
+
+.analog-axis {
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+}
+
+.analog-series-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 12px;
+}
+
+.analog-series-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+}
+
+.analog-series-legend i {
+  width: 16px;
+  height: 2px;
+}
+
+.analog-series-legend .classic-key {
+  height: 0;
+  border-top: 1px dashed var(--muted);
+  background: transparent;
+}
+
+.analog-count-bars {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.analog-count-bars > div {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 42px;
+  gap: 10px;
+  align-items: center;
+}
+
+.analog-count-bars code,
+.analog-count-bars strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.analog-count-bars strong {
+  text-align: right;
+}
+
+.analog-count-bars span {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  background: rgba(102, 126, 116, 0.16);
+}
+
+.analog-count-bars i {
+  display: block;
+  height: 100%;
+  background: var(--green);
 }
 
 .materials-empty-execution {
@@ -3810,20 +3966,23 @@ code,
 
   .readiness-grid,
   .materials-pipeline,
-  .comparison-columns {
+  .comparison-columns,
+  .analog-result-metrics {
     grid-template-columns: 1fr;
   }
 
   .readiness-grid > div,
   .materials-pipeline > div,
-  .comparison-columns > div {
+  .comparison-columns > div,
+  .analog-result-metrics > div {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
   .readiness-grid > div:last-child,
   .materials-pipeline > div:last-child,
-  .comparison-columns > div:last-child {
+  .comparison-columns > div:last-child,
+  .analog-result-metrics > div:last-child {
     border-bottom: 0;
   }
 
@@ -3832,7 +3991,8 @@ code,
   }
 
   .materials-lattice-svg,
-  .materials-pulse-svg {
+  .materials-pulse-svg,
+  .analog-dynamics-svg {
     height: 280px;
   }
 

@@ -2,7 +2,7 @@
 
 这是一个基于 CASCAQit 的离线行业量子计算演示平台。产品在统一工作台内按一级领域组织场景，当前包含金融、生物医药和材料科学三个领域；`CASCAQit` 是底层量子编程 SDK 与本地执行引擎，不作为对外产品名称。
 
-金融领域保留七个成熟场景。生物医药六个场景均已接通真实本地模拟执行链：电子结构和金属活性中心使用 Digital VQE，构象匹配使用 Hybrid/Digital QAOA，小肽能景、RNA 二级结构和蛋白构象转变路径使用 Digital QAOA。材料缺陷与吸附优化使用 Hybrid/Digital QAOA；材料 Rydberg 动力学因 SDK 时分辨 Analog 契约尚未满足而保持 Preview。量子候选、经典对照与参考数据始终分开展示。
+金融领域保留七个成熟场景。生物医药六个场景均已接通真实本地模拟执行链：电子结构和金属活性中心使用 Digital VQE，构象匹配使用 Hybrid/Digital QAOA，小肽能景、RNA 二级结构和蛋白构象转变路径使用 Digital QAOA。材料缺陷与吸附优化使用 Hybrid/Digital QAOA；材料 Rydberg 动力学使用四位点 Pure Analog AHS 本地时间演化。量子结果、经典对照与参考数据始终分开展示。
 
 ## 启动
 
@@ -78,7 +78,7 @@ npm run dev
 | 场景 | 当前状态 | 中性原子量子路径 | 当前展示内容 |
 |---|---|---|---|
 | 催化表面缺陷与吸附构型优化 | 可执行 | Hybrid/Digital QAOA | 缺陷与吸附联合变量、周期与对称约束、量子/经典/离线参考三方对照 |
-| 缺陷晶格 Rydberg 动力学 | Preview | Pure Analog AHS | 有效晶格、Rydberg 布局和脉冲契约预览；不伪造时分辨轨迹 |
+| 缺陷晶格 Rydberg 动力学 | 可执行 | Pure Analog AHS | 四位点有效晶格、声明初态、真实前缀 AHS 时点、逐位点占据/关联、终态 counts 和独立 DOP853 对照 |
 
 ## 页面内容
 
@@ -88,7 +88,7 @@ React 工作台使用统一三栏布局：左侧只展示当前领域的场景�
 - 场景态势：合成输入、候选空间、冲突网络或依赖关系。
 - Problem 映射：Canonical Problem、Hamiltonian、模式判断、资源估算和 term mapping。
 - 量子实验：Digital 线路、Hybrid D-A-D、原子排列、合并控制波形、参数历史、counts 和独立重复运行统计。
-- 对照分析（仅生物医药）：分别展示量子观测、精确对角化、经典全枚举或共晶派生参考。
+- 对照分析（生物医药与材料）：分别展示量子观测、精确对角化、经典全枚举、共晶派生参考或独立 DOP853 时间演化。
 - 审计证据：Problem、analysis、compile、execution hash，以及 mode、seed、shots 和耗时；完整 Target、Backend 和执行边界保留在结构化审计载荷中。
 
 模式证据位于“Problem 映射”内，包括完整 core contribution 覆盖率、几何来源、布局策略、漏项、异常 Analog term 和物理补边。

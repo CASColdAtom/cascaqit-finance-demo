@@ -1,0 +1,51 @@
+{
+  "schema": "materials.dataset-manifest.v1",
+  "dataset_id": "materials.effective-lattice.rydberg-quench.teaching-v1",
+  "version": "1",
+  "title": "Four-site material-derived Rydberg quench teaching fixtures",
+  "source": {
+    "kind": "project_generated_teaching_model",
+    "citation": "CASColdAtom industry demo project-authored effective lattice",
+    "url": null,
+    "retrieved_at": "2026-07-30",
+    "source_file_sha256": "7972c2cacc57b8c92659c6056b812b4ef0a23f5ece2ba5fe32e4ad904c53a411"
+  },
+  "license": {
+    "name": "project_generated",
+    "redistribution": "included with the demo repository"
+  },
+  "generation": {
+    "method": "manually authored deterministic effective-lattice fixtures",
+    "script": null,
+    "parameters": {
+      "active_site_limit": 4,
+      "material_lattice_rows": 3,
+      "material_lattice_columns": 4,
+      "initial_state_basis": "ground_rydberg_occupation"
+    }
+  },
+  "units": {
+    "material_position": "angstrom",
+    "rydberg_position": "micrometer",
+    "time": "us",
+    "rabi": "rad/us",
+    "detuning": "rad/us",
+    "correlation": "dimensionless"
+  },
+  "presets": [
+    "perfect_lattice",
+    "single_vacancy",
+    "multi_defect_impurity"
+  ],
+  "artifacts": [
+    {
+      "path": "domain.json",
+      "sha256": "7972c2cacc57b8c92659c6056b812b4ef0a23f5ece2ba5fe32e4ad904c53a411"
+    }
+  ],
+  "limitations": [
+    "The fixture encodes an effective four-site teaching model rather than a material electronic-structure calculation.",
+    "The initial state and pulse schedule are declared model inputs, not inferred from experiment.",
+    "Results cannot be interpreted as material transport rates, lifetimes, or hardware measurements."
+  ]
+}

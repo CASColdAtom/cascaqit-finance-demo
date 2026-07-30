@@ -92,7 +92,7 @@ def test_domain_catalog_keeps_three_industry_domains_separate() -> None:
     }
     assert material_statuses == {
         "defect_adsorption": "available",
-        "rydberg_dynamics": "preview",
+        "rydberg_dynamics": "available",
     }
 
 
@@ -260,10 +260,13 @@ def test_protein_path_run_persists_quantum_and_classic_results_separately(
     )
 
 
-def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> None:
+def test_materials_analog_execution_keeps_coordinates_and_references_separate(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(app_module, "REPORT_DIR", tmp_path / "reports")
     response = client.post(
         "/api/domains/materials/scenarios/rydberg_dynamics/analyze",
-        json={"preset": "single_vacancy", "values": {}},
+        json={"preset": "single_vacancy", "values": {"sample_count": 5}},
     )
 
     assert response.status_code == 200
@@ -271,17 +274,15 @@ def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> 
     analysis = payload["analysis"]
     assert analysis["kind"] == "materials"
     assert analysis["executionFamily"] == "analog_ahs"
-    assert analysis["implementationStatus"] == "preview"
+    assert analysis["implementationStatus"] == "available"
     assert analysis["problem"]["type"] == "analog_experiment_definition"
-    assert analysis["domain"]["pureAnalogEvidence"] == {
-        "digitalGateCount": 0,
-        "digitalResidualCount": 0,
-        "hybridBlockCount": 0,
-        "status": "planned",
-    }
-    assert analysis["resource"]["analogSites"] == 11
+    assert analysis["domain"]["pureAnalogEvidence"]["status"] == "verified"
+    assert analysis["domain"]["pureAnalogEvidence"]["digitalGateCount"] == 0
+    assert analysis["domain"]["pureAnalogEvidence"]["digitalResidualCount"] == 0
+    assert analysis["domain"]["pureAnalogEvidence"]["hybridBlockCount"] == 0
+    assert analysis["resource"]["analogSites"] == 4
     assert "logicalQubits" not in analysis["resource"]
-    assert len(analysis["domain"]["sampleTimes"]) == 9
+    assert len(analysis["domain"]["sampleTimes"]) == 5
     material_x = analysis["domain"]["nodes"][0]["x"]
     rydberg_x = analysis["domain"]["rydbergLayout"][0]["x"]
     assert material_x != rydberg_x
@@ -289,10 +290,42 @@ def test_materials_analog_preview_keeps_coordinates_and_execution_separate() -> 
 
     run = client.post(
         "/api/domains/materials/scenarios/rydberg_dynamics/run",
-        json={"preset": "single_vacancy", "values": {}},
+        json={
+            "preset": "single_vacancy",
+            "values": {"sample_count": 5},
+            "mode": "analog",
+            "algorithm": "qaa",
+            "shots": 32,
+            "seed": 23,
+        },
     )
-    assert run.status_code == 422
-    assert run.json()["detail"]["code"] == "MATERIALS_EXECUTOR_NOT_IMPLEMENTED"
+    assert run.status_code == 200
+    executed = run.json()["run"]
+    assert executed["quantum"]["kind"] == "analog_ahs"
+    assert executed["quantum"]["summary"]["digitalGateCount"] == 0
+    assert executed["quantum"]["summary"]["digitalResidualCount"] == 0
+    assert executed["quantum"]["summary"]["hybridBlockCount"] == 0
+    assert executed["domain"]["classicReference"]["source"] == (
+        "independent_scipy_dop853"
+    )
+    assert executed["domain"]["comparison"]["maxOccupationAbsoluteError"] < 1e-3
+    assert executed["audit"]["reportPath"].endswith(".json")
+
+    unsupported = client.post(
+        "/api/domains/materials/scenarios/rydberg_dynamics/run",
+        json={"preset": "single_vacancy", "mode": "digital"},
+    )
+    assert unsupported.status_code == 422
+    assert unsupported.json()["detail"]["code"] == (
+        "MATERIALS_AHS_MODE_UNSUPPORTED"
+    )
+
+    invalid = client.post(
+        "/api/domains/materials/scenarios/rydberg_dynamics/analyze",
+        json={"preset": "single_vacancy", "values": {"sample_count": 6}},
+    )
+    assert invalid.status_code == 422
+    assert invalid.json()["detail"]["code"] == "MATERIALS_AHS_INPUT_INVALID"
 
     defect = client.post(
         "/api/domains/materials/scenarios/defect_adsorption/analyze",
