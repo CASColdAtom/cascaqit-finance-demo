@@ -1,9 +1,10 @@
 import type {
   AnalyzeResponse,
+  AnalysisRequest,
+  CapabilitySnapshot,
   DomainId,
   RunRequest,
   RunResponse,
-  ScenarioRequest,
   ScenarioSpec,
 } from "./types";
 
@@ -40,7 +41,7 @@ export async function getScenarios(domainId: DomainId = "finance"): Promise<Scen
 
 export function analyzeScenario(
   caseId: string,
-  body: ScenarioRequest,
+  body: AnalysisRequest,
   signal?: AbortSignal,
   domainId: DomainId = "finance",
 ): Promise<AnalyzeResponse> {
@@ -49,6 +50,10 @@ export function analyzeScenario(
     body: JSON.stringify(body),
     signal,
   });
+}
+
+export function getBiomedicineCapabilities(): Promise<CapabilitySnapshot> {
+  return request("/api/domains/biomedicine/capabilities");
 }
 
 export function runScenario(

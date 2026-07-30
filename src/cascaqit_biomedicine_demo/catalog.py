@@ -7,6 +7,10 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from cascaqit_biomedicine_demo.advanced_experiments import (
+    catalog_experiment_metadata,
+)
+
 DomainStatus = Literal["available", "preview"]
 
 
@@ -78,6 +82,7 @@ class BiomedicineScenarioSpec:
             "visualKind": self.visual_kind,
             "capabilities": list(self.capabilities),
             "implementationStatus": self.implementation_status,
+            **catalog_experiment_metadata(self.case_id),
         }
 
 

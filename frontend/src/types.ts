@@ -7,6 +7,9 @@ export type ModeStatus = "recommended" | "comparable" | "unsuitable";
 export type Accent = "cyan" | "emerald" | "amber";
 export type DomainId = "finance" | "biomedicine";
 export type ImplementationStatus = "available" | "preview";
+export type ExperimentLevel = "standard" | "advanced";
+export type ComplexityLevel = "standard" | "advanced_live" | "research";
+export type ComplexityProfileStatus = "available" | "planned";
 
 export interface SelectOption {
   value: string;
@@ -58,6 +61,86 @@ export interface ScenarioSpec {
   visualKind?: string;
   capabilities?: string[];
   implementationStatus?: ImplementationStatus;
+  experimentLevels?: ExperimentLevel[];
+  complexityProfiles?: ComplexityProfile[];
+}
+
+export interface ComplexityProfile {
+  profileId: ComplexityLevel;
+  level: ComplexityLevel;
+  status: ComplexityProfileStatus;
+  limits: {
+    logicalQubits: number;
+    problemVariables: number;
+    operatorTerms: number;
+    measurementGroups: number;
+    shots: number;
+    objectiveEvaluations: number;
+    estimatedSeconds: number;
+  };
+}
+
+export interface CapabilityItem {
+  id: string;
+  label: string;
+  layer: "sdk" | "application" | "sdk_application";
+  status: "available" | "unavailable";
+  reason: string;
+  contractTests: string[];
+}
+
+export interface CapabilitySnapshot {
+  sdk: {
+    name: "CASCAQit";
+    version: string;
+    validatedRelease: boolean;
+    validatedRange: string;
+  };
+  capabilities: CapabilityItem[];
+}
+
+export interface ExperimentPlanDiagnostic {
+  code: string;
+  message: string;
+  stage: "planning";
+}
+
+export interface ExperimentPlanPoint {
+  index: number;
+  values: Record<string, string | number | boolean>;
+  dataset: {
+    id: string;
+    version: string;
+    manifestHash: string;
+  } & Record<string, unknown>;
+  analysisHash?: string;
+  problemHash: string;
+  resource: {
+    logicalQubits: number;
+    problemVariables: number;
+    operatorTerms: number;
+    measurementGroups: number;
+  };
+}
+
+export interface ExperimentPlan {
+  planId: string;
+  caseId: string;
+  preset: string;
+  experimentLevel: ExperimentLevel;
+  profileId: ComplexityLevel;
+  completeDomainProblemHash: string;
+  quantumSubproblemHash: string;
+  points: ExperimentPlanPoint[];
+  configurations: Array<Record<string, unknown>>;
+  seeds: number[];
+  runCount: number;
+  estimatedSeconds: number;
+  maxUnitEstimatedSeconds: number;
+  executionPolicy: "sync" | "job" | "rejected";
+  diagnostics: ExperimentPlanDiagnostic[];
+  profile: ComplexityProfile;
+  capabilitySnapshot: CapabilitySnapshot;
 }
 
 export interface WorkbenchModeDecisionRow {
@@ -436,6 +519,7 @@ export interface AnalyzeResponse {
   scenario: ScenarioSpec;
   preset: string;
   analysis: WorkbenchAnalysisPayload;
+  experimentPlan?: ExperimentPlan;
 }
 
 export interface Metric {
@@ -996,6 +1080,26 @@ export interface RunResponse {
 export interface ScenarioRequest {
   preset: string;
   values: Record<string, string | number | boolean>;
+}
+
+export interface ExperimentConfigurationRequest {
+  mode?: Mode | "recommended";
+  algorithm?: Algorithm;
+  layers?: number;
+  shots?: number;
+  parameter_budget?: number;
+  optimizer_starts?: number;
+}
+
+export interface AnalysisRequest extends ScenarioRequest {
+  experimentLevel?: ExperimentLevel;
+  complexityProfile?: ComplexityLevel;
+  configurations?: ExperimentConfigurationRequest[];
+  seeds?: number[];
+  sweep?: {
+    parameter: string;
+    values: Array<string | number>;
+  };
 }
 
 export interface RunRequest extends ScenarioRequest {

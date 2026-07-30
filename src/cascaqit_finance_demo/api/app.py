@@ -13,7 +13,7 @@ import urllib.request
 import webbrowser
 from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 from uuid import uuid4
 
 from cascaqit.exceptions import CapabilityError
@@ -30,6 +30,10 @@ from cascaqit_biomedicine_demo.active_center import (
     active_center_values,
     analyze_active_center,
     run_active_center,
+)
+from cascaqit_biomedicine_demo.advanced_experiments import (
+    CapabilityRegistry,
+    build_experiment_plan,
 )
 from cascaqit_biomedicine_demo.catalog import (
     BIOMEDICINE_SCENARIO_SPECS,
@@ -121,6 +125,48 @@ class ScenarioRequest(BaseModel):
     # 因此这里保留 Optional 写法以兼容项目支持的最低 Python 版本。
     preset: Optional[str] = None  # noqa: UP045
     values: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExperimentConfigurationRequest(BaseModel):
+    """One independently hashed configuration in an advanced experiment plan."""
+
+    mode: Literal["recommended", "digital", "hybrid", "analog"] = "recommended"
+    algorithm: Optional[  # noqa: UP045
+        Literal["recommended", "qaoa", "vqe", "qaa"]
+    ] = None
+    layers: Optional[int] = Field(default=None, ge=1, le=3)  # noqa: UP045
+    shots: Optional[int] = Field(default=None, ge=1, le=1024)  # noqa: UP045
+    parameter_budget: Optional[int] = Field(  # noqa: UP045
+        default=None, ge=1, le=80
+    )
+    optimizer_starts: Optional[int] = Field(  # noqa: UP045
+        default=None, ge=1, le=3
+    )
+
+
+class SweepRequest(BaseModel):
+    """A bounded one-dimensional parameter grid declared by a scenario."""
+
+    parameter: str = Field(min_length=1)
+    values: list[Union[str, int, float]] = Field(  # noqa: UP007
+        min_length=1, max_length=9
+    )
+
+
+class AnalysisRequest(ScenarioRequest):
+    """Optional V2 planning controls; omitted fields preserve the V1 behavior."""
+
+    experiment_level: Literal["standard", "advanced"] = Field(
+        default="standard", alias="experimentLevel"
+    )
+    complexity_profile: Optional[  # noqa: UP045
+        Literal["standard", "advanced_live", "research"]
+    ] = Field(default=None, alias="complexityProfile")
+    configurations: list[ExperimentConfigurationRequest] = Field(
+        default_factory=list, max_length=3
+    )
+    seeds: list[int] = Field(default_factory=list, max_length=5)
+    sweep: Optional[SweepRequest] = None  # noqa: UP045
 
 
 class RunRequest(ScenarioRequest):
@@ -335,6 +381,13 @@ def domain_scenarios(domain_id: str) -> dict[str, Any]:
     raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
 
 
+@app.get("/api/domains/biomedicine/capabilities")
+def biomedicine_capabilities() -> dict[str, Any]:
+    """Return explicit SDK and application capability gates for V2 planning."""
+
+    return CapabilityRegistry().to_dict()
+
+
 def _biomedicine_request(
     case_id: str, request: ScenarioRequest
 ) -> tuple[str, dict[str, Any]]:
@@ -405,6 +458,72 @@ def _biomedicine_error(code: str, message: str, stage: str) -> HTTPException:
     )
 
 
+def _analyze_biomedicine_case(
+    case_id: str, preset: str, values: dict[str, Any]
+) -> dict[str, Any]:
+    if case_id == "electronic_structure":
+        return analyze_electronic_structure(preset, values)
+    if case_id == "docking_match":
+        return analyze_docking_match(preset, values)
+    if case_id == "active_center":
+        return analyze_active_center(preset, values)
+    if case_id == "peptide_landscape":
+        return analyze_peptide_landscape(preset, values)
+    return preview_analysis(case_id)
+
+
+def _biomedicine_analysis_points(
+    case_id: str,
+    preset: str,
+    base_values: dict[str, Any],
+    request: AnalysisRequest,
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    if request.experiment_level == "standard" and (
+        request.configurations or request.seeds or request.sweep is not None
+    ):
+        raise _biomedicine_error(
+            "ADVANCED_EXPERIMENT_LEVEL_REQUIRED",
+            "configurations, seeds, and sweep require experimentLevel=advanced",
+            "planning",
+        )
+    if request.sweep is None:
+        return [(base_values, _analyze_biomedicine_case(case_id, preset, base_values))]
+
+    spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    controls = {control.key: control for control in spec.controls}
+    try:
+        control = controls[request.sweep.parameter]
+    except KeyError as exc:
+        raise _biomedicine_error(
+            "SWEEP_PARAMETER_UNSUPPORTED",
+            f"unsupported sweep parameter: {request.sweep.parameter}",
+            "planning",
+        ) from exc
+    points: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for value in request.sweep.values:
+        if control.kind == "range" and not isinstance(value, (int, float)):
+            raise _biomedicine_error(
+                "SWEEP_VALUE_INVALID",
+                f"sweep parameter {control.key} requires numeric values",
+                "planning",
+            )
+        if control.kind == "select" and value not in {
+            option for option, _label in control.options
+        }:
+            raise _biomedicine_error(
+                "SWEEP_VALUE_INVALID",
+                f"unsupported value for {control.key}: {value}",
+                "planning",
+            )
+        overrides = {**request.values, control.key: value}
+        point_request = ScenarioRequest(preset=preset, values=overrides)
+        _point_preset, point_values = _biomedicine_request(case_id, point_request)
+        points.append(
+            (point_values, _analyze_biomedicine_case(case_id, preset, point_values))
+        )
+    return points
+
+
 def _persist_biomedicine_report(
     case_id: str, preset: str, run: dict[str, Any], request_started: float
 ) -> Path:
@@ -471,7 +590,7 @@ def _biomedicine_run_response(
 
 @app.post("/api/domains/{domain_id}/scenarios/{case_id}/analyze")
 def analyze_domain_scenario(
-    domain_id: str, case_id: str, request: ScenarioRequest
+    domain_id: str, case_id: str, request: AnalysisRequest
 ) -> dict[str, Any]:
     """Analyze a domain scenario while preserving the legacy finance route."""
     if domain_id == "finance":
@@ -480,19 +599,29 @@ def analyze_domain_scenario(
         raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
     preset, values = _biomedicine_request(case_id, request)
     try:
-        if case_id == "electronic_structure":
-            analysis = analyze_electronic_structure(preset, values)
-        elif case_id == "docking_match":
-            analysis = analyze_docking_match(preset, values)
-        elif case_id == "active_center":
-            analysis = analyze_active_center(preset, values)
-        elif case_id == "peptide_landscape":
-            analysis = analyze_peptide_landscape(preset, values)
-        else:
-            analysis = preview_analysis(case_id)
+        points = _biomedicine_analysis_points(case_id, preset, values, request)
+        analysis = points[0][1]
     except ValueError as exc:
         raise _biomedicine_error(
             "BIOMEDICINE_ANALYSIS_INVALID", str(exc), "analysis"
+        ) from exc
+    spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    try:
+        plan = build_experiment_plan(
+            case_id=case_id,
+            preset=preset,
+            experiment_level=request.experiment_level,
+            requested_profile=request.complexity_profile,
+            analysis_points=points,
+            configurations=[
+                item.model_dump(exclude_none=True) for item in request.configurations
+            ],
+            seeds=request.seeds,
+            recommended_execution=spec.recommended_execution,
+        )
+    except ValueError as exc:
+        raise _biomedicine_error(
+            "BIOMEDICINE_PLAN_INVALID", str(exc), "planning"
         ) from exc
     scenario = BIOMEDICINE_SCENARIO_SPECS[case_id].to_dict()
     scenario["values"] = values
@@ -501,6 +630,7 @@ def analyze_domain_scenario(
         "preset": preset,
         "dataset": analysis["dataset"],
         "analysis": analysis,
+        "experimentPlan": plan,
     }
 
 

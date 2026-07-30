@@ -9,6 +9,7 @@ import threading
 from importlib import import_module
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from cascaqit_biomedicine_demo import fixtures
@@ -58,6 +59,29 @@ def test_domain_catalog_keeps_finance_and_biomedicine_separate() -> None:
     assert {item["domainId"] for item in biomedicine.json()["scenarios"]} == {
         "biomedicine"
     }
+    assert all(
+        item["experimentLevels"] == ["standard", "advanced"]
+        for item in biomedicine.json()["scenarios"]
+    )
+    assert all(
+        [profile["status"] for profile in item["complexityProfiles"]]
+        == ["available", "planned", "planned"]
+        for item in biomedicine.json()["scenarios"]
+    )
+
+
+def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:
+    response = client.get("/api/domains/biomedicine/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sdk"]["validatedRelease"] is True
+    statuses = {item["id"]: item["status"] for item in payload["capabilities"]}
+    assert statuses["pauli_vqe"] == "available"
+    assert statuses["hybrid_dad"] == "available"
+    assert statuses["experiment_planning"] == "available"
+    assert statuses["batch_execution"] == "unavailable"
+    assert statuses["quantum_excited_states"] == "unavailable"
 
 
 def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
@@ -74,6 +98,100 @@ def test_electronic_structure_analysis_exposes_pauli_fixture_evidence() -> None:
     assert payload["analysis"]["resource"]["measurementGroups"] == 2
     assert len(payload["scenario"]["presets"]) == 3
     assert len(payload["analysis"]["domain"]["bondScanReference"]) == 3
+    assert payload["experimentPlan"]["executionPolicy"] == "sync"
+    assert payload["experimentPlan"]["runCount"] == 1
+    assert payload["experimentPlan"]["profile"]["profileId"] == "standard"
+
+
+@pytest.mark.parametrize(
+    ("case_id", "preset"),
+    [
+        ("electronic_structure", "h2_bond_scan"),
+        ("docking_match", "reference_pose"),
+        ("active_center", "antiferromagnetic"),
+        ("peptide_landscape", "hydrophobic_core"),
+    ],
+)
+def test_each_standard_scenario_has_one_executable_plan(
+    case_id: str, preset: str
+) -> None:
+    response = client.post(
+        f"/api/domains/biomedicine/scenarios/{case_id}/analyze",
+        json={"preset": preset, "values": {}},
+    )
+
+    assert response.status_code == 200
+    plan = response.json()["experimentPlan"]
+    assert plan["caseId"] == case_id
+    assert plan["runCount"] == 1
+    assert plan["executionPolicy"] == "sync"
+    assert plan["diagnostics"] == []
+    assert plan["profile"]["status"] == "available"
+
+
+def test_advanced_analysis_returns_truthful_rejected_plan_until_release() -> None:
+    response = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze",
+        json={
+            "preset": "antiferromagnetic",
+            "values": {},
+            "experimentLevel": "advanced",
+            "complexityProfile": "advanced_live",
+            "seeds": [7, 23, 41],
+            "sweep": {
+                "parameter": "exchange_coupling",
+                "values": [0.8, 1.2, 1.6],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    plan = response.json()["experimentPlan"]
+    assert plan["runCount"] == 9
+    assert plan["executionPolicy"] == "rejected"
+    assert [point["values"]["exchange_coupling"] for point in plan["points"]] == [
+        0.8,
+        1.2,
+        1.6,
+    ]
+    assert {item["code"] for item in plan["diagnostics"]} == {
+        "COMPLEXITY_PROFILE_NOT_AVAILABLE",
+        "BATCH_EXECUTION_NOT_AVAILABLE",
+    }
+
+
+def test_planning_controls_require_advanced_level_and_declared_parameter() -> None:
+    standard = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze",
+        json={"preset": "antiferromagnetic", "seeds": [7, 23]},
+    )
+    unknown_sweep = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze",
+        json={
+            "preset": "antiferromagnetic",
+            "experimentLevel": "advanced",
+            "sweep": {"parameter": "unknown", "values": [1.0]},
+        },
+    )
+    mismatched_profile = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze",
+        json={
+            "preset": "antiferromagnetic",
+            "experimentLevel": "advanced",
+            "complexityProfile": "standard",
+        },
+    )
+
+    assert standard.status_code == 422
+    assert standard.json()["detail"]["code"] == "ADVANCED_EXPERIMENT_LEVEL_REQUIRED"
+    assert unknown_sweep.status_code == 422
+    assert unknown_sweep.json()["detail"]["code"] == "SWEEP_PARAMETER_UNSUPPORTED"
+    assert mismatched_profile.status_code == 422
+    assert mismatched_profile.json()["detail"] == {
+        "code": "BIOMEDICINE_PLAN_INVALID",
+        "message": "advanced experiment level requires an advanced profile",
+        "stage": "planning",
+    }
 
 
 def test_h2o_api_returns_separate_evidence_and_persists_report(
