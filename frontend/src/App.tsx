@@ -1,6 +1,13 @@
 import { AlertTriangle, LoaderCircle, RadioTower } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { analyzeScenario, getScenarios, runScenario } from "./api";
+import {
+  analyzeScenario,
+  cancelScenarioJob,
+  createScenarioJob,
+  getScenarioJob,
+  getScenarios,
+  runScenario,
+} from "./api";
 import { ControlPanel } from "./components/ControlPanel";
 import { QuantumText } from "./components/QuantumText";
 import { ScenarioNav } from "./components/ScenarioNav";
@@ -14,8 +21,11 @@ import type {
   BiomedicineRunPayload,
   DomainId,
   ExecutionProfile,
+  ExperimentLevel,
+  ExperimentPlan,
   LayerPolicy,
   Mode,
+  LocalJob,
   RunPayload,
   RunRequest,
   ScenarioSpec,
@@ -128,7 +138,7 @@ function cacheIdentity(
 function analyzeForDomain(
   domainId: DomainId,
   caseId: string,
-  body: { preset: string; values: Record<string, string | number | boolean> },
+  body: import("./types").AnalysisRequest,
   signal?: AbortSignal,
 ) {
   return domainId === "finance"
@@ -160,6 +170,9 @@ function Workbench() {
   const [preset, setPreset] = useState("");
   const [values, setValues] = useState<Record<string, string | number | boolean>>({});
   const [analysis, setAnalysis] = useState<WorkbenchAnalysisPayload | null>(null);
+  const [experimentLevel, setExperimentLevel] = useState<ExperimentLevel>("standard");
+  const [experimentPlan, setExperimentPlan] = useState<ExperimentPlan | null>(null);
+  const [job, setJob] = useState<LocalJob | null>(null);
   const [mode, setMode] = useState<Mode>("digital");
   const [algorithm, setAlgorithm] = useState<Algorithm>("recommended");
   const [layerPolicy, setLayerPolicy] = useState<LayerPolicy>("fixed");
@@ -246,10 +259,29 @@ function Workbench() {
     const timer = window.setTimeout(() => {
       setAnalyzing(true);
       setError(null);
-      analyzeForDomain(domainId, activeId, { preset, values }, controller.signal)
+      const advancedRequest = experimentLevel === "advanced" ? {
+        experimentLevel,
+        complexityProfile: "advanced_live" as const,
+        configurations: [{
+          mode,
+          algorithm,
+          layers,
+          shots,
+          parameter_budget: parameterBudget,
+          optimizer_starts: optimizerStarts,
+        }],
+        seeds: [seed, seed + 16, seed + 34].slice(0, Math.max(2, repeats)),
+      } : {};
+      analyzeForDomain(
+        domainId,
+        activeId,
+        { preset, values, ...advancedRequest },
+        controller.signal,
+      )
         .then((response) => {
           if (currentRevision !== revision.current) return;
           setAnalysis(response.analysis);
+          setExperimentPlan(response.experimentPlan ?? null);
           setValues((current) =>
             sameValues(current, response.scenario.values)
               ? current
@@ -275,7 +307,21 @@ function Workbench() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [activeId, domainId, preset, values]);
+  }, [
+    activeId,
+    algorithm,
+    domainId,
+    experimentLevel,
+    layers,
+    mode,
+    optimizerStarts,
+    parameterBudget,
+    preset,
+    repeats,
+    seed,
+    shots,
+    values,
+  ]);
 
   const currentRequest = useMemo<RunRequest | null>(() => {
     if (!activeId || !preset) return null;
@@ -394,6 +440,8 @@ function Workbench() {
     setMode(scenario.recommendedMode);
     applyExecutionProfile(executionProfile(scenario));
     setAnalysis(null);
+    setExperimentLevel("standard");
+    setExperimentPlan(null);
     setRun(null);
     setActiveView("scenario");
     setError(null);
@@ -424,6 +472,8 @@ function Workbench() {
       setMode(scenario.recommendedMode);
       applyExecutionProfile(executionProfile(scenario));
       setAnalysis(null);
+      setExperimentLevel("standard");
+      setExperimentPlan(null);
       setRun(null);
       setActiveView("scenario");
       window.history.replaceState(null, "", `/${nextDomain}/${scenario.caseId}`);
@@ -446,11 +496,30 @@ function Workbench() {
       const response = await analyzeForDomain(
         domainId,
         activeScenario.caseId,
-        { preset: nextPreset, values: {} },
+        {
+          preset: nextPreset,
+          values: {},
+          ...(experimentLevel === "advanced"
+            ? {
+                experimentLevel,
+                complexityProfile: "advanced_live" as const,
+                configurations: [{
+                  mode,
+                  algorithm,
+                  layers,
+                  shots,
+                  parameter_budget: parameterBudget,
+                  optimizer_starts: optimizerStarts,
+                }],
+                seeds: [seed, seed + 16],
+              }
+            : {}),
+        },
       );
       if (currentRevision !== revision.current) return;
       setValues(response.scenario.values);
       setAnalysis(response.analysis);
+      setExperimentPlan(response.experimentPlan ?? null);
       setMode(response.analysis.decision.recommendedMode);
       applyExecutionProfile(executionProfile(response.scenario));
       setRun(null);
@@ -466,6 +535,41 @@ function Workbench() {
     setRunning(true);
     setError(null);
     try {
+      if (
+        domainId === "biomedicine" &&
+        experimentLevel === "advanced" &&
+        experimentPlan?.executionPolicy === "job"
+      ) {
+        const configurations = [{
+          mode,
+          algorithm,
+          layers,
+          shots,
+          parameter_budget: parameterBudget,
+          optimizer_starts: optimizerStarts,
+        }];
+        const seeds = [seed, seed + 16, seed + 34].slice(
+          0,
+          Math.max(2, repeats),
+        );
+        const created = await createScenarioJob(activeScenario.caseId, {
+          preset,
+          values,
+          experimentLevel,
+          complexityProfile: "advanced_live",
+          configurations,
+          seeds,
+          planId: experimentPlan.planId,
+        });
+        setJob(created.job);
+        let current = created.job;
+        while (["queued", "running"].includes(current.status)) {
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+          current = (await getScenarioJob(current.jobId)).job;
+          setJob(current);
+        }
+        return;
+      }
       const response = await runForDomain(
         domainId,
         activeScenario.caseId,
@@ -544,6 +648,8 @@ function Workbench() {
           preset={preset}
           values={values}
           analysis={analysis}
+          experimentLevel={experimentLevel}
+          experimentPlan={experimentPlan}
           mode={mode}
           algorithm={algorithm}
           layerPolicy={layerPolicy}
@@ -559,8 +665,17 @@ function Workbench() {
           estimatedSeconds={estimatedSeconds}
           running={running}
           analyzing={analyzing}
-          canRun={activeScenario.implementationStatus !== "preview"}
+          canRun={
+            activeScenario.implementationStatus !== "preview" &&
+            (experimentLevel === "standard" ||
+              experimentPlan?.executionPolicy === "job")
+          }
           onPreset={selectPreset}
+          onExperimentLevel={(value) => {
+            setExperimentLevel(value);
+            setExperimentPlan(null);
+            setRun(null);
+          }}
           onValue={(key, value) => {
             setActiveView("scenario");
             setValues((current) => ({ ...current, [key]: value }));
@@ -639,6 +754,49 @@ function Workbench() {
               <AlertTriangle size={16} aria-hidden="true" />
               <span>{tx(error)}</span>
             </div>
+          ) : null}
+
+          {job && domainId === "biomedicine" && job.caseId === activeId ? (
+            <section className="data-section" aria-label="高级实验任务">
+              <div className="subsection-head">
+                <div><span className="section-kicker">EXPERIMENT MATRIX</span><h3>高级实验运行单元</h3></div>
+                <span className="data-chip">{job.status.toUpperCase()}</span>
+              </div>
+              {job.status === "queued" && job.canCancelPending ? (
+                <button
+                  className="icon-text-button"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setJob((await cancelScenarioJob(job.jobId)).job);
+                    } catch (reason) {
+                      setError(reason instanceof Error ? reason.message : String(reason));
+                    }
+                  }}
+                >
+                  取消排队任务
+                </button>
+              ) : null}
+              <div className="table-wrap">
+                <table className="data-table compact-table">
+                  <thead><tr><th>Point</th><th>Config</th><th>Seed</th><th>Status</th><th>Report</th></tr></thead>
+                  <tbody>
+                    {job.runs.map((item) => (
+                      <tr key={item.runId}>
+                        <td>{item.pointIndex + 1}</td>
+                        <td>{item.configurationIndex + 1}</td>
+                        <td>{item.seed}</td>
+                        <td>{item.status}</td>
+                        <td className="mono">{item.reportHash ? item.reportHash.slice(0, 12) : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="subsection-note">
+                {job.progress.completed}/{job.progress.total} 完成，{job.progress.succeeded} 成功，{job.progress.failed} 失败。运行单元结果保持独立，不自动替换为经典参考。
+              </p>
+            </section>
           ) : null}
 
           <nav className={`view-tabs view-tabs-${visibleTabs.length}`} aria-label={t("resultsView")} role="tablist">

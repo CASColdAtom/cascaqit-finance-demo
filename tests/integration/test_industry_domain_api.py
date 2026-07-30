@@ -6,6 +6,7 @@ import asyncio
 import json
 import shutil
 import threading
+import time
 from importlib import import_module
 
 import httpx
@@ -13,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from cascaqit_biomedicine_demo import fixtures
+from cascaqit_biomedicine_demo.local_jobs import LocalJobManager
 from cascaqit_finance_demo.api.app import app
 
 app_module = import_module("cascaqit_finance_demo.api.app")
@@ -92,7 +94,7 @@ def test_biomedicine_capabilities_are_explicit_and_version_gated() -> None:
     assert statuses["pauli_vqe"] == "available"
     assert statuses["hybrid_dad"] == "available"
     assert statuses["experiment_planning"] == "available"
-    assert statuses["batch_execution"] == "unavailable"
+    assert statuses["batch_execution"] == "available"
     assert statuses["quantum_excited_states"] == "unavailable"
 
 
@@ -160,15 +162,13 @@ def test_advanced_analysis_returns_truthful_rejected_plan_until_release() -> Non
     assert response.status_code == 200
     plan = response.json()["experimentPlan"]
     assert plan["runCount"] == 9
-    assert plan["executionPolicy"] == "rejected"
+    assert plan["executionPolicy"] == "job"
     assert [point["values"]["exchange_coupling"] for point in plan["points"]] == [
         0.8,
         1.2,
         1.6,
     ]
-    assert {item["code"] for item in plan["diagnostics"]} == {
-        "BATCH_EXECUTION_NOT_AVAILABLE",
-    }
+    assert plan["diagnostics"] == []
 
 
 def test_advanced_lih_scan_builds_five_point_audited_plan() -> None:
@@ -196,9 +196,8 @@ def test_advanced_lih_scan_builds_five_point_audited_plan() -> None:
     assert plan["profile"]["status"] == "available"
     assert [point["values"]["dataset"] for point in plan["points"]] == datasets
     assert {point["resource"]["logicalQubits"] for point in plan["points"]} == {4}
-    assert {item["code"] for item in plan["diagnostics"]} == {
-        "BATCH_EXECUTION_NOT_AVAILABLE"
-    }
+    assert plan["executionPolicy"] == "job"
+    assert plan["diagnostics"] == []
 
 
 @pytest.mark.parametrize(
@@ -222,7 +221,7 @@ def test_advanced_lih_scan_builds_five_point_audited_plan() -> None:
         ),
     ],
 )
-def test_advanced_optimization_plans_only_wait_for_persistent_jobs(
+def test_advanced_optimization_plans_use_persistent_jobs(
     case_id: str,
     preset: str,
     configurations: list[dict[str, object]],
@@ -244,11 +243,56 @@ def test_advanced_optimization_plans_only_wait_for_persistent_jobs(
     problem = payload["analysis"]["problem"]
     assert plan["profile"]["status"] == "available"
     assert plan["runCount"] == 4
-    assert {item["code"] for item in plan["diagnostics"]} == {
-        "BATCH_EXECUTION_NOT_AVAILABLE"
-    }
+    assert plan["executionPolicy"] == "job"
+    assert plan["diagnostics"] == []
     assert plan["completeDomainProblemHash"] != plan["quantumSubproblemHash"]
     assert problem["completeDomainProblemHash"] != problem["quantumSubproblemHash"]
+
+
+def test_job_api_revalidates_plan_and_persists_progress(tmp_path, monkeypatch) -> None:
+    manager = LocalJobManager(tmp_path / "jobs")
+    monkeypatch.setattr(app_module, "JOB_MANAGER", manager)
+    monkeypatch.setattr(
+        app_module,
+        "_execute_biomedicine_job_unit",
+        lambda _case_id, _preset, unit: {
+            "audit": {"reportHash": f"report-{unit.run_id}"}
+        },
+    )
+    body = {
+        "preset": "trinuclear_frustrated",
+        "experimentLevel": "advanced",
+        "complexityProfile": "advanced_live",
+        "seeds": [7, 23],
+    }
+    analysis = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/analyze", json=body
+    )
+    plan_id = analysis.json()["experimentPlan"]["planId"]
+
+    stale = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/jobs",
+        json={**body, "planId": "0" * 64},
+    )
+    created = client.post(
+        "/api/domains/biomedicine/scenarios/active_center/jobs",
+        json={**body, "planId": plan_id},
+    )
+
+    assert stale.status_code == 422
+    assert stale.json()["detail"]["code"] == "EXPERIMENT_PLAN_STALE"
+    assert created.status_code == 202
+    job_id = created.json()["job"]["jobId"]
+    for _ in range(100):
+        current = client.get(f"/api/jobs/{job_id}")
+        if current.json()["job"]["status"] == "succeeded":
+            break
+        time.sleep(0.01)
+    job = current.json()["job"]
+    assert job["status"] == "succeeded"
+    assert job["progress"]["completed"] == 2
+    assert (tmp_path / "jobs" / job_id / "job.json").exists()
+    manager.shutdown()
 
 
 def test_planning_controls_require_advanced_level_and_declared_parameter() -> None:

@@ -1172,6 +1172,39 @@ export interface AnalysisRequest extends ScenarioRequest {
   };
 }
 
+export interface LocalJobRun {
+  runId: string;
+  pointIndex: number;
+  configurationIndex: number;
+  seed: number;
+  status: "pending" | "running" | "succeeded" | "failed" | "cancelled" | "not_started";
+  reportHash?: string;
+  error?: { type: string; message: string };
+}
+
+export interface LocalJob {
+  jobId: string;
+  caseId: string;
+  preset: string;
+  planId: string;
+  status: "queued" | "running" | "succeeded" | "partially_succeeded" | "failed" | "cancelled";
+  progress: {
+    total: number;
+    completed: number;
+    succeeded: number;
+    failed: number;
+    cancelled: number;
+  };
+  canCancelPending: boolean;
+  canCancelRunning: boolean;
+  runs: LocalJobRun[];
+  aggregate: ({ aggregateHash: string } & LocalJob["progress"]) | null;
+}
+
+export interface JobRequest extends AnalysisRequest {
+  planId: string;
+}
+
 export interface RunRequest extends ScenarioRequest {
   mode: Mode;
   algorithm: Algorithm;

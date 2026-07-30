@@ -35,6 +35,7 @@ from cascaqit_biomedicine_demo.advanced_experiments import (
     CapabilityRegistry,
     build_experiment_plan,
 )
+from cascaqit_biomedicine_demo.advanced_runner import ExperimentRunUnit
 from cascaqit_biomedicine_demo.catalog import (
     BIOMEDICINE_SCENARIO_SPECS,
     preview_analysis,
@@ -48,6 +49,12 @@ from cascaqit_biomedicine_demo.electronic_structure import (
     analyze_electronic_structure,
     electronic_values,
     run_electronic_structure,
+)
+from cascaqit_biomedicine_demo.local_jobs import (
+    JobCancellationError,
+    JobNotFoundError,
+    JobQueueFullError,
+    LocalJobManager,
 )
 from cascaqit_biomedicine_demo.peptide_landscape import (
     analyze_peptide_landscape,
@@ -108,6 +115,7 @@ _CONFIGURED_DATA_DIR = os.environ.get("CASCAQIT_INDUSTRY_DATA_DIR") or os.enviro
 )
 DATA_DIR = Path(_CONFIGURED_DATA_DIR or _default_user_data_dir()).resolve()
 REPORT_DIR = DATA_DIR / "artifacts" / "reports"
+JOB_MANAGER = LocalJobManager(DATA_DIR / "jobs")
 HOST = "127.0.0.1"
 PORT = int(
     os.environ.get(
@@ -167,6 +175,12 @@ class AnalysisRequest(ScenarioRequest):
     )
     seeds: list[int] = Field(default_factory=list, max_length=5)
     sweep: Optional[SweepRequest] = None  # noqa: UP045
+
+
+class JobRequest(AnalysisRequest):
+    """Advanced experiment request bound to a previously reviewed plan."""
+
+    plan_id: str = Field(min_length=64, max_length=64, alias="planId")
 
 
 class RunRequest(ScenarioRequest):
@@ -632,6 +646,133 @@ def analyze_domain_scenario(
         "analysis": analysis,
         "experimentPlan": plan,
     }
+
+
+def _execute_biomedicine_job_unit(
+    case_id: str,
+    preset: str,
+    unit: ExperimentRunUnit,
+) -> dict[str, Any]:
+    spec = BIOMEDICINE_SCENARIO_SPECS[case_id]
+    profile = spec.recommended_execution
+    configuration = unit.configuration
+    shots = int(configuration.get("shots", profile["shots"]))
+    layers = int(configuration.get("layers", profile["layers"]))
+    budget = int(
+        configuration.get("parameter_budget", profile["parameterBudget"])
+    )
+    starts = int(
+        configuration.get("optimizer_starts", profile["optimizerStarts"])
+    )
+    if case_id == "docking_match":
+        mode = str(configuration.get("mode", spec.recommended_mode))
+        if mode == "recommended":
+            mode = spec.recommended_mode
+        return run_docking_match(
+            preset=preset,
+            values=unit.values,
+            mode=mode,
+            shots=shots,
+            seed=unit.seed,
+            layers=layers,
+            search_strategy=str(profile["searchStrategy"]),
+            parameter_budget=budget,
+            optimizer_starts=starts,
+        )
+    if case_id == "peptide_landscape":
+        return run_peptide_landscape(
+            preset=preset,
+            values=unit.values,
+            shots=shots,
+            seed=unit.seed,
+            layers=layers,
+            parameter_budget=budget,
+            optimizer_starts=starts,
+        )
+    runner = (
+        run_active_center
+        if case_id == "active_center"
+        else run_electronic_structure
+    )
+    return runner(
+        preset=preset,
+        values=unit.values,
+        shots=shots,
+        seed=unit.seed,
+        layers=layers,
+        parameter_budget=budget,
+        optimizer_starts=starts,
+    )
+
+
+@app.post("/api/domains/{domain_id}/scenarios/{case_id}/jobs", status_code=202)
+def create_domain_job(
+    domain_id: str, case_id: str, request: JobRequest
+) -> dict[str, Any]:
+    """Rebuild a reviewed advanced plan and enqueue its independent runs."""
+
+    if domain_id != "biomedicine":
+        raise HTTPException(status_code=404, detail=f"unknown domain: {domain_id}")
+    if request.experiment_level != "advanced":
+        raise _biomedicine_error(
+            "ADVANCED_EXPERIMENT_LEVEL_REQUIRED",
+            "persistent jobs require experimentLevel=advanced",
+            "planning",
+        )
+    analyzed = analyze_domain_scenario(domain_id, case_id, request)
+    plan = analyzed["experimentPlan"]
+    if request.plan_id != plan["planId"]:
+        raise _biomedicine_error(
+            "EXPERIMENT_PLAN_STALE",
+            "planId does not match the current inputs and capability snapshot",
+            "planning",
+        )
+    if plan["executionPolicy"] != "job":
+        raise _biomedicine_error(
+            "EXPERIMENT_JOB_NOT_REQUIRED",
+            f"plan execution policy is {plan['executionPolicy']}",
+            "planning",
+        )
+    try:
+        job = JOB_MANAGER.submit(
+            case_id=case_id,
+            preset=analyzed["preset"],
+            plan=plan,
+            executor=lambda unit: _execute_biomedicine_job_unit(
+                case_id, analyzed["preset"], unit
+            ),
+        )
+    except JobQueueFullError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail={"code": "JOB_QUEUE_FULL", "message": str(exc), "stage": "queue"},
+        ) from exc
+    return {"job": job}
+
+
+@app.get("/api/jobs/{job_id}")
+def get_job(job_id: str) -> dict[str, Any]:
+    try:
+        return {"job": JOB_MANAGER.get(job_id)}
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="unknown job") from exc
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: str) -> dict[str, Any]:
+    try:
+        return {"job": JOB_MANAGER.cancel(job_id)}
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="unknown job") from exc
+    except JobCancellationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "JOB_CANCELLATION_NOT_AVAILABLE",
+                "message": str(exc),
+                "stage": "cancellation",
+            },
+        ) from exc
 
 
 @app.post("/api/domains/{domain_id}/scenarios/{case_id}/run")

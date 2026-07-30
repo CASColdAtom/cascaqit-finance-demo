@@ -3,6 +3,8 @@ import type {
   AnalysisRequest,
   CapabilitySnapshot,
   DomainId,
+  JobRequest,
+  LocalJob,
   RunRequest,
   RunResponse,
   ScenarioSpec,
@@ -65,4 +67,23 @@ export function runScenario(
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function createScenarioJob(
+  caseId: string,
+  body: JobRequest,
+  domainId: DomainId = "biomedicine",
+): Promise<{ job: LocalJob }> {
+  return request(`/api/domains/${domainId}/scenarios/${caseId}/jobs`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getScenarioJob(jobId: string): Promise<{ job: LocalJob }> {
+  return request(`/api/jobs/${jobId}`);
+}
+
+export function cancelScenarioJob(jobId: string): Promise<{ job: LocalJob }> {
+  return request(`/api/jobs/${jobId}/cancel`, { method: "POST" });
 }

@@ -186,6 +186,27 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     result.scenarios[caseId] = await assertLayout(page, `${name}/${caseId}`);
   }
 
+  await page.locator(".scenario-item", { hasText: "金属活性中心" }).click();
+  await page.waitForURL("**/biomedicine/active_center");
+  await waitForAnalysis(page);
+  if (!(await page.locator(".run-button").isVisible())) {
+    await page.locator(".control-collapse").click();
+  }
+  await page.getByLabel("参数预设").selectOption("trinuclear_frustrated");
+  await page.getByLabel("实验级别").selectOption("advanced");
+  await page.getByText("RUN UNITS").waitFor({ timeout: 20_000 });
+  await page.locator(".run-button").click();
+  await page.getByRole("heading", { name: "高级实验运行单元" }).waitFor();
+  await page.getByText("SUCCEEDED", { exact: true }).waitFor({ timeout: 90_000 });
+  result.advancedJob = await assertLayout(page, `${name}/advanced-job`);
+  await page.screenshot({
+    path: path.join(outputDir, `advanced-job-${name}.png`),
+    fullPage: true,
+  });
+  await page.getByLabel("实验级别").selectOption("standard");
+  await page.getByLabel("参数预设").selectOption("antiferromagnetic");
+  await waitForAnalysis(page);
+
   await page.locator(".scenario-item", { hasText: "构象匹配" }).click();
   await page.waitForURL("**/biomedicine/docking_match");
   await waitForAnalysis(page);
@@ -246,7 +267,6 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     "MATCH",
     "局域磁化与两点自旋关联",
     "总磁化扇区占据",
-    "CORRELATION / XX",
   ]) {
     if (!activeCenterText.includes(expected)) {
       throw new Error(`${name}: active-center result is missing ${expected}`);

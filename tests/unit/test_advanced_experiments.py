@@ -48,7 +48,7 @@ def test_capability_registry_requires_validated_sdk_series() -> None:
     assert supported.is_available("pauli_vqe") is True
     assert unsupported.is_available("pauli_vqe") is False
     assert supported.is_available("experiment_planning") is True
-    assert supported.is_available("batch_execution") is False
+    assert supported.is_available("batch_execution") is True
     assert supported.to_dict()["sdk"]["validatedRange"] == ">=1.0.5a0,<1.0.6"
 
 
@@ -107,7 +107,6 @@ def test_unreleased_advanced_batch_plan_reports_all_blockers() -> None:
     assert plan["executionPolicy"] == "rejected"
     assert {item["code"] for item in plan["diagnostics"]} == {
         "ADVANCED_PRESET_REQUIRED",
-        "BATCH_EXECUTION_NOT_AVAILABLE",
     }
 
 
@@ -153,4 +152,24 @@ def test_plan_enforces_sdk_capability_snapshot() -> None:
     assert plan["executionPolicy"] == "rejected"
     assert {item["code"] for item in plan["diagnostics"]} == {
         "SDK_CAPABILITY_NOT_AVAILABLE"
+    }
+
+
+def test_plan_rejects_configuration_that_would_change_execution_family() -> None:
+    plan = build_experiment_plan(
+        case_id="peptide_landscape",
+        preset="octapeptide_hydrophobic",
+        experiment_level="advanced",
+        requested_profile="advanced_live",
+        analysis_points=[({}, _analysis(qubits=0, variables=12, terms=78))],
+        configurations=[{"mode": "hybrid", "algorithm": "vqe"}],
+        seeds=[7, 23],
+        recommended_execution={**_recommended(), "algorithm": "qaoa"},
+        capabilities=CapabilityRegistry("1.0.5a0"),
+    )
+
+    assert plan["executionPolicy"] == "rejected"
+    assert {item["code"] for item in plan["diagnostics"]} == {
+        "EXECUTION_MODE_UNSUPPORTED",
+        "ALGORITHM_UNSUPPORTED",
     }

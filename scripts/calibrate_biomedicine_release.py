@@ -39,21 +39,25 @@ SEED_PLAN = {
         "h2_bond_scan": (1, 6, 7),
         "lih_active_space": (1, 6, 7),
         "h2o_minimal": (1, 6, 7),
+        "lih_potential_scan": (1, 6, 7),
     },
     "docking_match": {
         "reference_pose": (1, 6, 8),
         "strict_geometry": (1, 5, 8),
         "pharmacophore_coverage": (3, 6, 8),
+        "multi_pose_balanced": (0, 3, 5),
     },
     "active_center": {
         "antiferromagnetic": (1, 6, 7),
         "ligand_field": (1, 6, 7),
         "coupling_imbalance": (1, 6, 7),
+        "trinuclear_frustrated": (1, 6, 7),
     },
     "peptide_landscape": {
         "hydrophobic_core": (0, 6, 7),
         "charged_competition": (1, 6, 7),
         "contact_limited": (0, 6, 7),
+        "octapeptide_hydrophobic": (0, 3, 6),
     },
 }
 
@@ -125,17 +129,18 @@ def _electronic_case(preset: str, seed: int) -> dict[str, Any]:
 
 
 def _docking_case(preset: str, seed: int) -> dict[str, Any]:
+    advanced = preset.startswith("multi_pose_")
     analysis, analysis_seconds = _timed(lambda: analyze_docking_match(preset, {}))
     run, run_seconds = _timed(
         lambda: run_docking_match(
             preset=preset,
             values={},
             mode="hybrid",
-            shots=128,
+            shots=256 if advanced else 128,
             seed=seed,
             layers=1,
             search_strategy="continuous",
-            parameter_budget=12,
+            parameter_budget=24 if advanced else 12,
             optimizer_starts=1,
         )
     )
@@ -158,6 +163,7 @@ def _docking_case(preset: str, seed: int) -> dict[str, Any]:
 
 
 def _active_center_case(preset: str, seed: int) -> dict[str, Any]:
+    error_limit = 0.2 if preset == "trinuclear_frustrated" else 0.02
     analysis, analysis_seconds = _timed(lambda: analyze_active_center(preset, {}))
     run, run_seconds = _timed(
         lambda: run_active_center(
@@ -182,11 +188,12 @@ def _active_center_case(preset: str, seed: int) -> dict[str, Any]:
         "runSeconds": run_seconds,
         "datasetId": analysis["dataset"]["id"],
         "absoluteErrorMeV": error,
+        "absoluteErrorLimitMeV": error_limit,
         "hamiltonianIdentityVerified": same_hamiltonian,
         "passed": (
             analysis_seconds < 2
             and run_seconds < 30
-            and error < 0.02
+            and error < error_limit
             and same_hamiltonian
         ),
         "audit": _audit_evidence(run),
@@ -194,6 +201,7 @@ def _active_center_case(preset: str, seed: int) -> dict[str, Any]:
 
 
 def _peptide_case(preset: str, seed: int) -> dict[str, Any]:
+    advanced = preset.startswith("octapeptide_")
     analysis, analysis_seconds = _timed(
         lambda: analyze_peptide_landscape(preset, {})
     )
@@ -201,11 +209,11 @@ def _peptide_case(preset: str, seed: int) -> dict[str, Any]:
         lambda: run_peptide_landscape(
             preset=preset,
             values={},
-            shots=512,
+            shots=128 if advanced else 512,
             seed=seed,
             layers=1,
-            parameter_budget=40,
-            optimizer_starts=2,
+            parameter_budget=12 if advanced else 40,
+            optimizer_starts=1 if advanced else 2,
         )
     )
     domain = run["domain"]
@@ -242,22 +250,42 @@ def calibrate() -> dict[str, Any]:
     ] = (
         (
             "electronic_structure",
-            ("h2_bond_scan", "lih_active_space", "h2o_minimal"),
+            (
+                "h2_bond_scan",
+                "lih_active_space",
+                "h2o_minimal",
+                "lih_potential_scan",
+            ),
             _electronic_case,
         ),
         (
             "docking_match",
-            ("reference_pose", "strict_geometry", "pharmacophore_coverage"),
+            (
+                "reference_pose",
+                "strict_geometry",
+                "pharmacophore_coverage",
+                "multi_pose_balanced",
+            ),
             _docking_case,
         ),
         (
             "active_center",
-            ("antiferromagnetic", "ligand_field", "coupling_imbalance"),
+            (
+                "antiferromagnetic",
+                "ligand_field",
+                "coupling_imbalance",
+                "trinuclear_frustrated",
+            ),
             _active_center_case,
         ),
         (
             "peptide_landscape",
-            ("hydrophobic_core", "charged_competition", "contact_limited"),
+            (
+                "hydrophobic_core",
+                "charged_competition",
+                "contact_limited",
+                "octapeptide_hydrophobic",
+            ),
             _peptide_case,
         ),
     )
@@ -304,6 +332,7 @@ def calibrate() -> dict[str, Any]:
             "runSecondsLessThan": 30,
             "h2ErrorHartreeAtMost": 0.0016,
             "activeCenterErrorMeVLessThan": 0.02,
+            "advancedActiveCenterErrorMeVLessThan": 0.2,
             "dockingRequiresObservedFeasibleCandidate": True,
             "peptideRequiresLowestOrSecondLowestCandidate": True,
         },

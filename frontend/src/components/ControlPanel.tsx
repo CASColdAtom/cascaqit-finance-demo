@@ -12,6 +12,8 @@ import type {
   LayerPolicy,
   Mode,
   ScenarioSpec,
+  ExperimentLevel,
+  ExperimentPlan,
   SearchStrategy,
   WorkbenchAnalysisPayload,
 } from "../types";
@@ -24,6 +26,8 @@ interface ControlPanelProps {
   preset: string;
   values: Record<string, string | number | boolean>;
   analysis: WorkbenchAnalysisPayload | null;
+  experimentLevel?: ExperimentLevel;
+  experimentPlan?: ExperimentPlan | null;
   mode: Mode;
   algorithm: Algorithm;
   layerPolicy: LayerPolicy;
@@ -41,6 +45,7 @@ interface ControlPanelProps {
   analyzing: boolean;
   canRun?: boolean;
   onPreset: (value: string) => void;
+  onExperimentLevel?: (value: ExperimentLevel) => void;
   onValue: (key: string, value: string | number) => void;
   onMode: (mode: Mode) => void;
   onAlgorithm: (algorithm: Algorithm) => void;
@@ -173,6 +178,30 @@ export function ControlPanel(props: ControlPanelProps) {
             ))}
           </select>
         </label>
+
+        {props.scenario.experimentLevels?.includes("advanced") ? (
+          <label className="control-field experiment-level-field">
+            <span>实验级别</span>
+            <select
+              value={props.experimentLevel ?? "standard"}
+              onChange={(event) =>
+                props.onExperimentLevel?.(event.target.value as ExperimentLevel)
+              }
+            >
+              <option value="standard">标准实验</option>
+              <option value="advanced">高级实验</option>
+            </select>
+          </label>
+        ) : null}
+
+        {props.experimentLevel === "advanced" && props.experimentPlan ? (
+          <div className="mode-readout">
+            <span>{props.experimentPlan.runCount} RUN UNITS</span>
+            <small>
+              {props.experimentPlan.executionPolicy.toUpperCase()} / {props.experimentPlan.estimatedSeconds.toFixed(1)} s
+            </small>
+          </div>
+        ) : null}
 
         <div className="control-stack">
           {props.scenario.controls.map((control) => (

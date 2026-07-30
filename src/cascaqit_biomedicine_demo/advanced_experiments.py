@@ -123,8 +123,9 @@ class CapabilityRegistry:
                 "batch_execution",
                 "Batch and sweep execution",
                 "application",
-                "unavailable",
-                "The persistent local job manager is not implemented yet.",
+                "available",
+                "Persistent bounded local jobs execute independent run units.",
+                ("test_local_jobs.py", "test_industry_domain_api.py"),
             ),
             Capability(
                 "running_cancellation",
@@ -473,6 +474,36 @@ def build_experiment_plan(
         )
 
     for configuration in normalized_configurations:
+        mode = str(configuration.get("mode", "recommended"))
+        algorithm = str(
+            configuration.get(
+                "algorithm", recommended_execution.get("algorithm", "recommended")
+            )
+        )
+        allowed_modes = (
+            {"recommended", "digital", "hybrid"}
+            if case_id == "docking_match"
+            else {"recommended", "digital"}
+        )
+        expected_algorithm = (
+            "qaoa"
+            if case_id in {"docking_match", "peptide_landscape"}
+            else "vqe"
+        )
+        if mode not in allowed_modes:
+            diagnostics.append(
+                _diagnostic(
+                    "EXECUTION_MODE_UNSUPPORTED",
+                    f"mode {mode} is not supported by scenario {case_id}",
+                )
+            )
+        if algorithm not in {"recommended", expected_algorithm}:
+            diagnostics.append(
+                _diagnostic(
+                    "ALGORITHM_UNSUPPORTED",
+                    f"algorithm {algorithm} is not supported by scenario {case_id}",
+                )
+            )
         shots = int(configuration.get("shots", recommended_execution.get("shots", 64)))
         budget = int(
             configuration.get(
