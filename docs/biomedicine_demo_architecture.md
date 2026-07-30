@@ -614,7 +614,7 @@ source checksum
 
 ### 18.1 状态与兼容策略
 
-本节是下一轮高级实验模式的目标架构，状态为 `PLANNED`。第 1～17 节描述的 V1 结构仍是当前已实现基线。V2 采用增量扩展，不替换现有四场景、同步运行接口或金融兼容入口。
+本节是高级实验模式的目标架构，当前状态为 `IN_PROGRESS`。第八阶段已经实现 `CapabilityRegistry`、`ComplexityProfileRegistry` 和 `ExperimentPlanner`；第九至第十一阶段继续接入高级数据、批量执行、长任务和页面。第 1～17 节描述的 V1 结构仍是已实现基线。V2 采用增量扩展，不替换现有四场景、同步运行接口或金融兼容入口。
 
 每个场景同时声明两个实验级别：
 
@@ -922,3 +922,18 @@ V2 在现有测试基础上增加：
 | 参数扫描产生大量近似结果 | 用户只选择最好看的点 | 固定扫描计划、完整点集报告、失败点不删除 |
 | 新 SDK 能力只存在本地分支 | 发布包无法复现 | 显式能力注册、版本门禁、禁止未发布补丁 |
 | 精确参考被误认为量子激发态 | 科学结论错误 | 响应 schema 和页面明确标记经典来源 |
+
+### 18.12 需求到组件的映射
+
+该映射与 PRD 15.11 的需求编号共同作为第十一阶段验收索引。组件名称是职责边界，不要求每项对应一个同名源文件。
+
+| 需求编号 | 主要组件 | 核心持久化或身份 | 失败时行为 |
+|---|---|---|---|
+| `BIO-V2-PLAN-01` | `CapabilityRegistry`、`ComplexityProfileRegistry`、`ExperimentPlanner` | capability snapshot、profile ID、`plan_id` | 返回 `rejected` 计划和结构化诊断，不进入执行器 |
+| `BIO-V2-ES-01` | 电子结构适配器、Pauli VQE 执行器、结果聚合器 | geometry-series manifest、逐点 Hamiltonian/report hash | 任一 fixture 损坏时整项计划在执行前失败；单个运行失败进入部分成功统计 |
+| `BIO-V2-METAL-01` | 有效自旋模板实例化器、Pauli VQE 执行器、观测量聚合器 | template hash、instance hash、QWC plan hash | 不支持的 Pauli 项在能力检查阶段拒绝；经典能隙不写入量子结果字段 |
+| `BIO-V2-DOCK-01` | 完整业务图、`SubproblemSelector`、QUBO 适配器、Problem 执行器 | complete-problem hash、selection hash、QUBO hash | 关键特征覆盖不足或 Hybrid 门禁失败时拒绝对应配置；不得补造候选或替换结果 |
+| `BIO-V2-PEP-01` | 构象库加载器、盆地标注器、`SubproblemSelector`、QUBO 适配器 | landscape hash、basin-rule version、selection hash | 构象校验或盆地覆盖失败时不生成活动窗口 |
+| `BIO-V2-JOB-01` | `LocalJobManager`、运行单元调度器、`ResultAggregator` | `jobs/<job_id>/job.json`、run/report hash | 保留已完成证据，明确区分失败、未开始和取消的运行单元 |
+| `BIO-V2-UI-01` | 行业工作台外壳、高级控制区、复杂度视图、实验矩阵 | analysis/plan/job ID | 过期计划不能执行；领域切换不覆盖其他任务状态 |
+| `BIO-V2-REL-01` | 校准脚本、测试门禁、打包流程、验收报告 | calibration/report/package checksum | 任一场景或发布包未通过时，高级入口保持研究状态 |
