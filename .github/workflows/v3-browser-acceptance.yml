@@ -1,0 +1,106 @@
+name: V3 Browser Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/biomedicine-demo
+    paths:
+      - ".github/workflows/v3-browser-acceptance.yml"
+      - "frontend/**"
+      - "scripts/browser-smoke.mjs"
+      - "scripts/validate_browser_evidence.mjs"
+      - "src/**"
+      - "pyproject.toml"
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-v3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out industry workbench
+        uses: actions/checkout@v4
+        with:
+          path: demo
+
+      - name: Check out validated CASCAQit SDK
+        uses: actions/checkout@v4
+        with:
+          repository: CASColdAtom/CASCAQit
+          ref: v1.0.5a
+          path: cascaqit-new/CASCAQit
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: demo/pyproject.toml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: demo/frontend/package-lock.json
+
+      - name: Install Python packages
+        run: python -m pip install -e ./cascaqit-new/CASCAQit -e "./demo[dev]"
+
+      - name: Install frontend and Chromium
+        working-directory: demo/frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+
+      - name: Start production workbench
+        working-directory: demo
+        env:
+          CASCAQIT_INDUSTRY_DATA_DIR: ${{ runner.temp }}/cascaqit-browser-data
+          CASCAQIT_INDUSTRY_PORT: "8000"
+        run: |
+          mkdir -p artifacts/browser-smoke-v3
+          cascaqit-industry-api > artifacts/browser-smoke-v3/api.log 2>&1 &
+          echo $! > "${RUNNER_TEMP}/cascaqit-industry-api.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat artifacts/browser-smoke-v3/api.log
+          exit 1
+
+      - name: Run eight-scenario Chromium acceptance
+        working-directory: demo
+        env:
+          CASCAQIT_BROWSER_EVIDENCE_REVISION: ${{ github.sha }}
+        run: |
+          node frontend/scripts/browser-smoke.mjs \
+            --base-url http://127.0.0.1:8000/ \
+            --output-dir artifacts/browser-smoke-v3
+          node scripts/validate_browser_evidence.mjs artifacts/browser-smoke-v3
+
+      - name: Run isolated materials Chromium acceptance
+        working-directory: demo
+        env:
+          CASCAQIT_BROWSER_EVIDENCE_REVISION: ${{ github.sha }}
+        run: |
+          node frontend/scripts/browser-materials-smoke.mjs \
+            --output-dir artifacts/browser-smoke-v3-materials
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-browser-acceptance-${{ github.sha }}
+          path: |
+            demo/artifacts/browser-smoke-v3
+            demo/artifacts/browser-smoke-v3-materials
+          if-no-files-found: warn
+          retention-days: 30

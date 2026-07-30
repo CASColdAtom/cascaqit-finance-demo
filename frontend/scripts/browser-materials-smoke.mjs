@@ -10,10 +10,20 @@ const VIEWPORTS = [
   ["mobile", 390, 844],
 ];
 
+function option(name, fallback) {
+  const index = process.argv.indexOf(name);
+  return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
+}
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, "../..");
 const staticRoot = path.join(projectRoot, "src/cascaqit_finance_demo/static");
-const outputDir = path.join(projectRoot, "artifacts/browser-smoke-phase12");
+const outputDir = path.resolve(
+  option(
+    "--output-dir",
+    path.join(projectRoot, "artifacts/browser-smoke-materials"),
+  ),
+);
 const origin = "http://workbench.local";
 
 const fixtureProgram = String.raw`
@@ -385,11 +395,18 @@ async function runViewport(browser, name, width, height) {
 }
 
 await mkdir(outputDir, { recursive: true });
-const report = { origin, viewports: {} };
 const browser = await chromium.launch({
   headless: true,
   args: ["--no-proxy-server"],
 });
+const report = {
+  schema: "industry.materials-browser-acceptance.v1",
+  generatedAt: new Date().toISOString(),
+  revision: process.env.CASCAQIT_BROWSER_EVIDENCE_REVISION ?? "local-uncommitted",
+  browser: { name: "chromium", version: browser.version() },
+  origin,
+  viewports: {},
+};
 try {
   for (const [name, width, height] of VIEWPORTS) {
     report.viewports[name] = await runViewport(browser, name, width, height);

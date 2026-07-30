@@ -181,4 +181,12 @@ python3 scripts/build_windows_offline_bundle.py \
 
 浏览器验收脚本覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`，实际执行六个生物医药场景和两个材料场景，检查量子与经典结果分离、页面级横向溢出、结构 SVG、量子图表 canvas 实绘像素和 Pure Analog 页面无数字线路。
 
+当本机策略不允许启动 Chromium 时，推送到 `feat/biomedicine-demo` 会触发 `.github/workflows/v3-browser-acceptance.yml`。工作流在 Ubuntu 的真实 Chromium 中启动生产 FastAPI，运行八场景主 smoke 与独立材料 smoke，并上传与提交 SHA 绑定的 30 天保留制品。下载主制品后可复核：
+
+```bash
+node scripts/validate_browser_evidence.mjs artifacts/browser-smoke-v3
+```
+
+校验器要求三个视口、八个场景、27 张非空主截图、零 console/page error、无横向溢出、非空 canvas 像素证据和生物医药/材料“前沿探索价值”文案全部存在。CI 尚未生成制品或制品 revision 与提交 SHA 不一致时，不得标记浏览器验收通过。
+
 设计说明见[文档索引](docs/README.md)。

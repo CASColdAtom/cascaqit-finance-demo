@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build --config vite.config.ts",
     "browser-smoke": "node ../scripts/browser-smoke.mjs",
     "browser-smoke:materials": "node scripts/browser-materials-smoke.mjs",
+    "browser-smoke:verify": "node ../scripts/validate_browser_evidence.mjs ../artifacts/browser-smoke-v3",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run"
   },

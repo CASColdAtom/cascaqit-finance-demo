@@ -26,7 +26,7 @@ const zh = {
   researchDemonstration: "RESEARCH DEMONSTRATION",
   frontierOutlook: "前沿探索价值",
   frontierOutlookDescription:
-    "当前量子计算尚不能替代成熟经典计算流程，但可以验证问题映射、量子-经典协同与中性原子 Digital / Hybrid / Analog 路线，为未来硬件和算法成熟后的真实科研应用建立可复用基线。",
+    "当前量子计算尚不能替代成熟经典计算流程，也不意味着这些问题已经获得量子优势。但现在开展前沿探索仍然非常有意义：可以验证问题映射、量子-经典协同与中性原子 Digital / Hybrid / Analog 路线，提前积累可复用的数据、模型和实验基线。客户在这里看到的是一条能够随硬件规模、保真度和算法能力持续演进的技术路径，以及量子计算进入真实科研流程的前景，而不是已经兑现的生产替代承诺。",
   experiments: "行业场景",
   financeScenarios: "金融场景",
   biomedicineScenarios: "生物医药场景",
@@ -187,7 +187,7 @@ const en: MessageDictionary = {
   researchDemonstration: "RESEARCH DEMONSTRATION",
   frontierOutlook: "Frontier Exploration Value",
   frontierOutlookDescription:
-    "Quantum computing cannot yet replace mature classical workflows, but it can validate problem mappings, quantum-classical collaboration, and neutral-atom Digital, Hybrid, and Analog paths while building reusable baselines for future research applications.",
+    "Quantum computing cannot yet replace mature classical workflows, nor do these demonstrations establish quantum advantage. Frontier exploration is still meaningful today: it can validate problem mappings, quantum-classical collaboration, and neutral-atom Digital, Hybrid, and Analog paths while building reusable data, models, and experimental baselines. Customers should see an engineering path that can evolve with hardware scale, fidelity, and algorithm maturity, and a view of how quantum computing may enter real research workflows, rather than a claim of production replacement already achieved.",
   experiments: "Industry Scenarios",
   financeScenarios: "Financial Scenarios",
   biomedicineScenarios: "Biomedicine Scenarios",

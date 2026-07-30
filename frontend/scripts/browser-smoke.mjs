@@ -176,6 +176,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await page.locator(".app-shell-react").waitFor();
   await page.waitForFunction(() => document.title === "中科酷原行业量子实验台");
   await selectBiomedicine(page);
+  if (!(await page.getByText("前沿探索价值", { exact: true }).isVisible())) {
+    throw new Error(`${name}: biomedicine frontier outlook is missing`);
+  }
   for (const boundary of [
     "LOCAL SIMULATION",
     "NO HARDWARE EXECUTION",
@@ -191,6 +194,7 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
 
   const result = {
     viewport: { width, height },
+    frontierOutlook: { biomedicine: true, materials: false },
     scenarios: {},
   };
   for (const [caseId, shortTitle, previewOnly] of BIOMEDICINE_CASES) {
@@ -521,6 +525,10 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   });
 
   await selectMaterials(page);
+  if (!(await page.getByText("前沿探索价值", { exact: true }).isVisible())) {
+    throw new Error(`${name}: materials frontier outlook is missing`);
+  }
+  result.frontierOutlook.materials = true;
   result.materials = {
     defectAdsorption: await assertLayout(page, `${name}/defect-adsorption`),
   };
@@ -630,12 +638,18 @@ const outputDir = path.resolve(
   option("--output-dir", path.join(scriptDir, "../../artifacts/browser-smoke")),
 );
 await mkdir(outputDir, { recursive: true });
-
-const report = { baseUrl, viewports: {} };
 const browser = await chromium.launch({
   headless: true,
   args: ["--no-proxy-server"],
 });
+const report = {
+  schema: "industry.browser-acceptance.v1",
+  generatedAt: new Date().toISOString(),
+  revision: process.env.CASCAQIT_BROWSER_EVIDENCE_REVISION ?? "local-uncommitted",
+  browser: { name: "chromium", version: browser.version() },
+  baseUrl,
+  viewports: {},
+};
 try {
   for (const [name, width, height] of VIEWPORTS) {
     report.viewports[name] = await runViewport(

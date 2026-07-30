@@ -349,7 +349,7 @@ describe("App", () => {
     expect(screen.queryByText("投资组合")).toBeNull();
     expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
     expect(screen.getByText("前沿探索价值")).toBeTruthy();
-    expect(screen.getByText(/为未来硬件和算法成熟后的真实科研应用建立可复用基线/)).toBeTruthy();
+    expect(screen.getByText(/量子计算进入真实科研流程的前景/)).toBeTruthy();
     expect(screen.getByRole("tab", { name: "对照分析" })).toBeTruthy();
     expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(window.location.pathname).toBe("/biomedicine/electronic_structure");

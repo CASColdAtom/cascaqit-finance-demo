@@ -82,3 +82,5 @@ npm run browser-smoke:materials
 ```
 
 需要归档三个视口的截图和结构化报告，并证明：无页面级横向溢出、结构 SVG 有实际图元、量子 canvas 非空、console/page error 为 0、量子/经典/参考结果分离、材料 Analog 不显示数字线路。宿主权限放行前继续保持 `FINAL ACCEPTANCE / BROWSER PENDING`。
+
+仓库已增加 `.github/workflows/v3-browser-acceptance.yml` 作为宿主受限时的真实 Chromium 验收路径。工作流使用 CASCAQit `v1.0.5a`、生产 FastAPI 和 Ubuntu Chromium，运行八场景主 smoke 与独立材料 smoke；主报告记录提交 SHA、Chromium 版本和生成时间，`scripts/validate_browser_evidence.mjs` 复核三个视口、八场景、27 张截图、canvas 像素、横向溢出、浏览器错误和前沿探索文案。该工作流代码提交不等于门禁通过，只有远端运行成功、制品下载并完成 revision/SHA 一致性复核后才能更新本节结论。
