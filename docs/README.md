@@ -8,6 +8,7 @@
 
 领域规格与演示资料：
 
+- [市场演示宣讲稿](market_demo_presentation_script.md)：面向市场、销售和售前人员，提供三个领域 15 个场景的逐页讲法、52 个预设、全部参数分类、推荐执行配置和客户问答。
 - [生物医药与材料领域需求](biomedicine_demo_prd.md)：定义八个正式场景、用户流程、数据要求、展示边界和发布条件。
 - [生物医药与材料领域架构](biomedicine_demo_architecture.md)：说明 Pauli/VQE、组合优化和 Pure Analog AHS 三条执行链及其数据、API、前端、审计和测试结构。
 - [生物医药与材料客户演示手册](biomedicine_customer_demo_guide.md)：说明三个一级领域如何共用工作台、八场景讲解顺序、可解释结论和禁止外推内容。
