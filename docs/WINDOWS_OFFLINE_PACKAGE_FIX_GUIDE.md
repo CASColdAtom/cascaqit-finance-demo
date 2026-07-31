@@ -1,6 +1,6 @@
-# CASCAQit Finance Demo Windows 离线包问题与修复指南
+# 历史金融包 Windows 离线问题与修复指南
 
-> 本文是旧离线包的故障复盘，文中的 `1.0.2a0`、`1.0.2a1` 和制品哈希只对应当时的测试包，不是当前安装要求。当前源码离线包已经重建，结果见[Windows 离线包重建报告](process/windows_offline_bundle_rebuild_report.md)；Windows 实机验收仍未完成。
+> 本文只保留旧 `cascaqit-finance-demo` 包的历史故障和修复证据，文中的名称、`1.0.2a0`、`1.0.2a1`、命令及制品哈希均不是当前发布要求。全场景项目已更名为 `cascaqit-industry-workbench`；现行构建、验收、发布与回滚流程以 [Windows 离线发布手册](process/windows_offline_release_playbook.md) 为准，最近一次已发布制品见 [Windows 离线包构建与发布报告](process/windows_offline_bundle_rebuild_report.md)。
 
 ## 1. 文档目的
 

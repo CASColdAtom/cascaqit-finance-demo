@@ -1,7 +1,7 @@
 {
-  "name": "cascaqit-finance-workbench",
+  "name": "cascaqit-industry-workbench",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 127.0.0.1",

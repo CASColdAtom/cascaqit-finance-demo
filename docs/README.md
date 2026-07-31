@@ -1,14 +1,22 @@
 # 文档
 
-- [生物医药与材料量子实验台 PRD](biomedicine_demo_prd.md)：定义八个正式场景、用户流程、数据要求、展示边界和发布条件。
-- [生物医药与材料量子实验台架构设计](biomedicine_demo_architecture.md)：说明 Pauli/VQE、组合优化和 Pure Analog AHS 三条执行链及其数据、API、前端、审计和测试结构。
+产品总册：
+
+- [中科酷原行业量子实验台 PRD](industry_quantum_workbench_prd.md)：定义三个领域、15 个场景、统一用户流程、产品标识、交付要求和发布条件。
+- [中科酷原行业量子实验台总体架构](industry_quantum_workbench_architecture.md)：说明统一工作台、领域包、执行族、API、数据审计、兼容边界和 Windows 发布架构。
+- [Windows 离线包构建与发布手册](process/windows_offline_release_playbook.md)：固化版本、构建、Windows 安装验收、Release、故障和回滚流程。
+
+领域规格与演示资料：
+
+- [生物医药与材料领域需求](biomedicine_demo_prd.md)：定义八个正式场景、用户流程、数据要求、展示边界和发布条件。
+- [生物医药与材料领域架构](biomedicine_demo_architecture.md)：说明 Pauli/VQE、组合优化和 Pure Analog AHS 三条执行链及其数据、API、前端、审计和测试结构。
 - [生物医药与材料客户演示手册](biomedicine_customer_demo_guide.md)：说明三个一级领域如何共用工作台、八场景讲解顺序、可解释结论和禁止外推内容。
 - [生物医药与材料数据来源清单](biomedicine_data_source_inventory.md)：登记 20 组 fixture 的来源、许可证、生成工具、checksum、允许说法和离线发布检查。
 - [客户演示技术讲解手册](customer_demo_technical_guide.md)：面向金融和量子计算初学者，解释业务建模、QUBO、Digital/Hybrid/Analog 原理、七个场景、页面解读、演示话术和当前限制。
 - [逐场景讲解与页面解读](scenario_presentation_guide.md)：逐项说明七个场景的业务问题、输入、输出、建模、算法选择、页面元素，并结合实际运行截图讲解固定配置结果。
-- [金融 Demo 架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
+- [金融领域架构设计](finance_problem_api_architecture.md)：说明七个金融场景如何按业务结构选择 Digital、Hybrid、Analog 或经典计算，以及统一执行、结果、可视化和验收边界。
 - [QAOA 与 VQE 算法优化设计](qaoa_vqe_algorithm_optimization_design.md)：说明 QAOA 自动选层、连续优化、四个 Digital 场景的 VQE 契约和发布门槛。
-- [金融 Demo 场景与界面设计](finance_demo_design.md)：当前七个场景的输入、结果、页面内容、运行方式和解释边界。
+- [金融领域场景与界面设计](finance_demo_design.md)：当前七个场景的输入、结果、页面内容、运行方式和解释边界。
 
 当前实现记录：
 
@@ -34,7 +42,7 @@
 - [衍生品重估风险图实现报告](process/derivative_revaluation_risk_graph_report.md)：记录九格压力重估、MWIS 风险权重、Analog 局域失谐映射和四类产品验收结果。
 - [Problem 映射旧前端热修复报告](process/problem_mapping_stale_frontend_hotfix_report.md)：记录旧响应字段兜底、入口禁缓存和升级后强制刷新边界。
 - [量子实验与审计界面收敛报告](process/quantum_audit_interface_convergence_report.md)：记录 QAOA 逻辑层与执行上下文摘要的展示范围。
-- [Windows 离线包重建报告](process/windows_offline_bundle_rebuild_report.md)：记录当前源码离线包、依赖闭包、完整性检查、Python 3.9 构建兼容修复和待完成的 Windows 实机验收。
+- [Windows 离线包发布报告](process/windows_offline_bundle_rebuild_report.md)：记录当前离线制品、依赖闭包、完整性检查、Windows 安装启动验收和 Release 身份。
 - [Windows runtime 解压热修复报告](process/windows_runtime_extraction_hotfix_report.md)：记录 PowerShell 5.1 归档缺陷、临时目录触发的长路径失败和当前修复包校验结果。
 - [运行时依赖兼容性报告](process/runtime_dependency_compatibility_report.md)：记录 Python 3.9 收集修复、CASCAQit 最低版本和离线包重建边界。
 - [当前实现复盘与迭代优先级](process/current_implementation_review_and_iteration_priorities.md)：汇总七场景链路、默认与全预设执行结果、关键缺口和后续顺序。

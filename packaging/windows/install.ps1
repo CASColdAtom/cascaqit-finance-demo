@@ -13,6 +13,17 @@ $VenvRoot = Join-Path $Runtime "venv"
 $VenvPython = Join-Path $VenvRoot "Scripts\python.exe"
 $Wheelhouse = Join-Path $Root "wheelhouse"
 $InstallLog = Join-Path $Runtime "install.log"
+$BundleInfoPath = Join-Path $Root "bundle-info.json"
+
+if (-not (Test-Path -LiteralPath $BundleInfoPath -PathType Leaf)) {
+    throw "离线包缺少版本清单：$BundleInfoPath"
+}
+$BundleInfo = Get-Content -LiteralPath $BundleInfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$WorkbenchRequirement = [string]$BundleInfo.industry_workbench
+if ($WorkbenchRequirement -notmatch '^cascaqit-industry-workbench==([0-9A-Za-z.!+_-]+)$') {
+    throw "离线包的行业实验台版本声明无效：$WorkbenchRequirement"
+}
+$WorkbenchVersion = $Matches[1]
 
 function Write-InstallEvent {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -108,7 +119,7 @@ if ($ForceReinstall) {
 } else {
     Write-InstallEvent "正在检查并安装 CASCAQit 和行业实验台……"
 }
-$PipArguments += "cascaqit-finance-demo==0.2.1"
+$PipArguments += $WorkbenchRequirement
 & $VenvPython @PipArguments
 if ($LASTEXITCODE -ne 0) {
     throw "离线 Python 依赖安装失败。安装日志：$InstallLog"
@@ -122,7 +133,7 @@ if ($LASTEXITCODE -ne 0) {
 # 版本、静态资源和真实 settlement 执行必须同时通过。后者会覆盖资源规划器、
 # Digital-Analog-Digital 编译、本地模拟、采样和结果映射，不再只验证 import。
 $env:CASCAQIT_INDUSTRY_DATA_DIR = $Root
-$VersionCheck = "from importlib.metadata import version; from cascaqit_finance_demo.api.app import FRONTEND_DIST; assert (FRONTEND_DIST / 'index.html').is_file(); print('CASCAQit', version('cascaqit')); print('Industry Workbench', version('cascaqit-finance-demo'))"
+$VersionCheck = "from importlib.metadata import version; from cascaqit_finance_demo.api.app import FRONTEND_DIST; assert (FRONTEND_DIST / 'index.html').is_file(); assert version('cascaqit-industry-workbench') == '$WorkbenchVersion'; print('CASCAQit', version('cascaqit')); print('Industry Workbench', version('cascaqit-industry-workbench'))"
 & $VenvPython -c $VersionCheck
 if ($LASTEXITCODE -ne 0) {
     throw "安装后的版本或静态资源自检失败。安装日志：$InstallLog"

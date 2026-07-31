@@ -9,7 +9,7 @@
     "source_file_sha256": "16f48c10aa639c1f03a4ecdffc9c9436121e6f22c5ad73c40ad8c30dc1387ba9"
   },
   "generation": {
-    "tool": "cascaqit-finance-demo protein-network fixture builder",
+    "tool": "cascaqit-industry-workbench protein-network fixture builder",
     "tool_version": "1",
     "parameters": {
       "network_kind": "directed coarse-grained teaching network",

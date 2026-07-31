@@ -1,18 +1,30 @@
 # 中科酷原行业量子实验台
 
-这是一个基于 CASCAQit 的离线行业量子计算演示平台。产品在统一工作台内按一级领域组织场景，当前包含金融、生物医药和材料科学三个领域；`CASCAQit` 是底层量子编程 SDK 与本地执行引擎，不作为对外产品名称。
+这是一个基于 CASCAQit 的全场景行业量子实验平台。产品在统一工作台内按一级领域组织场景，当前提供金融、生物医药和材料科学三个领域、15 个可执行场景；`CASCAQit` 是底层量子编程 SDK 与执行引擎，不作为对外产品名称。
 
-金融领域保留七个成熟场景。生物医药六个场景均已接通真实本地模拟执行链：电子结构和金属活性中心使用 Digital VQE，构象匹配使用 Hybrid/Digital QAOA，小肽能景、RNA 二级结构和蛋白构象转变路径使用 Digital QAOA。材料缺陷与吸附优化使用 Hybrid/Digital QAOA；材料 Rydberg 动力学使用四位点 Pure Analog AHS 本地时间演化。量子结果、经典对照与参考数据始终分开展示。
+金融领域包含七个场景。生物医药六个场景覆盖 Digital VQE、Hybrid/Digital QAOA 和结构路径优化；材料科学两个场景覆盖 Hybrid/Digital QAOA 与 Pure Analog AHS。量子结果、经典对照与参考数据始终分开展示。
+
+## 项目标识
+
+| 项目 | 当前名称 |
+|---|---|
+| 对外产品 | 中科酷原行业量子实验台 |
+| GitHub 仓库 | `cascaqit-industry-workbench` |
+| Python 分发包 | `cascaqit-industry-workbench` |
+| 主启动命令 | `cascaqit-industry-api`、`cascaqit-industry-demo` |
+| Windows 制品 | `cascaqit-industry-workbench-windows-x64-py311.zip` |
+
+`cascaqit_finance_demo` 继续作为金融领域实现包和历史兼容导入存在，不再代表项目级产品名称。总体产品范围见[全场景 PRD](docs/industry_quantum_workbench_prd.md)，技术边界见[总体架构](docs/industry_quantum_workbench_architecture.md)。
 
 ## 启动
 
-先安装同级 CASCAQit 源码和 Demo：
+先安装同级 CASCAQit 源码和行业实验台：
 
 ```bash
 python3 -m pip install -e ../cascaqit-new/CASCAQit -e .
 ```
 
-Demo 需要经过验收的 CASCAQit `1.0.5a0` 系列；该正式标签已通过生物医药 Pauli/VQE、QUBO/QAOA 和 Hybrid 映射测试，旧版 SDK 不能运行当前场景。
+行业实验台需要经过验收的 CASCAQit `1.0.5a0` 系列；该正式标签已通过 Pauli/VQE、QUBO/QAOA、Hybrid 映射和 Analog AHS 测试，旧版 SDK 不能运行当前场景。
 
 构建 React 前端：
 
@@ -171,11 +183,11 @@ PYTHONPATH=.:src:../cascaqit-new/CASCAQit/src \
   .venv/bin/python scripts/validate_v3_release_evidence.py
 ```
 
-断网重建 Windows 包时，可以显式复用上一份已验收包中的第三方 wheel 和已验签 Python runtime；当前 Demo 从源码重建，CASCAQit 默认使用仓库内经过哈希固定的 `1.0.5a0` wheel：
+断网重建 Windows 包时，可以显式复用上一份已验收包中的第三方 wheel 和已验签 Python runtime；当前实验台从源码重建，CASCAQit 默认使用仓库内经过哈希固定的 `1.0.5a0` wheel：
 
 ```bash
 python3 scripts/build_windows_offline_bundle.py \
-  --cache-root offline/cascaqit-finance-demo-windows-x64-py311
+  --cache-root offline/cascaqit-industry-workbench-windows-x64-py311
 ```
 
 只有需要验证尚未固化为 wheel 的 SDK 源码时，才显式传入 `--sdk-root`；也可以用 `--sdk-wheel` 选择另一份已审计 wheel，两者不能同时使用。
@@ -194,4 +206,4 @@ node scripts/validate_browser_evidence.mjs artifacts/browser-smoke-v3
 
 V3 发布基线 `0d5383e5e61c8638d93b162938d59227c8ac0b0a` 已由 GitHub Actions run `30601093858` 在 Chromium `151.0.7922.34` 下完成上述主证据，并额外生成两个材料场景的 9 张独立截图；全部报告的页面级溢出、console error 和 page error 均为零。发布文档变更后的最终分支 HEAD 仍须取得 revision 一致的成功工作流，不能复用旧 revision 冒充最终提交证据。
 
-设计说明见[文档索引](docs/README.md)。
+完整构建、Windows 验收和发布步骤见 [Windows 离线发布手册](docs/process/windows_offline_release_playbook.md)。设计说明见[文档索引](docs/README.md)。

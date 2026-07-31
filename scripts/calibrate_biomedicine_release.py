@@ -363,7 +363,7 @@ def calibrate() -> dict[str, Any]:
             "python": platform.python_version(),
             "platform": platform.platform(),
             "cascaqit": _version("cascaqit"),
-            "demo": _version("cascaqit-finance-demo"),
+            "workbench": _version("cascaqit-industry-workbench"),
             "scriptSha256": script_hash,
         },
         "sdkProvenance": cascaqit_provenance,

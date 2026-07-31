@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import os
 import tarfile
@@ -12,6 +13,7 @@ from zipfile import ZipFile
 
 import pytest
 from scripts.build_windows_offline_bundle import (
+    BUNDLE_NAME,
     PYTHON_RUNTIME_RELEASE,
     PYTHON_RUNTIME_SOURCE_SHA256,
     PYTHON_RUNTIME_ZIP_NAME,
@@ -71,6 +73,36 @@ def test_runtime_requires_validated_cascaqit_release_series() -> None:
     project = Path("pyproject.toml").read_text(encoding="utf-8")
 
     assert '"cascaqit>=1.0.5a0,<1.0.6"' in project
+
+
+def test_project_and_windows_bundle_use_industry_identity() -> None:
+    project = Path("pyproject.toml").read_text(encoding="utf-8")
+    frontend = json.loads(Path("frontend/package.json").read_text(encoding="utf-8"))
+    workflow = Path(".github/workflows/windows-offline-acceptance.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'name = "cascaqit-industry-workbench"' in project
+    assert frontend["name"] == "cascaqit-industry-workbench"
+    assert BUNDLE_NAME == "cascaqit-industry-workbench-windows-x64-py311"
+    assert "${{ github.server_url }}/${{ github.repository }}" in workflow
+    assert "version('cascaqit-industry-workbench') == '0.3.0'" not in workflow
+
+
+def test_industry_entrypoints_delegate_to_unified_application(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from cascaqit_industry_demo import entrypoints
+
+    application = importlib.import_module("cascaqit_finance_demo.api.app")
+    calls: list[str] = []
+    monkeypatch.setattr(application, "run", lambda: calls.append("run"))
+    monkeypatch.setattr(application, "launch", lambda: calls.append("launch"))
+
+    entrypoints.run()
+    entrypoints.launch()
+
+    assert calls == ["run", "launch"]
 
 
 def test_windows_bundle_uses_standard_pep517_wheel_build() -> None:
@@ -152,6 +184,7 @@ def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None
     cached_wheels.mkdir(parents=True)
     _write_test_wheel(cached_wheels, "cascaqit", "9.9.9")
     _write_test_wheel(cached_wheels, "cascaqit-finance-demo", "9.9.9")
+    _write_test_wheel(cached_wheels, "cascaqit-industry-workbench", "9.9.9")
     _write_test_wheel(cached_wheels, "third-party", "1.2.3")
 
     current = tmp_path / "current"
@@ -159,13 +192,13 @@ def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None
     _write_test_wheel(current, "cascaqit", "1.0.5a0", ["third-party>=1"])
     _write_test_wheel(
         current,
-        "cascaqit-finance-demo",
-        "0.1.1",
+        "cascaqit-industry-workbench",
+        "0.3.0",
         ["cascaqit>=1.0.5a0,<1.0.6"],
     )
     output = tmp_path / "output"
     _populate_windows_wheelhouse_from_cache(
-        next(current.glob("cascaqit_finance_demo-*.whl")),
+        next(current.glob("cascaqit_industry_workbench-*.whl")),
         next(current.glob("cascaqit-*.whl")),
         output,
         cache_root,
@@ -174,8 +207,9 @@ def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None
     names = {path.name for path in output.glob("*.whl")}
     assert "cascaqit-9.9.9-py3-none-any.whl" not in names
     assert "cascaqit_finance_demo-9.9.9-py3-none-any.whl" not in names
+    assert "cascaqit_industry_workbench-9.9.9-py3-none-any.whl" not in names
     assert "cascaqit-1.0.5a0-py3-none-any.whl" in names
-    assert "cascaqit_finance_demo-0.1.1-py3-none-any.whl" in names
+    assert "cascaqit_industry_workbench-0.3.0-py3-none-any.whl" in names
     assert "third_party-1.2.3-py3-none-any.whl" in names
 
 
@@ -310,6 +344,9 @@ def test_windows_installer_uses_portable_runtime_and_real_smoke() -> None:
     assert "python-3.11.9-amd64.exe" not in install_script
     assert "--force-reinstall" in install_script
     assert "if ($ForceReinstall)" in install_script
+    assert "$BundleInfo.industry_workbench" in install_script
+    assert 'cascaqit-industry-workbench==0.3.0' not in install_script
+    assert "version('cascaqit-industry-workbench')" in install_script
     assert "cascaqit_finance_demo.smoke_test" in install_script
     assert "中科酷原行业量子实验台" in install_script
     assert "中科酷原行业量子实验台" in run_script

@@ -52,7 +52,7 @@ jobs:
       - name: Prepare verified Windows dependency cache
         shell: pwsh
         env:
-          CACHE_URL: https://github.com/CASColdAtom/cascaqit-finance-demo/releases/download/v0.1.1/cascaqit-finance-demo-windows-x64-py311.zip
+          CACHE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/v0.1.1/cascaqit-finance-demo-windows-x64-py311.zip
           CACHE_SHA256: 4deb45cdd37b07034512aec89d5f7402152ebbdff8382fecff738bbbd593198a
         run: |
           $archive = Join-Path $env:RUNNER_TEMP "windows-cache.zip"
@@ -72,13 +72,13 @@ jobs:
         run: |
           python scripts/build_windows_offline_bundle.py --cache-root $env:CASCAQIT_WINDOWS_CACHE_ROOT
           if ($LASTEXITCODE -ne 0) { throw "Windows bundle build failed: $LASTEXITCODE" }
-          Get-Content offline/cascaqit-finance-demo-windows-x64-py311/bundle-info.json
-          Get-FileHash offline/cascaqit-finance-demo-windows-x64-py311.zip -Algorithm SHA256
+          Get-Content offline/cascaqit-industry-workbench-windows-x64-py311/bundle-info.json
+          Get-FileHash offline/cascaqit-industry-workbench-windows-x64-py311.zip -Algorithm SHA256
 
       - name: Verify and install entirely offline
         shell: pwsh
         run: |
-          $bundle = Resolve-Path "offline/cascaqit-finance-demo-windows-x64-py311"
+          $bundle = Resolve-Path "offline/cascaqit-industry-workbench-windows-x64-py311"
           $env:PIP_NO_INDEX = "1"
           $env:NO_PROXY = "*"
           $env:no_proxy = "*"
@@ -86,12 +86,15 @@ jobs:
           if ($verify.ExitCode -ne 0) { throw "VERIFY.bat failed: $($verify.ExitCode)" }
           $install = Start-Process cmd.exe -ArgumentList "/d", "/c", "INSTALL.bat" -WorkingDirectory $bundle -Wait -PassThru -NoNewWindow
           if ($install.ExitCode -ne 0) { throw "INSTALL.bat failed: $($install.ExitCode)" }
-          & (Join-Path $bundle "runtime/venv/Scripts/python.exe") -c "from importlib.metadata import version; assert version('cascaqit-finance-demo') == '0.2.1'; assert version('cascaqit') == '1.0.5a0'"
+          $bundleInfo = Get-Content (Join-Path $bundle "bundle-info.json") -Raw | ConvertFrom-Json
+          $workbenchVersion = ([string]$bundleInfo.industry_workbench).Split("==", 2)[1]
+          $sdkVersion = ([string]$bundleInfo.cascaqit).Split("==", 2)[1]
+          & (Join-Path $bundle "runtime/venv/Scripts/python.exe") -c "from importlib.metadata import version; assert version('cascaqit-industry-workbench') == '$workbenchVersion'; assert version('cascaqit') == '$sdkVersion'"
 
       - name: Start through RUN.bat and probe installed application
         shell: pwsh
         run: |
-          $bundle = Resolve-Path "offline/cascaqit-finance-demo-windows-x64-py311"
+          $bundle = Resolve-Path "offline/cascaqit-industry-workbench-windows-x64-py311"
           $env:CASCAQIT_INDUSTRY_PORT = "8765"
           $process = Start-Process cmd.exe -ArgumentList "/d", "/c", "RUN.bat" -WorkingDirectory $bundle -PassThru
           try {
@@ -136,6 +139,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cascaqit-industry-workbench-windows-x64-${{ github.sha }}
-          path: offline/cascaqit-finance-demo-windows-x64-py311.zip
+          path: offline/cascaqit-industry-workbench-windows-x64-py311.zip
           if-no-files-found: error
           retention-days: 30

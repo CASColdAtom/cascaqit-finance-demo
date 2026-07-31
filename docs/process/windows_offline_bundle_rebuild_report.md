@@ -1,5 +1,7 @@
 # Windows 离线包构建与发布报告
 
+> 本文记录最近一次已经完成 Windows runner 验收并正式发布的制品。`0.3.0` 全场景更名版本在通过 Windows 与 Chromium 门禁、上传 Release 资产并复核服务端摘要后再更新本文；流程规范见 [Windows 离线发布手册](windows_offline_release_playbook.md)。
+
 ## 交付结果
 
 行业量子实验台 `0.2.1` 已生成 Windows 10/11 x64 离线安装包：

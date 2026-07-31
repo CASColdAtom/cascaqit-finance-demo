@@ -1,6 +1,6 @@
-# 金融 Demo 场景与界面设计
+# 金融领域场景与界面设计
 
-本文说明当前七个场景的输入、结果和演示内容。执行模式、Problem API 组件和模式选择规则见[金融 Demo 架构设计](finance_problem_api_architecture.md)。
+本文说明金融领域七个场景的输入、结果和演示内容。执行模式、Problem API 组件和模式选择规则见[金融领域架构设计](finance_problem_api_architecture.md)。
 
 ## 演示范围
 

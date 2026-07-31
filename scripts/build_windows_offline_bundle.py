@@ -31,7 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SDK_WHEEL = ROOT / "vendor" / "cascaqit-1.0.5a0-py3-none-any.whl"
 TEMPLATE_ROOT = ROOT / "packaging" / "windows"
 PACKAGE_STATIC = ROOT / "src" / "cascaqit_finance_demo" / "static"
-BUNDLE_NAME = "cascaqit-finance-demo-windows-x64-py311"
+BUNDLE_NAME = "cascaqit-industry-workbench-windows-x64-py311"
+WORKBENCH_DISTRIBUTION = "cascaqit-industry-workbench"
+WORKBENCH_WHEEL_GLOB = "cascaqit_industry_workbench-*.whl"
 PYTHON_VERSION = "3.11.9"
 PYTHON_RUNTIME_RELEASE = "20240726"
 PYTHON_RUNTIME_SOURCE_NAME = (
@@ -126,12 +128,12 @@ def _build_local_wheels(
 ) -> tuple[Path, Path]:
     """构建行业实验台 wheel，并固定一份 CASCAQit wheel 进入交付物。"""
 
-    finance_dir = build_root / "finance"
+    workbench_dir = build_root / "workbench"
     sdk_dir = build_root / "sdk"
-    finance_dir.mkdir()
+    workbench_dir.mkdir()
     sdk_dir.mkdir()
     build_command = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
-    _run([*build_command, "--outdir", str(finance_dir)], cwd=ROOT)
+    _run([*build_command, "--outdir", str(workbench_dir)], cwd=ROOT)
     if sdk_wheel is not None:
         if not sdk_wheel.is_file():
             raise FileNotFoundError(f"CASCAQit wheel 不存在：{sdk_wheel}")
@@ -147,9 +149,9 @@ def _build_local_wheels(
         copied_sdk_wheel = next(sdk_dir.glob("cascaqit-*.whl"))
     else:
         raise ValueError("必须指定 CASCAQit wheel 或源码目录")
-    finance_wheel = next(finance_dir.glob("cascaqit_finance_demo-*.whl"))
-    _audit_demo_fixture_checksums(finance_wheel)
-    return finance_wheel, copied_sdk_wheel
+    workbench_wheel = next(workbench_dir.glob(WORKBENCH_WHEEL_GLOB))
+    _audit_demo_fixture_checksums(workbench_wheel)
+    return workbench_wheel, copied_sdk_wheel
 
 
 def _copy_sdk_license(sdk_wheel: Path, destination: Path) -> None:
@@ -212,7 +214,7 @@ def _audit_demo_fixture_checksums(demo_wheel: Path) -> None:
 
 
 def _download_windows_wheels(
-    finance_wheel: Path,
+    workbench_wheel: Path,
     sdk_wheel: Path,
     wheelhouse: Path,
     cache_root: Path | None = None,
@@ -221,7 +223,7 @@ def _download_windows_wheels(
 
     if cache_root is not None:
         _populate_windows_wheelhouse_from_cache(
-            finance_wheel,
+            workbench_wheel,
             sdk_wheel,
             wheelhouse,
             cache_root,
@@ -249,12 +251,12 @@ def _download_windows_wheels(
             "--find-links",
             str(sdk_wheel.parent),
             "--find-links",
-            str(finance_wheel.parent),
+            str(workbench_wheel.parent),
             # click 在 Windows 上依赖 colorama。pip download 的平台参数不会影响
             # platform_system 环境标记，因此必须把它作为目标平台根依赖显式下载。
             "colorama>=0.4",
             str(sdk_wheel),
-            str(finance_wheel),
+            str(workbench_wheel),
         ],
         cwd=ROOT,
     )
@@ -265,7 +267,7 @@ def _download_windows_wheels(
 
 
 def _populate_windows_wheelhouse_from_cache(
-    finance_wheel: Path,
+    workbench_wheel: Path,
     sdk_wheel: Path,
     wheelhouse: Path,
     cache_root: Path,
@@ -277,7 +279,11 @@ def _populate_windows_wheelhouse_from_cache(
         raise FileNotFoundError(f"离线缓存缺少 wheelhouse：{cached_wheelhouse}")
 
     wheelhouse.mkdir()
-    local_packages = {"cascaqit", "cascaqit-finance-demo"}
+    local_packages = {
+        "cascaqit",
+        "cascaqit-finance-demo",
+        WORKBENCH_DISTRIBUTION,
+    }
     for cached_wheel in sorted(cached_wheelhouse.glob("*.whl")):
         metadata = _read_wheel_metadata(cached_wheel)
         package_name = metadata.get("Name")
@@ -287,7 +293,7 @@ def _populate_windows_wheelhouse_from_cache(
             continue
         shutil.copy2(cached_wheel, wheelhouse / cached_wheel.name)
 
-    shutil.copy2(finance_wheel, wheelhouse / finance_wheel.name)
+    shutil.copy2(workbench_wheel, wheelhouse / workbench_wheel.name)
     shutil.copy2(sdk_wheel, wheelhouse / sdk_wheel.name)
     _audit_windows_dependency_closure(wheelhouse)
 
@@ -519,7 +525,7 @@ def _preserve_cache_for_rebuild(
     if not resolved_cache.is_dir():
         raise FileNotFoundError(f"离线缓存目录不存在：{resolved_cache}")
     with tempfile.TemporaryDirectory(
-        prefix="cascaqit-finance-offline-cache-"
+        prefix="cascaqit-industry-offline-cache-"
     ) as temporary:
         staged_cache = Path(temporary) / "bundle-cache"
         shutil.copytree(resolved_cache, staged_cache)
@@ -551,16 +557,16 @@ def build_bundle(
     with _preserve_cache_for_rebuild(cache_root, bundle_root) as effective_cache:
         _reset_directory(bundle_root)
         with tempfile.TemporaryDirectory(
-            prefix="cascaqit-finance-offline-"
+            prefix="cascaqit-industry-offline-"
         ) as temporary:
             build_root = Path(temporary)
-            finance_wheel, resolved_sdk_wheel = _build_local_wheels(
+            workbench_wheel, resolved_sdk_wheel = _build_local_wheels(
                 build_root,
                 sdk_root=sdk_root,
                 sdk_wheel=sdk_wheel,
             )
             _download_windows_wheels(
-                finance_wheel,
+                workbench_wheel,
                 resolved_sdk_wheel,
                 bundle_root / "wheelhouse",
                 effective_cache,
@@ -589,10 +595,10 @@ def build_bundle(
             "python_runtime_source_sha256": PYTHON_RUNTIME_SOURCE_SHA256,
             "python_runtime_archive": PYTHON_RUNTIME_ZIP_NAME,
             "python_runtime_archive_sha256": _sha256(runtime_archive),
-            "finance_demo": next(
+            "industry_workbench": next(
                 item
                 for item in requirements
-                if item.lower().startswith("cascaqit-finance-demo==")
+                if item.lower().startswith(f"{WORKBENCH_DISTRIBUTION}==")
             ),
             "cascaqit": next(
                 item
