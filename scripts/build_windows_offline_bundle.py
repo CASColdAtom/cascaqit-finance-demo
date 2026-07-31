@@ -69,7 +69,10 @@ def _run(command: list[str], *, cwd: Path) -> None:
     """执行构建命令并在任一步失败时立即终止，避免生成半成品离线包。"""
 
     print("+", " ".join(command))
-    subprocess.run(command, cwd=cwd, check=True)
+    executable = shutil.which(command[0])
+    if executable is None:
+        raise FileNotFoundError(f"构建命令不存在：{command[0]}")
+    subprocess.run([executable, *command[1:]], cwd=cwd, check=True)
 
 
 def _reset_directory(path: Path) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tarfile
 from io import BytesIO
 from pathlib import Path
@@ -22,6 +23,7 @@ from scripts.build_windows_offline_bundle import (
     _prepare_python_runtime,
     _preserve_cache_for_rebuild,
     _reset_directory,
+    _run,
 )
 
 from cascaqit_finance_demo.api.app import FRONTEND_DIST, HOST, PORT
@@ -80,6 +82,23 @@ def test_windows_bundle_uses_standard_pep517_wheel_build() -> None:
     assert 'sys.executable, "-m", "build"' in script
     assert '"--no-isolation"' in script
     assert '["uv", "build"' not in script
+
+
+def test_build_command_resolves_platform_specific_path_entry(
+    tmp_path: Path,
+) -> None:
+    executable = tmp_path / ("bundle-tool.cmd" if os.name == "nt" else "bundle-tool")
+    executable.write_text(
+        "@echo off\r\nexit /b 0\r\n" if os.name == "nt" else "#!/bin/sh\nexit 0\n",
+        encoding="ascii",
+    )
+    executable.chmod(0o755)
+    original_path = os.environ.get("PATH", "")
+    os.environ["PATH"] = str(tmp_path) + os.pathsep + original_path
+    try:
+        _run(["bundle-tool"], cwd=tmp_path)
+    finally:
+        os.environ["PATH"] = original_path
 
 
 def test_windows_bundle_extracts_license_from_pinned_sdk_wheel(

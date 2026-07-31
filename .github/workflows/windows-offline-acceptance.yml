@@ -71,6 +71,7 @@ jobs:
         shell: pwsh
         run: |
           python scripts/build_windows_offline_bundle.py --cache-root $env:CASCAQIT_WINDOWS_CACHE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "Windows bundle build failed: $LASTEXITCODE" }
           Get-Content offline/cascaqit-finance-demo-windows-x64-py311/bundle-info.json
           Get-FileHash offline/cascaqit-finance-demo-windows-x64-py311.zip -Algorithm SHA256
 
