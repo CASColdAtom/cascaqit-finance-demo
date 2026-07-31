@@ -608,7 +608,8 @@ def main() -> None:
         cache_root=cache_root,
         sdk_wheel=args.sdk_wheel.resolve() if args.sdk_wheel else None,
     )
-    print(f"Windows 离线包已生成：{archive}")
+    # 构建机可能仍使用 cp1252 等传统控制台编码，发布成功提示保持 ASCII。
+    print(f"Windows offline bundle created: {archive}")
 
 
 if __name__ == "__main__":
