@@ -432,6 +432,8 @@ describe("MaterialsViews", () => {
     expect(screen.getByText("AHS 编译程序")).toBeTruthy();
     expect(screen.getByText("时间序列")).toBeTruthy();
     expect(screen.getByText("DOP853 经典参考")).toBeTruthy();
-    expect(screen.getAllByText(/cascaqit_exact_state_rk4_prefix/).length).toBeGreaterThan(0);
+    expect(screen.getByText("核心能力")).toBeTruthy();
+    expect(screen.getByText(/原生 Rydberg Hamiltonian/)).toBeTruthy();
+    expect(screen.queryByText(/cascaqit_exact_state_rk4_prefix|local simulator|本地执行/)).toBeNull();
   });
 });

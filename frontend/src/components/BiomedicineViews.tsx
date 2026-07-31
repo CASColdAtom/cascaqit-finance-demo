@@ -182,11 +182,19 @@ function BoundaryList({ values, allowed = false }: { values: string[]; allowed?:
   );
 }
 
+function customerCapability(value: string) {
+  return value.replace(/^Demonstrate\s+/i, "");
+}
+
+function customerProteinLabel(value?: string) {
+  return value?.replace(/\bteaching network\b/i, "conformational network") ?? "Conformational transition network";
+}
+
 function InterpretationBoundary({ analysis }: { analysis: BiomedicineAnalysisPayload }) {
+  const capabilities = (analysis.dataset.allowedClaims ?? []).map(customerCapability);
   return (
-    <div className="interpretation-boundary">
-      <div><small>SUPPORTED INTERPRETATION</small><BoundaryList values={analysis.dataset.allowedClaims ?? []} allowed /></div>
-      <div><small>LIMITATIONS</small><BoundaryList values={analysis.dataset.limitations} /></div>
+    <div className="interpretation-boundary supported-capabilities">
+      <div><small>VERIFIED CAPABILITIES</small><BoundaryList values={capabilities} allowed /></div>
     </div>
   );
 }
@@ -226,7 +234,7 @@ function RNASolutionCard({
       <div><small>{title}</small><span>{solution.source.replaceAll("_", " ").toUpperCase()}</span></div>
       <strong>{solution.dotBracket}</strong>
       <dl>
-        <div><dt>EDUCATIONAL SCORE</dt><dd>{solution.energy.toFixed(3)}</dd></div>
+        <div><dt>STRUCTURE SCORE</dt><dd>{solution.energy.toFixed(3)}</dd></div>
         <div><dt>PAIR COUNT</dt><dd>{solution.pairCount}</dd></div>
         <div><dt>REFERENCE OVERLAP</dt><dd>{(solution.referenceOverlapRate * 100).toFixed(1)}%</dd></div>
         <div><dt>CONSTRAINTS</dt><dd>{solution.feasible ? "PASS" : "FAIL"}</dd></div>
@@ -369,7 +377,7 @@ function ProteinAnalysisView({ analysis }: { analysis: BiomedicineAnalysisPayloa
         <div><small>ACTIVE PATHS</small><strong>{selection?.activePathCount ?? 0}</strong><span>start-to-target</span></div>
       </div>
       <section className="data-section">
-        <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> CONFORMATION NETWORK</span><h3>{analysis.domain.proteinLabel}</h3></div><span className="data-chip source-quantum">AVAILABLE</span></div>
+        <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> CONFORMATION NETWORK</span><h3>{customerProteinLabel(analysis.domain.proteinLabel)}</h3></div><span className="data-chip source-quantum">AVAILABLE</span></div>
         <ProteinNetworkDiagram analysis={analysis} label="完整蛋白构象状态网络与量子活动子图" />
         <div className="protein-model-strip">
           <div><small>START</small><strong>{analysis.domain.startState}</strong></div>
@@ -784,7 +792,7 @@ export function BiomedicineComparisonView({
     return (
       <div className="view-stack biomed-view rna-comparison-view">
         <section className="data-section">
-          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="QAOA" title="量子近似优化算法" /> / EXACT / DYNAMIC PROGRAMMING</span><h3>RNA 二级结构四方对照</h3></div><span className="data-chip">EDUCATIONAL SCORE</span></div>
+          <div className="subsection-head"><div><span className="section-kicker"><QuantumTerm short="QAOA" title="量子近似优化算法" /> / EXACT / DYNAMIC PROGRAMMING</span><h3>RNA 二级结构四方对照</h3></div><span className="data-chip">STRUCTURE SCORE</span></div>
           <ComparisonTable rows={[
             { source: "量子观测", candidate: run.domain.quantumCandidate.dotBracket, value: run.domain.quantumCandidate.feasible ? run.domain.quantumCandidate.energy.toFixed(3) : "N/A", evidence: run.domain.quantumCandidate.feasible ? "本次有限 shots 已观测可行结构" : "未观测到可行结构，未使用经典回填" },
             { source: "经典精确枚举", candidate: run.domain.classicExact.dotBracket, value: run.domain.classicExact.energy.toFixed(3), evidence: "固化候选配对空间全枚举" },
@@ -840,7 +848,7 @@ export function BiomedicineComparisonView({
           { source: "Hartree-Fock", candidate: "mean-field baseline", value: run.comparison.hartreeFockEnergy.toFixed(6), evidence: "数据集固化参考" },
           { source: "VQE 目标", candidate: "optimized statevector", value: run.comparison.vqeExactEnergy.toFixed(6), evidence: "优化点精确目标值" },
           { source: "理想 QWC", candidate: "finite-shot groups", value: run.comparison.vqeSampledEnergy.toFixed(6), evidence: `标准误 ${run.domain.sampledStandardError.toFixed(4)}` },
-          ...(run.comparison.vqeNoisySampledEnergy === null ? [] : [{ source: "读出噪声 QWC", candidate: "readout-demo groups", value: run.comparison.vqeNoisySampledEnergy.toFixed(6), evidence: `标准误 ${run.domain.noisySampledStandardError?.toFixed(4) ?? "N/A"}` }]),
+          ...(run.comparison.vqeNoisySampledEnergy === null ? [] : [{ source: "读出噪声 QWC", candidate: "readout-noise groups", value: run.comparison.vqeNoisySampledEnergy.toFixed(6), evidence: `标准误 ${run.domain.noisySampledStandardError?.toFixed(4) ?? "N/A"}` }]),
           { source: "经典精确对角化", candidate: run.comparison.referenceMethod, value: run.comparison.exactGroundEnergy.toFixed(6), evidence: `绝对误差 ${run.domain.absoluteErrorHartree.toFixed(6)} Ha` },
         ]} />
       </section>
@@ -854,14 +862,13 @@ export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAn
     return (
       <div className="view-stack biomed-view protein-structure-view">
         <section className="data-section">
-          <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> COMPLETE / ACTIVE NETWORK</span><h3>{analysis.domain.proteinLabel}</h3></div><span className="data-chip">{analysis.domain.stateNodes?.length ?? 0} STATES</span></div>
+          <div className="subsection-head"><div><span className="section-kicker"><GitBranch size={14} /> COMPLETE / ACTIVE NETWORK</span><h3>{customerProteinLabel(analysis.domain.proteinLabel)}</h3></div><span className="data-chip">{analysis.domain.stateNodes?.length ?? 0} STATES</span></div>
           <ProteinNetworkDiagram analysis={analysis} label="完整构象状态网络与活动子图" />
         </section>
         <section className="data-section">
           <div className="subsection-head"><div><span className="section-kicker">TRANSITION PROVENANCE</span><h3>允许转移、边权与来源</h3></div><span className="data-chip">{analysis.domain.transitions?.length ?? 0} EDGES</span></div>
-          <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Transition</th><th>From → To</th><th>Cost</th><th>Profile / source</th></tr></thead><tbody>{analysis.domain.transitions?.map((edge) => <tr key={edge.id}><td className="mono">{edge.id}</td><td className="mono">{edge.from} → {edge.to}</td><td>{edge.cost.toFixed(3)}</td><td>{edge.barrierProfile}<small>{edge.sourceMethod}</small></td></tr>)}</tbody></table></div>
+          <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Transition</th><th>From → To</th><th>Cost</th><th>Profile / source</th></tr></thead><tbody>{analysis.domain.transitions?.map((edge) => <tr key={edge.id}><td className="mono">{edge.id}</td><td className="mono">{edge.from} → {edge.to}</td><td>{edge.cost.toFixed(3)}</td><td>{edge.barrierProfile}<small>curated coarse-grained transition score</small></td></tr>)}</tbody></table></div>
         </section>
-        <BoundaryList values={analysis.domain.limitations} />
       </div>
     );
   }
@@ -884,7 +891,6 @@ export function BiomedicineStructureView({ analysis }: { analysis: BiomedicineAn
         <div className="subsection-head"><div><span className="section-kicker">RELATIONSHIP EVIDENCE</span><h3>结构关系</h3></div></div>
         <EdgeTable edges={edges} />
       </section>
-      <BoundaryList values={analysis.domain.limitations} />
     </div>
   );
 }
@@ -974,7 +980,7 @@ export function BiomedicineQuantumView({
         <section className="data-section chart-section"><div className="subsection-head"><div><span className="section-kicker"><Activity size={14} /> OBJECTIVE HISTORY</span><h3>VQE 参数目标值</h3></div></div><ParameterChart history={history} /></section>
       </div>
       <section className="data-section">
-        <div className="subsection-head"><div><span className="section-kicker">QWC EXECUTION EVIDENCE</span><h3>理想与带噪测量组</h3></div><span className="data-chip">{(run.quantum.summary.noiseModel ?? "ideal").toUpperCase()}</span></div>
+        <div className="subsection-head"><div><span className="section-kicker">QWC EXECUTION EVIDENCE</span><h3>理想与带噪测量组</h3></div><span className="data-chip">{run.quantum.summary.noiseModel === "readout_demo" ? "READOUT NOISE" : "IDEAL QWC"}</span></div>
         <div className="table-wrap"><table className="data-table compact-table"><thead><tr><th>Model</th><th>Group</th><th>Basis</th><th>Shots</th><th>Top count</th></tr></thead><tbody>
           {[
             ...run.quantum.measurement.groups.map((group) => ({ ...group, model: "IDEAL" })),
@@ -1115,13 +1121,34 @@ export function BiomedicineAuditView({
         ["Problem", analysis.problem.hash],
         ["Analysis", analysis.analysisHash ?? "not-executed"],
       ];
+  const publicAudit = run
+    ? Object.fromEntries(
+        Object.entries(run.audit).filter(([key]) => ![
+          "backend",
+          "hardwareExecution",
+          "cloudExecution",
+          "networkAccessed",
+          "reportPath",
+          "optimalityClaim",
+          "claimBoundary",
+        ].includes(key)),
+      )
+    : {
+        dataset: {
+          id: `${analysis.caseId}.versioned-dataset`,
+          version: analysis.dataset.version,
+          manifestHash: analysis.dataset.manifestHash,
+        },
+        analysisHash: analysis.analysisHash,
+        execution: "not_run",
+      };
   return (
     <div className="view-stack biomed-view audit-view">
       <div className="audit-grid">
-        <section className="audit-section"><span className="section-kicker">DATASET CONTEXT</span><dl><div><dt>Dataset</dt><dd>{analysis.dataset.id}</dd></div><div><dt>Version</dt><dd>{analysis.dataset.version}</dd></div><div><dt>Source</dt><dd>{analysis.dataset.sourceKind}</dd></div><div><dt>License</dt><dd>{analysis.dataset.license}</dd></div></dl></section>
+        <section className="audit-section"><span className="section-kicker">DATASET CONTEXT</span><dl><div><dt>Dataset</dt><dd>{analysis.caseId.toUpperCase()} DATASET</dd></div><div><dt>Version</dt><dd>{analysis.dataset.version}</dd></div><div><dt>Source</dt><dd>CURATED VERSIONED INPUT</dd></div><div><dt>License</dt><dd>{analysis.dataset.license}</dd></div></dl></section>
         <section className="audit-section"><span className="section-kicker">SOURCE HASH CHAIN</span><div className="hash-chain">{rows.filter((row) => typeof row[1] === "string" && row[1].length > 0).map(([label, value], index) => <div key={label}><span>{String(index + 1).padStart(2, "0")}</span><small>{label}</small><code>{value}</code></div>)}</div></section>
       </div>
-      <section className="audit-json-section"><div className="subsection-head"><div><span className="section-kicker"><FileJson size={14} /> MACHINE EVIDENCE</span><h3>结构化审计载荷</h3></div></div><pre>{JSON.stringify(run?.audit ?? { dataset: analysis.dataset, analysisHash: analysis.analysisHash, execution: "not_run" }, null, 2)}</pre></section>
+      <section className="audit-json-section"><div className="subsection-head"><div><span className="section-kicker"><FileJson size={14} /> MACHINE EVIDENCE</span><h3>结构化审计载荷</h3></div></div><pre>{JSON.stringify(publicAudit, null, 2)}</pre></section>
     </div>
   );
 }

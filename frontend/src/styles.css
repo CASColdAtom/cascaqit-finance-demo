@@ -2450,6 +2450,10 @@ code,
   font-size: 0.58rem;
 }
 
+.interpretation-boundary.supported-capabilities {
+  grid-template-columns: 1fr;
+}
+
 .boundary-list.allowed-list svg {
   color: var(--green);
 }
@@ -3581,8 +3585,8 @@ code,
   line-height: 1.5;
 }
 
-.materials-audit-boundaries .subsection-head > svg {
-  color: var(--amber);
+.materials-audit-capabilities .subsection-head > svg {
+  color: var(--green);
 }
 
 @media (max-width: 900px) {

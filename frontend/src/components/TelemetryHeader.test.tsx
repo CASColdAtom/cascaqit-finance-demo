@@ -8,7 +8,7 @@ import { TelemetryHeader } from "./TelemetryHeader";
 afterEach(cleanup);
 
 describe("TelemetryHeader", () => {
-  it("keeps the execution boundary visible in the global header", () => {
+  it("shows customer-facing quantum capabilities in the global header", () => {
     render(
       <I18nProvider initialLanguage="zh">
         <TelemetryHeader />
@@ -18,9 +18,10 @@ describe("TelemetryHeader", () => {
     const header = screen.getByRole("banner");
     expect(within(header).getByText("实验服务在线")).toBeTruthy();
     expect(within(header).getByText("执行可审计")).toBeTruthy();
-    expect(within(header).getByText("LOCAL SIMULATION")).toBeTruthy();
-    expect(within(header).getByText("NO HARDWARE EXECUTION")).toBeTruthy();
-    expect(within(header).getByText("RESEARCH DEMONSTRATION")).toBeTruthy();
+    expect(within(header).getByText("NEUTRAL ATOM NATIVE")).toBeTruthy();
+    expect(within(header).getByText("HYBRID QUANTUM WORKFLOW")).toBeTruthy();
+    expect(within(header).getByText("TRACEABLE EXECUTION")).toBeTruthy();
+    expect(within(header).queryByText(/LOCAL SIMULATION|NO HARDWARE|RESEARCH DEMONSTRATION/)).toBeNull();
   });
 
   it("exposes all industry domains in one switch", () => {

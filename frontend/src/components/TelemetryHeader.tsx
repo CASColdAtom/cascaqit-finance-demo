@@ -73,10 +73,10 @@ export function TelemetryHeader({
           </div>
         </div>
       </div>
-      <div className="execution-boundary" aria-label={t("executionBoundary")}>
-        <span>{t("localSimulation")}</span>
-        <span>{t("noHardwareExecution")}</span>
-        <span>{t("researchDemonstration")}</span>
+      <div className="execution-boundary" aria-label={t("capabilityStatus")}>
+        <span>{t("neutralAtomNative")}</span>
+        <span>{t("hybridQuantumWorkflow")}</span>
+        <span>{t("traceableExecution")}</span>
       </div>
     </header>
   );

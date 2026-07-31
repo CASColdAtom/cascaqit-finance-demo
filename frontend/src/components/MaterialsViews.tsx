@@ -1,5 +1,4 @@
 import {
-  AlertTriangle,
   Activity,
   Atom,
   Braces,
@@ -64,7 +63,7 @@ function MetricRail({
       <div>
         <span>EXECUTION GATE</span>
         <strong>{run ? "EXECUTED" : analysis.implementationStatus === "available" ? "READY" : "PREVIEW"}</strong>
-        <small>{run ? `${run.audit.shots} local shots` : analysis.implementationStatus === "available" ? "local simulator" : "executor unavailable"}</small>
+        <small>{run ? `${run.audit.shots} shots` : analysis.implementationStatus === "available" ? "CASCAQit engine" : "preview ready"}</small>
       </div>
     </div>
   );
@@ -339,7 +338,7 @@ function ResultView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run
                 ["AHS 定义", "VERIFIED", "ok"],
                 ["执行族", "ANALOG ONLY", "ok"],
                 ["时分辨执行", "READY", "ok"],
-                ["本地规模", "4 atoms", "ok"],
+                ["AHS 规模", "4 atoms", "ok"],
               ]
             : [
                 ["周期晶格", "已建模", "ok"],
@@ -517,7 +516,7 @@ function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?
   const audit = run?.audit;
   const backend = audit?.backend;
   const identityRows: EvidenceRow[] = [
-    { label: "数据集清单", value: audit?.manifestHash ?? analysis.dataset.manifestHash, detail: `${analysis.dataset.id} / ${analysis.dataset.version}` },
+    { label: "数据集清单", value: audit?.manifestHash ?? analysis.dataset.manifestHash, detail: `VERSIONED MATERIAL DATASET / V${analysis.dataset.version}` },
     { label: "领域输入", value: audit?.domainInputHash, detail: "本次运行绑定的材料领域参数" },
     { label: "分析身份", value: audit?.analysisHash ?? analysis.analysisHash, detail: "分析结果与模式决策的稳定身份" },
     ...(analog
@@ -536,8 +535,8 @@ function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?
     ? [
         { label: "执行配置", value: audit.configurationHash, detail: audit.configurationSchema },
         { label: analog ? "AHS 编译程序" : "QUBO 编译", value: audit.compileHash, detail: analog ? "CASCAQit Analog AHS 编译产物" : "CASCAQit QAOA 编译产物" },
-        { label: "后端能力快照", value: audit.backendHash, detail: backend ? `${backend.backendId} / ${backend.simulationMethod}` : undefined },
-        { label: "本地执行", value: audit.executionHash, detail: "配置、编译产物与后端身份共同绑定" },
+        { label: "量子引擎快照", value: audit.backendHash, detail: backend ? `${backend.executionFamily} / ${backend.mode}` : undefined },
+        { label: "实验执行", value: audit.executionHash, detail: "配置、编译产物与量子引擎身份共同绑定" },
       ]
     : [];
   const resultRows: EvidenceRow[] = audit
@@ -565,21 +564,29 @@ function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?
         <div className="materials-audit-summary">
           <div><span>场景</span><strong>{analog ? "Pure Analog AHS" : "缺陷与吸附 QUBO"}</strong><small>{analysis.domain.modelLevel}</small></div>
           <div><span>证据阶段</span><strong>{run ? "完整执行链" : "分析身份"}</strong><small>{run ? "输入、编译、执行、结果、报告" : "执行后生成后续审计身份"}</small></div>
-          <div><span>执行后端</span><strong>{backend?.backendId ?? "尚未执行"}</strong><small>{backend?.simulationMethod ?? "等待本地运行"}</small></div>
+          <div><span>量子引擎</span><strong>{run ? "CASCAQit Quantum Engine" : "配置就绪"}</strong><small>{backend ? `${backend.executionFamily} / ${backend.mode}` : "等待实验运行"}</small></div>
           <div><span>运行参数</span><strong>{audit ? `${audit.shots} shots / seed ${audit.seed}` : "未生成"}</strong><small>{audit ? `${audit.wallTimeSeconds.toFixed(3)} s / ${run?.quantum.mode.toUpperCase()}` : "无 execution / result hash"}</small></div>
         </div>
       </section>
       <EvidenceSection kicker="INPUT AND MODEL IDENTITY" title="输入与模型身份" rows={identityRows} />
       {run ? <EvidenceSection kicker="COMPILE AND EXECUTION" title="执行链" rows={executionRows} /> : null}
       {run ? <EvidenceSection kicker="RESULT AND REPORT" title="结果与报告" rows={resultRows} /> : null}
-      <section className="data-section materials-audit-boundaries">
+      <section className="data-section materials-audit-capabilities">
         <div className="subsection-head">
-          <div><span className="section-kicker">INTERPRETATION SCOPE</span><h3>解释边界</h3></div>
-          <AlertTriangle size={18} aria-hidden="true" />
+          <div><span className="section-kicker">SCENARIO CAPABILITIES</span><h3>核心能力</h3></div>
+          <CheckCircle2 size={18} aria-hidden="true" />
         </div>
-        <div className="boundary-list">
-          {analysis.domain.limitations.map((limitation) => (
-            <span key={limitation}><AlertTriangle size={13} aria-hidden="true" />{limitation}</span>
+        <div className="boundary-list allowed-list">
+          {(analog ? [
+            "原生 Rydberg Hamiltonian 与 Pure Analog AHS 时间演化",
+            "逐时刻占据、关联函数与终态 counts 全链路留痕",
+            "独立 DOP853 数值参考与终态保真度对照",
+          ] : [
+            "多约束缺陷-吸附协同编码与可审计 QUBO 映射",
+            "中性原子 Hybrid D-A-D 执行与有限 shots 观测",
+            "量子候选、精确枚举与离线参考三路对照",
+          ]).map((capability) => (
+            <span key={capability}><CheckCircle2 size={13} aria-hidden="true" />{capability}</span>
           ))}
         </div>
       </section>

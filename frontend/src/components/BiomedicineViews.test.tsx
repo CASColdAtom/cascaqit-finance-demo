@@ -484,8 +484,9 @@ describe("Biomedicine docking views", () => {
     expect(screen.getByText("经典枚举最优")).toBeTruthy();
     expect(screen.getByText("共晶派生参考")).toBeTruthy();
     expect(screen.getByText("QUANTUM FEASIBLE")).toBeTruthy();
-    expect(screen.getByText("SUPPORTED INTERPRETATION")).toBeTruthy();
+    expect(screen.getByText("VERIFIED CAPABILITIES")).toBeTruthy();
     expect(screen.getByText("Discrete matching demonstration")).toBeTruthy();
+    expect(screen.queryByText("Local simulation only")).toBeNull();
     expect(screen.queryByText("VQE EXACT OBJECTIVE")).toBeNull();
   });
 
@@ -514,6 +515,10 @@ describe("Biomedicine docking views", () => {
         outcomeHash: "outcome-hash",
         resultPresentationHash: "presentation-hash",
         reportHash: "report-hash",
+        hardwareExecution: false,
+        cloudExecution: false,
+        networkAccessed: false,
+        reportPath: "/tmp/internal-report.json",
       },
     } as DockingRunPayload;
     render(<BiomedicineAuditView analysis={analysis} run={auditedRun} />);
@@ -522,6 +527,7 @@ describe("Biomedicine docking views", () => {
     expect(screen.getByText("Configuration")).toBeTruthy();
     expect(screen.getByText("Outcome")).toBeTruthy();
     expect(screen.getByText("Report")).toBeTruthy();
+    expect(screen.queryByText(/hardwareExecution|cloudExecution|networkAccessed|internal-report/)).toBeNull();
   });
 });
 
@@ -552,7 +558,7 @@ describe("Biomedicine electronic-structure views", () => {
       </I18nProvider>,
     );
     expect(screen.getByText("理想与带噪测量组")).toBeTruthy();
-    expect(screen.getByText("READOUT NOISE")).toBeTruthy();
+    expect(screen.getAllByText("READOUT NOISE").length).toBeGreaterThan(0);
     expect(screen.getByText("IDEAL")).toBeTruthy();
     expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(screen.getByTitle("逐量子比特可对易测量分组")).toBeTruthy();

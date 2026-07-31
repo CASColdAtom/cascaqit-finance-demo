@@ -323,7 +323,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
         (
             ("hairpin_reference", "短发卡结构"),
             ("stem_competition", "竞争茎结构"),
-            ("limited_pseudoknot", "有限假结研究预设"),
+            ("limited_pseudoknot", "有限假结预设"),
         ),
         (_range("minimum_loop", "最小环长", 3, 6, 1, " nt"),),
         {"minimum_loop": 3},

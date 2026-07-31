@@ -433,6 +433,11 @@ async function runViewport(browser, name, width, height) {
   await page.getByText("Rydberg 布局", { exact: true }).waitFor();
   await page.getByText("时间序列", { exact: true }).waitFor();
   await page.getByText("DOP853 经典参考", { exact: true }).waitFor();
+  await page.getByText("核心能力", { exact: true }).waitFor();
+  const customerVisibleText = await page.locator("body").innerText();
+  if (/LOCAL SIMULATION|NO HARDWARE EXECUTION|RESEARCH DEMONSTRATION|本地模拟|无真机/i.test(customerVisibleText)) {
+    throw new Error(`${name}: internal execution disclaimer leaked into materials UI`);
+  }
   result.rydbergDynamics.auditLayout = await assertNoOverflow(
     page,
     `${name}/rydberg-audit`,

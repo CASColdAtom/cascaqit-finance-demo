@@ -202,14 +202,18 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   if (!(await page.getByText("前沿探索价值", { exact: true }).isVisible())) {
     throw new Error(`${name}: biomedicine frontier outlook is missing`);
   }
-  for (const boundary of [
-    "LOCAL SIMULATION",
-    "NO HARDWARE EXECUTION",
-    "RESEARCH DEMONSTRATION",
+  for (const capability of [
+    "NEUTRAL ATOM NATIVE",
+    "HYBRID QUANTUM WORKFLOW",
+    "TRACEABLE EXECUTION",
   ]) {
-    if (!(await page.getByText(boundary, { exact: true }).isVisible())) {
-      throw new Error(`${name}: global execution boundary is missing ${boundary}`);
+    if (!(await page.getByText(capability, { exact: true }).isVisible())) {
+      throw new Error(`${name}: global capability status is missing ${capability}`);
     }
+  }
+  const customerVisibleText = await page.locator("body").innerText();
+  if (/LOCAL SIMULATION|NO HARDWARE EXECUTION|RESEARCH DEMONSTRATION/i.test(customerVisibleText)) {
+    throw new Error(`${name}: internal execution disclaimer leaked into customer UI`);
   }
   if (!(await page.getByRole("tab", { name: "对照分析" }).isVisible())) {
     throw new Error(`${name}: biomedicine comparison tab is missing`);

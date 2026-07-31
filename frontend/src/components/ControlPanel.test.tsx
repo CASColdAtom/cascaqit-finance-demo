@@ -291,14 +291,14 @@ describe("ControlPanel", () => {
     expect(onRun).not.toHaveBeenCalled();
   });
 
-  it("warns before a research configuration estimated above 30 seconds", () => {
+  it("shows estimated runtime for an advanced configuration above 30 seconds", () => {
     renderPanel({ estimatedSeconds: 31.2 });
-    expect(screen.getByText("研究配置").closest(".execution-cost-warning")?.textContent).toContain(
-      "预计本地耗时 32 s",
+    expect(screen.getByText("高级配置").closest(".execution-cost-warning")?.textContent).toContain(
+      "预计执行耗时 32 s",
     );
 
     cleanup();
     renderPanel({ estimatedSeconds: 29.9 });
-    expect(screen.queryByText(/预计本地耗时/)).toBeNull();
+    expect(screen.queryByText(/预计执行耗时/)).toBeNull();
   });
 });
