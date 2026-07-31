@@ -145,22 +145,36 @@ async function waitForAnalysis(page) {
   );
 }
 
-async function selectBiomedicine(page) {
-  await page
-    .getByRole("group", { name: "行业领域" })
-    .getByRole("button", { name: "生物医药" })
-    .click();
-  await page.waitForURL("**/biomedicine/electronic_structure");
+async function waitForScenarioAnalysis(page, domainId, caseId, action) {
+  const response = page.waitForResponse(
+    (candidate) =>
+      candidate.request().method() === "POST" &&
+      candidate.url().includes(`/api/domains/${domainId}/scenarios/${caseId}/analyze`) &&
+      candidate.ok(),
+    { timeout: 20_000 },
+  );
+  await action();
+  await page.waitForURL(`**/${domainId}/${caseId}`);
+  await response;
   await waitForAnalysis(page);
 }
 
+async function selectBiomedicine(page) {
+  await waitForScenarioAnalysis(page, "biomedicine", "electronic_structure", () =>
+    page
+      .getByRole("group", { name: "行业领域" })
+      .getByRole("button", { name: "生物医药" })
+      .click(),
+  );
+}
+
 async function selectMaterials(page) {
-  await page
-    .getByRole("group", { name: "行业领域" })
-    .getByRole("button", { name: "材料科学" })
-    .click();
-  await page.waitForURL("**/materials/defect_adsorption");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "materials", "defect_adsorption", () =>
+    page
+      .getByRole("group", { name: "行业领域" })
+      .getByRole("button", { name: "材料科学" })
+      .click(),
+  );
 }
 
 async function runViewport(browser, baseUrl, outputDir, name, width, height) {
@@ -199,9 +213,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   };
   for (const [caseId, shortTitle, previewOnly] of BIOMEDICINE_CASES) {
     if (caseId !== "electronic_structure") {
-      await page.locator(".scenario-item", { hasText: shortTitle }).click();
-      await page.waitForURL(`**/biomedicine/${caseId}`);
-      await waitForAnalysis(page);
+      await waitForScenarioAnalysis(page, "biomedicine", caseId, () =>
+        page.locator(".scenario-item", { hasText: shortTitle }).click(),
+      );
     }
     const runButton = page.locator(".run-button");
     const shouldBeDisabled = previewOnly;
@@ -211,9 +225,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     result.scenarios[caseId] = await assertLayout(page, `${name}/${caseId}`);
   }
 
-  await page.locator(".scenario-item", { hasText: "金属活性中心" }).click();
-  await page.waitForURL("**/biomedicine/active_center");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "active_center", () =>
+    page.locator(".scenario-item", { hasText: "金属活性中心" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
@@ -232,9 +246,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await page.getByLabel("参数预设").selectOption("antiferromagnetic");
   await waitForAnalysis(page);
 
-  await page.locator(".scenario-item", { hasText: "构象匹配" }).click();
-  await page.waitForURL("**/biomedicine/docking_match");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "docking_match", () =>
+    page.locator(".scenario-item", { hasText: "构象匹配" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
@@ -273,9 +287,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     fullPage: true,
   });
 
-  await page.locator(".scenario-item", { hasText: "金属活性中心" }).click();
-  await page.waitForURL("**/biomedicine/active_center");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "active_center", () =>
+    page.locator(".scenario-item", { hasText: "金属活性中心" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
@@ -325,9 +339,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   }
   result.activeCenterQuantum = activeCenterQuantum;
 
-  await page.locator(".scenario-item", { hasText: "小肽能景" }).click();
-  await page.waitForURL("**/biomedicine/peptide_landscape");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "peptide_landscape", () =>
+    page.locator(".scenario-item", { hasText: "小肽能景" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
@@ -358,17 +372,29 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await waitForPaintedCanvas(page, ".peptide-quantum-view canvas");
   result.peptideQuantum = await assertLayout(page, `${name}/peptide-quantum`);
 
-  await page.locator(".scenario-item", { hasText: "RNA 折叠路径" }).click();
-  await page.waitForURL("**/biomedicine/rna_structure");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "rna_structure", () =>
+    page.locator(".scenario-item", { hasText: "RNA 折叠路径" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
-  const referenceArc = page.locator(".rna-analysis-view .rna-arc-diagram svg");
+  const referenceArc = page.locator(".view-stage .rna-arc-diagram svg");
   if ((await referenceArc.locator("path.rna-pair-arc").count()) === 0) {
     throw new Error(`${name}: RNA analysis contains no pairing arcs`);
   }
+  const rnaRunResponsePromise = page.waitForResponse(
+    (candidate) =>
+      candidate.request().method() === "POST" &&
+      candidate.url().includes("/biomedicine/scenarios/rna_structure/run"),
+    { timeout: 60_000 },
+  );
   await page.locator(".run-button").click();
+  const rnaRunResponse = await rnaRunResponsePromise;
+  if (!rnaRunResponse.ok()) {
+    throw new Error(
+      `${name}: RNA run HTTP ${rnaRunResponse.status()}; request=${rnaRunResponse.request().postData()}; response=${await rnaRunResponse.text()}`,
+    );
+  }
   await page.locator(".rna-result-view").waitFor({ timeout: 60_000 });
   await page.waitForFunction(
     () => document.querySelector(".view-stage")?.getAttribute("aria-busy") === "false",
@@ -401,13 +427,13 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await waitForPaintedCanvas(page, ".rna-quantum-view canvas");
   result.rnaQuantum = await assertLayout(page, `${name}/rna-quantum`);
 
-  await page.locator(".scenario-item", { hasText: "蛋白转变路径" }).click();
-  await page.waitForURL("**/biomedicine/protein_dynamics");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "protein_dynamics", () =>
+    page.locator(".scenario-item", { hasText: "蛋白转变路径" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
-  const proteinNetwork = page.locator(".protein-analysis-view .protein-network svg");
+  const proteinNetwork = page.locator(".protein-structure-view .protein-network svg");
   if ((await proteinNetwork.locator(".protein-state circle").count()) < 4) {
     throw new Error(`${name}: protein analysis contains too few state nodes`);
   }
@@ -446,9 +472,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   await waitForPaintedCanvas(page, ".protein-quantum-view canvas");
   result.proteinQuantum = await assertLayout(page, `${name}/protein-quantum`);
 
-  await page.locator(".scenario-item", { hasText: "电子结构" }).click();
-  await page.waitForURL("**/biomedicine/electronic_structure");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "biomedicine", "electronic_structure", () =>
+    page.locator(".scenario-item", { hasText: "电子结构" }).click(),
+  );
   if (!(await page.locator(".run-button").isVisible())) {
     await page.locator(".control-collapse").click();
   }
@@ -567,9 +593,9 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
     `${name}/defect-adsorption-comparison`,
   );
 
-  await page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click();
-  await page.waitForURL("**/materials/rydberg_dynamics");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "materials", "rydberg_dynamics", () =>
+    page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click(),
+  );
   runButton = page.locator(".run-button");
   if (!(await runButton.isVisible())) {
     await page.locator(".control-collapse").click();

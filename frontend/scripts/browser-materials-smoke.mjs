@@ -378,7 +378,7 @@ async function runViewport(browser, name, width, height) {
   );
 
   await page.getByRole("tab", { name: "领域结果" }).click();
-  await page.getByText("ANALOG ONLY", { exact: true }).waitFor();
+  await page.getByText("AHS COMPLETED", { exact: true }).waitFor();
   result.rydbergDynamics.resultLayout = await assertNoOverflow(
     page,
     `${name}/rydberg-result`,

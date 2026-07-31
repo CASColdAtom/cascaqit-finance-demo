@@ -1,5 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { estimateExecutionSeconds, executionSignature, termShares } from "./utils";
+import {
+  estimateExecutionSeconds,
+  executionSignature,
+  scenarioControlValues,
+  termShares,
+} from "./utils";
+
+describe("scenarioControlValues", () => {
+  it("keeps editable controls and drops resolved read-only domain values", () => {
+    expect(
+      scenarioControlValues({
+        controls: [
+          {
+            key: "minimum_loop",
+            label: "最小环长",
+            kind: "range",
+            minimum: 3,
+            maximum: 6,
+            step: 1,
+            options: [],
+            unit: " nt",
+          },
+        ],
+        values: { sequence: "GGACUUCGGUCC", minimum_loop: 3 },
+      }),
+    ).toEqual({ minimum_loop: 3 });
+  });
+});
 
 describe("executionSignature", () => {
   it("is stable when control insertion order changes", () => {

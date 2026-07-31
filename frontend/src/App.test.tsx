@@ -38,7 +38,18 @@ const scenario: ScenarioSpec = {
   icon: "chart-no-axes-combined",
   accent: "cyan",
   presets: [{ value: "base", label: "基准市场" }],
-  controls: [],
+  controls: [
+    {
+      key: "risk_weight",
+      label: "风险权重",
+      kind: "range",
+      minimum: 0.1,
+      maximum: 0.9,
+      step: 0.1,
+      options: [],
+      unit: "",
+    },
+  ],
   values: { risk_weight: 0.5 },
   recommendedMode: "digital",
   recommendedExecution: {

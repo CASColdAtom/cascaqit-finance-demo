@@ -39,6 +39,7 @@ import {
   estimateExecutionSeconds,
   executionSignature,
   MODE_LABELS,
+  scenarioControlValues,
   type ExecutionIdentity,
 } from "./utils";
 
@@ -262,7 +263,7 @@ function Workbench() {
         const first = items[0];
         setActiveId(first.caseId);
         setPreset(first.presets[0].value);
-        setValues(first.values);
+        setValues(scenarioControlValues(first));
         setMode(first.recommendedMode);
         applyExecutionProfile(executionProfile(first));
       })
@@ -306,10 +307,11 @@ function Workbench() {
           if (currentRevision !== revision.current) return;
           setAnalysis(response.analysis);
           setExperimentPlan(response.experimentPlan ?? null);
+          const nextValues = scenarioControlValues(response.scenario);
           setValues((current) =>
-            sameValues(current, response.scenario.values)
+            sameValues(current, nextValues)
               ? current
-              : response.scenario.values,
+              : nextValues,
           );
           const available = response.analysis.decision.modes.filter(
             (item) => item.status !== "unsuitable",
@@ -460,7 +462,7 @@ function Workbench() {
     lastScenario.current[domainId] = scenario.caseId;
     setActiveId(scenario.caseId);
     setPreset(scenario.presets[0].value);
-    setValues(scenario.values);
+    setValues(scenarioControlValues(scenario));
     setMode(scenario.recommendedMode);
     applyExecutionProfile(executionProfile(scenario));
     setAnalysis(null);
@@ -492,7 +494,7 @@ function Workbench() {
       setScenarios(items);
       setActiveId(scenario.caseId);
       setPreset(scenario.presets[0].value);
-      setValues(scenario.values);
+      setValues(scenarioControlValues(scenario));
       setMode(scenario.recommendedMode);
       applyExecutionProfile(executionProfile(scenario));
       setAnalysis(null);
@@ -541,7 +543,7 @@ function Workbench() {
         },
       );
       if (currentRevision !== revision.current) return;
-      setValues(response.scenario.values);
+      setValues(scenarioControlValues(response.scenario));
       setAnalysis(response.analysis);
       setExperimentPlan(response.experimentPlan ?? null);
       setMode(response.analysis.decision.recommendedMode);

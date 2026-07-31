@@ -1,4 +1,4 @@
-import type { DomainId, ExecutionProfile, Mode, RunRequest } from "./types";
+import type { DomainId, ExecutionProfile, Mode, RunRequest, ScenarioSpec } from "./types";
 
 export const MODE_LABELS: Record<Mode, string> = {
   digital: "DIGITAL",
@@ -10,6 +10,15 @@ export interface ExecutionIdentity {
   datasetVersion?: string;
   manifestHash?: string;
   executionFamily?: string;
+}
+
+export function scenarioControlValues(
+  scenario: Pick<ScenarioSpec, "controls" | "values">,
+): Record<string, string | number | boolean> {
+  const controlKeys = new Set(scenario.controls.map((control) => control.key));
+  return Object.fromEntries(
+    Object.entries(scenario.values).filter(([key]) => controlKeys.has(key)),
+  );
 }
 
 export function executionSignature(
