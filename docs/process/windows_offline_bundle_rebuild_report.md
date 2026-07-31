@@ -36,7 +36,7 @@ GitHub Release：
 
 GitHub Actions `windows-2022` run `30620921440` 已完成 Windows 全链路验收：
 
-<https://github.com/CASColdAtom/cascaqit-finance-demo/actions/runs/30620921440>
+<https://github.com/CASColdAtom/cascaqit-industry-workbench/actions/runs/30620921440>
 
 已通过项目：
 
@@ -51,7 +51,7 @@ GitHub Actions `windows-2022` run `30620921440` 已完成 Windows 全链路验�
 
 同一构建基线的 Chromium 验收 run `30620921420` 已通过八场景主流程和材料场景隔离流程：
 
-<https://github.com/CASColdAtom/cascaqit-finance-demo/actions/runs/30620921420>
+<https://github.com/CASColdAtom/cascaqit-industry-workbench/actions/runs/30620921420>
 
 ## 质量门禁
 
