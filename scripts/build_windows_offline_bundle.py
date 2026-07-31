@@ -148,6 +148,7 @@ def _build_local_wheels(
     else:
         raise ValueError("必须指定 CASCAQit wheel 或源码目录")
     finance_wheel = next(finance_dir.glob("cascaqit_finance_demo-*.whl"))
+    _audit_demo_fixture_checksums(finance_wheel)
     return finance_wheel, copied_sdk_wheel
 
 
@@ -163,6 +164,51 @@ def _copy_sdk_license(sdk_wheel: Path, destination: Path) -> None:
         if len(candidates) != 1:
             raise RuntimeError(f"CASCAQit wheel 许可证文件异常：{sdk_wheel.name}")
         destination.write_bytes(archive.read(candidates[0]))
+
+
+def _audit_demo_fixture_checksums(demo_wheel: Path) -> None:
+    """验证 wheel 中的数据文件仍与各 fixture manifest 的字节哈希一致。"""
+
+    problems: list[str] = []
+    with ZipFile(demo_wheel) as archive:
+        names = set(archive.namelist())
+        manifests = sorted(
+            name
+            for name in names
+            if "/data/" in name and name.endswith("/manifest.json")
+        )
+        if not manifests:
+            raise RuntimeError("Demo wheel 未包含可审计 fixture manifest")
+        for manifest_name in manifests:
+            manifest = json.loads(archive.read(manifest_name))
+            fixture_root = PurePosixPath(manifest_name).parent
+            artifacts = manifest.get("artifacts")
+            if not isinstance(artifacts, list) or not artifacts:
+                problems.append(f"{manifest_name} 未声明 artifacts")
+                continue
+            for artifact in artifacts:
+                relative = PurePosixPath(str(artifact.get("path", "")))
+                expected = artifact.get("sha256")
+                if (
+                    relative.is_absolute()
+                    or ".." in relative.parts
+                    or not isinstance(expected, str)
+                    or len(expected) != 64
+                ):
+                    problems.append(f"{manifest_name} 包含无效 artifact 声明")
+                    continue
+                member = (fixture_root / relative).as_posix()
+                if member not in names:
+                    problems.append(f"{manifest_name} 缺少 {relative.as_posix()}")
+                    continue
+                actual = hashlib.sha256(archive.read(member)).hexdigest()
+                if actual != expected:
+                    problems.append(
+                        f"{member} checksum mismatch: expected {expected}, got {actual}"
+                    )
+    if problems:
+        details = "\n- ".join(problems)
+        raise RuntimeError(f"Demo wheel fixture 校验失败：\n- {details}")
 
 
 def _download_windows_wheels(

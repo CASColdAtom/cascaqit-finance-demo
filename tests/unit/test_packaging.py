@@ -15,6 +15,7 @@ from scripts.build_windows_offline_bundle import (
     PYTHON_RUNTIME_RELEASE,
     PYTHON_RUNTIME_SOURCE_SHA256,
     PYTHON_RUNTIME_ZIP_NAME,
+    _audit_demo_fixture_checksums,
     _audit_windows_dependency_closure,
     _copy_sdk_license,
     _copy_windows_template,
@@ -82,6 +83,32 @@ def test_windows_bundle_uses_standard_pep517_wheel_build() -> None:
     assert 'sys.executable, "-m", "build"' in script
     assert '"--no-isolation"' in script
     assert '["uv", "build"' not in script
+
+
+def test_fixture_json_line_endings_are_stable_on_windows_checkout() -> None:
+    attributes = Path(".gitattributes").read_text(encoding="utf-8")
+
+    assert "*.json text eol=lf" in attributes
+
+
+def test_demo_wheel_rejects_fixture_line_ending_drift(tmp_path: Path) -> None:
+    wheel = tmp_path / "demo.whl"
+    domain_lf = b'{"value": 1}\n'
+    manifest = {
+        "artifacts": [
+            {
+                "path": "domain.json",
+                "sha256": hashlib.sha256(domain_lf).hexdigest(),
+            }
+        ]
+    }
+    with ZipFile(wheel, "w") as archive:
+        root = "cascaqit_biomedicine_demo/data/example/case/1"
+        archive.writestr(f"{root}/manifest.json", json.dumps(manifest))
+        archive.writestr(f"{root}/domain.json", domain_lf.replace(b"\n", b"\r\n"))
+
+    with pytest.raises(RuntimeError, match="domain.json checksum mismatch"):
+        _audit_demo_fixture_checksums(wheel)
 
 
 def test_build_command_resolves_platform_specific_path_entry(

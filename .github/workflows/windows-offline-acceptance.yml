@@ -86,7 +86,7 @@ jobs:
           if ($verify.ExitCode -ne 0) { throw "VERIFY.bat failed: $($verify.ExitCode)" }
           $install = Start-Process cmd.exe -ArgumentList "/d", "/c", "INSTALL.bat" -WorkingDirectory $bundle -Wait -PassThru -NoNewWindow
           if ($install.ExitCode -ne 0) { throw "INSTALL.bat failed: $($install.ExitCode)" }
-          & (Join-Path $bundle "runtime/venv/Scripts/python.exe") -c "from importlib.metadata import version; assert version('cascaqit-finance-demo') == '0.2.0'; assert version('cascaqit') == '1.0.5a0'"
+          & (Join-Path $bundle "runtime/venv/Scripts/python.exe") -c "from importlib.metadata import version; assert version('cascaqit-finance-demo') == '0.2.1'; assert version('cascaqit') == '1.0.5a0'"
 
       - name: Start through RUN.bat and probe installed application
         shell: pwsh
@@ -113,6 +113,21 @@ jobs:
             if ($biomedicine.scenarios.Count -ne 6) { throw "Expected six biomedicine scenarios" }
             if ($materials.scenarios.Count -ne 2) { throw "Expected two materials scenarios" }
             if ($page.Content -notmatch "<div id=.root.></div>") { throw "Packaged frontend entry is missing" }
+            $structureCases = @(
+              @{ Domain = "biomedicine"; Scenario = "electronic_structure" },
+              @{ Domain = "biomedicine"; Scenario = "docking_match" },
+              @{ Domain = "biomedicine"; Scenario = "active_center" },
+              @{ Domain = "biomedicine"; Scenario = "peptide_landscape" },
+              @{ Domain = "biomedicine"; Scenario = "rna_structure" },
+              @{ Domain = "biomedicine"; Scenario = "protein_dynamics" },
+              @{ Domain = "materials"; Scenario = "defect_adsorption" },
+              @{ Domain = "materials"; Scenario = "rydberg_dynamics" }
+            )
+            foreach ($case in $structureCases) {
+              $uri = "http://127.0.0.1:8765/api/domains/$($case.Domain)/scenarios/$($case.Scenario)/analyze"
+              $result = Invoke-RestMethod -Method Post -Uri $uri -ContentType "application/json" -Body "{}"
+              if ($null -eq $result.analysis) { throw "Missing structure analysis: $($case.Domain)/$($case.Scenario)" }
+            }
           } finally {
             taskkill.exe /PID $process.Id /T /F 2>$null | Out-Null
           }

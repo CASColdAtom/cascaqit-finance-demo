@@ -108,7 +108,7 @@ if ($ForceReinstall) {
 } else {
     Write-InstallEvent "正在检查并安装 CASCAQit 和行业实验台……"
 }
-$PipArguments += "cascaqit-finance-demo==0.2.0"
+$PipArguments += "cascaqit-finance-demo==0.2.1"
 & $VenvPython @PipArguments
 if ($LASTEXITCODE -ne 0) {
     throw "离线 Python 依赖安装失败。安装日志：$InstallLog"
