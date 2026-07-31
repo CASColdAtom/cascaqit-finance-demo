@@ -331,7 +331,7 @@ describe("App", () => {
     expect(await screen.findByText("周期晶格与缺陷")).toBeTruthy();
     const frontierOutlook = screen.getByLabelText("前沿探索价值");
     expect(within(frontierOutlook).getByText(/原生 Rydberg Hamiltonian/)).toBeTruthy();
-    expect(within(frontierOutlook).getByText(/四位点有效模型/)).toBeTruthy();
+    expect(within(frontierOutlook).getByText(/时序观测/)).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "运行" }) as HTMLButtonElement).disabled,
     ).toBe(false);
@@ -369,7 +369,7 @@ describe("App", () => {
     expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
     const frontierOutlook = screen.getByLabelText("前沿探索价值");
     expect(within(frontierOutlook).getByText(/活性空间 Hamiltonian/)).toBeTruthy();
-    expect(within(frontierOutlook).getByText(/不替代 DFT/)).toBeTruthy();
+    expect(within(frontierOutlook).getByText(/规模化实验/)).toBeTruthy();
     expect(screen.getByRole("tab", { name: "对照分析" })).toBeTruthy();
     expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(window.location.pathname).toBe("/biomedicine/electronic_structure");

@@ -63,4 +63,15 @@ describe("scenarioFrontierOutlook", () => {
   it("does not fall back to generic copy for an unregistered scenario", () => {
     expect(scenarioFrontierOutlook("future_scenario", "zh")).toBeNull();
   });
+
+  it("keeps frontier copy focused on advantages instead of limitation language", () => {
+    for (const caseId of caseIds) {
+      expect(scenarioFrontierOutlook(caseId, "zh")).not.toMatch(
+        /不替代|不代表|不能|不是|尚未|仅适用/,
+      );
+      expect(scenarioFrontierOutlook(caseId, "en")).not.toMatch(
+        /\b(?:not|cannot|doesn't|does not)\b/i,
+      );
+    }
+  });
 });
