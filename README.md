@@ -187,6 +187,8 @@ python3 scripts/build_windows_offline_bundle.py \
 node scripts/validate_browser_evidence.mjs artifacts/browser-smoke-v3
 ```
 
+工作流使用 `vendor/cascaqit-1.0.5a0-py3-none-any.whl`，其来源标签、提交和 SHA-256 记录在 `vendor/README.md`。CI 安装前必须通过固定哈希校验，避免依赖跨私有仓库的默认 `GITHUB_TOKEN` 或在运行时获取未固定的 SDK 内容。
+
 校验器要求三个视口、八个场景、27 张非空主截图、零 console/page error、无横向溢出、非空 canvas 像素证据和生物医药/材料“前沿探索价值”文案全部存在。CI 尚未生成制品或制品 revision 与提交 SHA 不一致时，不得标记浏览器验收通过。
 
 设计说明见[文档索引](docs/README.md)。
