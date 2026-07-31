@@ -171,13 +171,14 @@ PYTHONPATH=.:src:../cascaqit-new/CASCAQit/src \
   .venv/bin/python scripts/validate_v3_release_evidence.py
 ```
 
-断网重建 Windows 包时，可以显式复用上一份已验收包中的第三方 wheel 和已验签 Python runtime；当前 Demo 与 CASCAQit wheel 始终从源码重建：
+断网重建 Windows 包时，可以显式复用上一份已验收包中的第三方 wheel 和已验签 Python runtime；当前 Demo 从源码重建，CASCAQit 默认使用仓库内经过哈希固定的 `1.0.5a0` wheel：
 
 ```bash
 python3 scripts/build_windows_offline_bundle.py \
-  --sdk-root ../cascaqit-new/CASCAQit \
   --cache-root offline/cascaqit-finance-demo-windows-x64-py311
 ```
+
+只有需要验证尚未固化为 wheel 的 SDK 源码时，才显式传入 `--sdk-root`；也可以用 `--sdk-wheel` 选择另一份已审计 wheel，两者不能同时使用。
 
 浏览器验收脚本覆盖 `1440 x 900`、`1280 x 720` 和 `390 x 844`，实际执行六个生物医药场景和两个材料场景，检查量子与经典结果分离、页面级横向溢出、结构 SVG、量子图表 canvas 实绘像素和 Pure Analog 页面无数字线路。
 

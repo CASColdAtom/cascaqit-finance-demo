@@ -28,7 +28,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SDK_ROOT = ROOT.parent / "cascaqit-new" / "CASCAQit"
+DEFAULT_SDK_WHEEL = ROOT / "vendor" / "cascaqit-1.0.5a0-py3-none-any.whl"
 TEMPLATE_ROOT = ROOT / "packaging" / "windows"
 PACKAGE_STATIC = ROOT / "src" / "cascaqit_finance_demo" / "static"
 BUNDLE_NAME = "cascaqit-finance-demo-windows-x64-py311"
@@ -115,8 +115,13 @@ def _sync_frontend() -> None:
         raise RuntimeError("客户发布包不得包含前端 source map")
 
 
-def _build_local_wheels(sdk_root: Path, build_root: Path) -> tuple[Path, Path]:
-    """分别构建当前行业实验台和指定 CASCAQit 源码的纯 Python wheel。"""
+def _build_local_wheels(
+    build_root: Path,
+    *,
+    sdk_root: Path | None = None,
+    sdk_wheel: Path | None = None,
+) -> tuple[Path, Path]:
+    """构建行业实验台 wheel，并固定一份 CASCAQit wheel 进入交付物。"""
 
     finance_dir = build_root / "finance"
     sdk_dir = build_root / "sdk"
@@ -124,10 +129,37 @@ def _build_local_wheels(sdk_root: Path, build_root: Path) -> tuple[Path, Path]:
     sdk_dir.mkdir()
     build_command = [sys.executable, "-m", "build", "--wheel", "--no-isolation"]
     _run([*build_command, "--outdir", str(finance_dir)], cwd=ROOT)
-    _run([*build_command, "--outdir", str(sdk_dir)], cwd=sdk_root)
+    if sdk_wheel is not None:
+        if not sdk_wheel.is_file():
+            raise FileNotFoundError(f"CASCAQit wheel 不存在：{sdk_wheel}")
+        metadata = _read_wheel_metadata(sdk_wheel)
+        if canonicalize_name(metadata.get("Name", "")) != "cascaqit":
+            raise RuntimeError(f"指定文件不是 CASCAQit wheel：{sdk_wheel}")
+        copied_sdk_wheel = sdk_dir / sdk_wheel.name
+        shutil.copy2(sdk_wheel, copied_sdk_wheel)
+    elif sdk_root is not None:
+        if not (sdk_root / "pyproject.toml").is_file():
+            raise FileNotFoundError(f"CASCAQit 源码目录无效：{sdk_root}")
+        _run([*build_command, "--outdir", str(sdk_dir)], cwd=sdk_root)
+        copied_sdk_wheel = next(sdk_dir.glob("cascaqit-*.whl"))
+    else:
+        raise ValueError("必须指定 CASCAQit wheel 或源码目录")
     finance_wheel = next(finance_dir.glob("cascaqit_finance_demo-*.whl"))
-    sdk_wheel = next(sdk_dir.glob("cascaqit-*.whl"))
-    return finance_wheel, sdk_wheel
+    return finance_wheel, copied_sdk_wheel
+
+
+def _copy_sdk_license(sdk_wheel: Path, destination: Path) -> None:
+    """从固定 SDK wheel 复制许可证，保证二进制输入也能完整交付授权文本。"""
+
+    with ZipFile(sdk_wheel) as archive:
+        candidates = [
+            name
+            for name in archive.namelist()
+            if name.lower().endswith("/licenses/license")
+        ]
+        if len(candidates) != 1:
+            raise RuntimeError(f"CASCAQit wheel 许可证文件异常：{sdk_wheel.name}")
+        destination.write_bytes(archive.read(candidates[0]))
 
 
 def _download_windows_wheels(
@@ -453,13 +485,16 @@ def _preserve_cache_for_rebuild(
 
 def build_bundle(
     output_root: Path,
-    sdk_root: Path,
+    sdk_root: Path | None = None,
     cache_root: Path | None = None,
+    sdk_wheel: Path | None = None,
 ) -> Path:
     """生成目录版和 zip 版 Windows 离线交付物，并返回 zip 路径。"""
 
-    if not (sdk_root / "pyproject.toml").is_file():
-        raise FileNotFoundError(f"CASCAQit 源码目录无效：{sdk_root}")
+    if sdk_root is not None and sdk_wheel is not None:
+        raise ValueError("CASCAQit wheel 与源码目录只能选择一个")
+    if sdk_root is None and sdk_wheel is None:
+        sdk_wheel = DEFAULT_SDK_WHEEL
     _sync_frontend()
 
     bundle_root = output_root / BUNDLE_NAME
@@ -470,10 +505,14 @@ def build_bundle(
             prefix="cascaqit-finance-offline-"
         ) as temporary:
             build_root = Path(temporary)
-            finance_wheel, sdk_wheel = _build_local_wheels(sdk_root, build_root)
+            finance_wheel, resolved_sdk_wheel = _build_local_wheels(
+                build_root,
+                sdk_root=sdk_root,
+                sdk_wheel=sdk_wheel,
+            )
             _download_windows_wheels(
                 finance_wheel,
-                sdk_wheel,
+                resolved_sdk_wheel,
                 bundle_root / "wheelhouse",
                 effective_cache,
             )
@@ -482,7 +521,10 @@ def build_bundle(
             if template.is_file():
                 destination = bundle_root / template.name
                 _copy_windows_template(template, destination)
-        shutil.copy2(sdk_root / "LICENSE", bundle_root / "CASCAQit-LICENSE.txt")
+        _copy_sdk_license(
+            next((bundle_root / "wheelhouse").glob("cascaqit-*.whl")),
+            bundle_root / "CASCAQit-LICENSE.txt",
+        )
         runtime_archive = bundle_root / "python" / PYTHON_RUNTIME_ZIP_NAME
         _prepare_python_runtime(runtime_archive, effective_cache)
         requirements = _write_package_inventory(
@@ -507,6 +549,9 @@ def build_bundle(
                 item
                 for item in requirements
                 if item.lower().startswith("cascaqit==")
+            ),
+            "cascaqit_wheel_sha256": _sha256(
+                next((bundle_root / "wheelhouse").glob("cascaqit-*.whl"))
             ),
             "wheel_count": len(requirements),
             "build_dependency_source": "offline_cache" if cache_root else "network",
@@ -536,11 +581,16 @@ def main() -> None:
         default=ROOT / "offline",
         help="目录版与 zip 版离线包的输出目录",
     )
-    parser.add_argument(
+    sdk_input = parser.add_mutually_exclusive_group()
+    sdk_input.add_argument(
         "--sdk-root",
         type=Path,
-        default=DEFAULT_SDK_ROOT,
-        help="当前 CASCAQit 源码仓库目录",
+        help=f"CASCAQit 源码仓库目录（兼容入口，默认使用 {DEFAULT_SDK_WHEEL}）",
+    )
+    sdk_input.add_argument(
+        "--sdk-wheel",
+        type=Path,
+        help=f"固定 CASCAQit wheel（默认 {DEFAULT_SDK_WHEEL}）",
     )
     parser.add_argument(
         "--cache-root",
@@ -551,8 +601,9 @@ def main() -> None:
     cache_root = args.cache_root.resolve() if args.cache_root else None
     archive = build_bundle(
         args.output_root.resolve(),
-        args.sdk_root.resolve(),
-        cache_root,
+        sdk_root=args.sdk_root.resolve() if args.sdk_root else None,
+        cache_root=cache_root,
+        sdk_wheel=args.sdk_wheel.resolve() if args.sdk_wheel else None,
     )
     print(f"Windows 离线包已生成：{archive}")
 

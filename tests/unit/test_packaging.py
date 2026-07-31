@@ -15,6 +15,7 @@ from scripts.build_windows_offline_bundle import (
     PYTHON_RUNTIME_SOURCE_SHA256,
     PYTHON_RUNTIME_ZIP_NAME,
     _audit_windows_dependency_closure,
+    _copy_sdk_license,
     _copy_windows_template,
     _extract_runtime_archive,
     _populate_windows_wheelhouse_from_cache,
@@ -79,6 +80,22 @@ def test_windows_bundle_uses_standard_pep517_wheel_build() -> None:
     assert 'sys.executable, "-m", "build"' in script
     assert '"--no-isolation"' in script
     assert '["uv", "build"' not in script
+
+
+def test_windows_bundle_extracts_license_from_pinned_sdk_wheel(
+    tmp_path: Path,
+) -> None:
+    sdk_wheel = tmp_path / "cascaqit-1.0.5a0-py3-none-any.whl"
+    with ZipFile(sdk_wheel, "w") as archive:
+        archive.writestr(
+            "cascaqit-1.0.5a0.dist-info/licenses/LICENSE",
+            "Apache License 2.0\n",
+        )
+
+    destination = tmp_path / "CASCAQit-LICENSE.txt"
+    _copy_sdk_license(sdk_wheel, destination)
+
+    assert destination.read_text(encoding="utf-8") == "Apache License 2.0\n"
 
 
 def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None:
