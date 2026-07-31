@@ -142,8 +142,21 @@ const run = {
     resultHash: "result-hash",
     reportHash: "report-hash",
     backendHash: "backend-hash",
+    backend: {
+      backendId: "cascaqit.local.default",
+      executionFamily: "problem_qaoa",
+      mode: "hybrid",
+      simulationMethod: "hybrid_state_vector",
+      hardwareExecution: false,
+      cloudExecution: false,
+      networkAccessed: false,
+    },
     configurationHash: "configuration-hash",
     outcomeHash: "outcome-hash",
+    configurationSchema: "materials.execution-configuration.v1",
+    outcomeSchema: "materials.execution-outcome.v1",
+    reportSchema: "materials.execution-report.v1",
+    resultPresentationHash: "presentation-hash",
     seed: 23,
     shots: 32,
     hardwareExecution: false,
@@ -159,6 +172,7 @@ const analogAnalysis = {
   ...analysis,
   caseId: "rydberg_dynamics",
   executionFamily: "analog_ahs",
+  analysisHash: "analog-analysis-hash",
   problem: {
     id: "materials.ahs.single_vacancy",
     type: "analog_experiment_definition",
@@ -171,6 +185,16 @@ const analogAnalysis = {
     recommendedMode: "analog",
     reason: "complete AHS mapping",
     modes: [{ mode: "analog", algorithm: "qaa", status: "recommended", reason: "AHS" }],
+  },
+  analogProgram: {
+    schema: "materials.analog-experiment.v1",
+    experimentKind: "analog_ahs",
+    programHash: "analog-program-hash",
+    targetSnapshotHash: "target-snapshot-hash",
+    initialStateHash: "initial-state-hash",
+    pulseScheduleHash: "pulse-hash",
+    sampleTimes: [0, 0.6, 1.2],
+    observableDefinitions: ["occupation", "correlation"],
   },
   domain: {
     kind: "rydberg_dynamics",
@@ -185,6 +209,7 @@ const analogAnalysis = {
       { id: "q2", sourceSite: "site.3", x: 11.2, y: 0, active: true },
       { id: "q3", sourceSite: "site.4", x: 16.8, y: 0, active: true },
     ],
+    rydbergLayoutHash: "layout-hash",
     sampleTimes: [0, 0.6, 1.2],
     pulse: { duration: 1.2, rabiPeak: 2.4, detuningStart: -2, detuningEnd: 2 },
     pulseSchedule: {
@@ -282,6 +307,20 @@ const analogRun = {
   audit: {
     ...run.audit,
     caseId: "rydberg_dynamics",
+    problemHash: "analog-problem-hash",
+    analysisHash: "analog-analysis-hash",
+    compileHash: "analog-compile-hash",
+    backend: {
+      backendId: "cascaqit.local.default",
+      executionFamily: "analog_ahs",
+      mode: "analog",
+      simulationMethod: "cascaqit_exact_state_rk4_prefix",
+      hardwareExecution: false,
+      cloudExecution: false,
+      networkAccessed: false,
+    },
+    configurationSchema: "materials.analog-execution-configuration.v1",
+    outcomeSchema: "materials.analog-execution-outcome.v1",
     trajectoryHash: "trajectory-hash",
     classicReferenceHash: "classic-hash",
     initialStateHash: "initial-state-hash",
@@ -292,18 +331,18 @@ const analogRun = {
 
 afterEach(cleanup);
 
-function renderMaterials(view: "comparison" | "quantum") {
+function renderMaterials(view: "comparison" | "quantum" | "audit", executed = true) {
   return render(
     <I18nProvider initialLanguage="zh">
-      <MaterialsView analysis={analysis} run={run} view={view} />
+      <MaterialsView analysis={analysis} run={executed ? run : null} view={view} />
     </I18nProvider>,
   );
 }
 
-function renderAnalog(view: "business" | "comparison" | "quantum") {
+function renderAnalog(view: "business" | "comparison" | "quantum" | "audit", executed = true) {
   return render(
     <I18nProvider initialLanguage="zh">
-      <MaterialsView analysis={analogAnalysis} run={analogRun} view={view} />
+      <MaterialsView analysis={analogAnalysis} run={executed ? analogRun : null} view={view} />
     </I18nProvider>,
   );
 }
@@ -353,5 +392,46 @@ describe("MaterialsViews", () => {
     expect(screen.getByText("有效晶格量子淬火结果")).toBeTruthy();
     expect(screen.getByText("Digital residual")).toBeTruthy();
     expect(screen.getByText("COMPLETE")).toBeTruthy();
+  });
+
+  it("shows only QUBO model identities before an optimization run", () => {
+    renderMaterials("audit", false);
+
+    expect(screen.getByText("输入与模型身份")).toBeTruthy();
+    expect(screen.getByText("QUBO 定义")).toBeTruthy();
+    expect(screen.queryByText("AHS 实验定义")).toBeNull();
+    expect(screen.queryByText("执行链")).toBeNull();
+  });
+
+  it("separates optimization execution and result evidence", () => {
+    renderMaterials("audit");
+
+    expect(screen.getByText("执行链")).toBeTruthy();
+    expect(screen.getByText("结果与报告")).toBeTruthy();
+    expect(screen.getByText("执行配置")).toBeTruthy();
+    expect(screen.getByText("QUBO 编译")).toBeTruthy();
+    expect(screen.getByText("量子结果")).toBeTruthy();
+    expect(screen.getByText("报告")).toBeTruthy();
+  });
+
+  it("shows Analog-specific model identities before execution", () => {
+    renderAnalog("audit", false);
+
+    expect(screen.getByText("AHS 实验定义")).toBeTruthy();
+    expect(screen.getByText("analog-problem-hash")).toBeTruthy();
+    expect(screen.getByText("目标快照")).toBeTruthy();
+    expect(screen.getByText("Rydberg 布局")).toBeTruthy();
+    expect(screen.getByText("声明初态")).toBeTruthy();
+    expect(screen.getByText("脉冲计划")).toBeTruthy();
+    expect(screen.queryByText("QUBO 定义")).toBeNull();
+  });
+
+  it("shows the Analog program, trajectory, and independent reference chain", () => {
+    renderAnalog("audit");
+
+    expect(screen.getByText("AHS 编译程序")).toBeTruthy();
+    expect(screen.getByText("时间序列")).toBeTruthy();
+    expect(screen.getByText("DOP853 经典参考")).toBeTruthy();
+    expect(screen.getAllByText(/cascaqit_exact_state_rk4_prefix/).length).toBeGreaterThan(0);
   });
 });

@@ -347,6 +347,18 @@ async function runViewport(browser, name, width, height) {
     page,
     `${name}/defect-adsorption-comparison`,
   );
+  await page.getByRole("tab", { name: "审计证据" }).click();
+  await page.getByText("QUBO 定义", { exact: true }).waitFor();
+  await page.getByText("执行配置", { exact: true }).waitFor();
+  await page.getByText("结果与报告", { exact: true }).waitFor();
+  result.defectAdsorption.auditLayout = await assertNoOverflow(
+    page,
+    `${name}/defect-adsorption-audit`,
+  );
+  await page.screenshot({
+    path: path.join(outputDir, `materials-defect-audit-${name}.png`),
+    fullPage: true,
+  });
 
   await waitForScenarioAnalysis(page, "materials", "rydberg_dynamics", () =>
     page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click(),
@@ -416,6 +428,19 @@ async function runViewport(browser, name, width, height) {
     page,
     `${name}/rydberg-comparison`,
   );
+  await page.getByRole("tab", { name: "审计证据" }).click();
+  await page.getByText("AHS 实验定义", { exact: true }).waitFor();
+  await page.getByText("Rydberg 布局", { exact: true }).waitFor();
+  await page.getByText("时间序列", { exact: true }).waitFor();
+  await page.getByText("DOP853 经典参考", { exact: true }).waitFor();
+  result.rydbergDynamics.auditLayout = await assertNoOverflow(
+    page,
+    `${name}/rydberg-audit`,
+  );
+  await page.screenshot({
+    path: path.join(outputDir, `materials-analog-audit-${name}.png`),
+    fullPage: true,
+  });
 
   await page.getByRole("tab", { name: "领域结果" }).click();
   await page.getByText("AHS COMPLETED", { exact: true }).waitFor();

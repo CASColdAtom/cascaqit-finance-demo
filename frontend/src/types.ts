@@ -857,8 +857,21 @@ export interface MaterialsRunAudit {
   resultHash: string;
   reportHash: string;
   backendHash: string;
+  backend: {
+    backendId: string;
+    executionFamily: "problem_qaoa" | "analog_ahs";
+    mode: "digital" | "hybrid" | "analog";
+    simulationMethod: string;
+    hardwareExecution: boolean;
+    cloudExecution: boolean;
+    networkAccessed: boolean;
+  };
   configurationHash: string;
   outcomeHash: string;
+  configurationSchema: string;
+  outcomeSchema: string;
+  reportSchema: string;
+  resultPresentationHash: string;
   seed: number;
   shots: number;
   hardwareExecution: false;

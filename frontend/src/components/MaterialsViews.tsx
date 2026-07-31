@@ -476,23 +476,108 @@ function ComparisonView({ analysis, run }: { analysis: MaterialsAnalysisPayload;
   );
 }
 
-function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
+type EvidenceRow = {
+  label: string;
+  value?: string | null;
+  detail?: string;
+};
+
+function EvidenceSection({
+  kicker,
+  title,
+  rows,
+}: {
+  kicker: string;
+  title: string;
+  rows: EvidenceRow[];
+}) {
+  const visibleRows = rows.filter((row) => row.value);
+  if (!visibleRows.length) return null;
   return (
-    <div className="view-stack">
+    <section className="data-section materials-audit-section">
+      <div className="subsection-head">
+        <div><span className="section-kicker">{kicker}</span><h3>{title}</h3></div>
+        <span className="data-chip">{visibleRows.length} IDENTITIES</span>
+      </div>
+      <dl className="materials-evidence-list">
+        {visibleRows.map((row, index) => (
+          <div key={row.label}>
+            <span className="materials-evidence-index">{String(index + 1).padStart(2, "0")}</span>
+            <dt>{row.label}</dt>
+            <dd><code>{row.value}</code>{row.detail ? <small>{row.detail}</small> : null}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function AuditView({ analysis, run }: { analysis: MaterialsAnalysisPayload; run?: MaterialsRunPayload | null }) {
+  const analog = analysis.executionFamily === "analog_ahs";
+  const audit = run?.audit;
+  const backend = audit?.backend;
+  const identityRows: EvidenceRow[] = [
+    { label: "数据集清单", value: audit?.manifestHash ?? analysis.dataset.manifestHash, detail: `${analysis.dataset.id} / ${analysis.dataset.version}` },
+    { label: "领域输入", value: audit?.domainInputHash, detail: "本次运行绑定的材料领域参数" },
+    { label: "分析身份", value: audit?.analysisHash ?? analysis.analysisHash, detail: "分析结果与模式决策的稳定身份" },
+    ...(analog
+      ? [
+          { label: "AHS 实验定义", value: audit?.problemHash ?? analysis.problem.hash, detail: analysis.problem.type },
+          { label: "目标快照", value: analysis.analogProgram?.targetSnapshotHash ?? analysis.domain.targetValidation?.targetSnapshotHash, detail: "实验目标与校验诊断的冻结快照" },
+          { label: "Rydberg 布局", value: audit?.rydbergLayoutHash ?? analysis.domain.rydbergLayoutHash, detail: "从材料有效窗口编译得到的中性原子坐标" },
+          { label: "声明初态", value: audit?.initialStateHash ?? analysis.analogProgram?.initialStateHash ?? analysis.domain.initialState?.stateHash, detail: analysis.domain.initialState ? `${analysis.domain.initialState.basis} / ${analysis.domain.initialState.bitstring}` : undefined },
+          { label: "脉冲计划", value: audit?.pulseScheduleHash ?? analysis.analogProgram?.pulseScheduleHash, detail: "Rabi、detuning、phase 与采样时刻" },
+        ]
+      : [
+          { label: "QUBO 定义", value: audit?.problemHash ?? analysis.problem.hash, detail: `${analysis.problem.variables.length} 个决策变量 / ${analysis.problem.type}` },
+        ]),
+  ];
+  const executionRows: EvidenceRow[] = audit
+    ? [
+        { label: "执行配置", value: audit.configurationHash, detail: audit.configurationSchema },
+        { label: analog ? "AHS 编译程序" : "QUBO 编译", value: audit.compileHash, detail: analog ? "CASCAQit Analog AHS 编译产物" : "CASCAQit QAOA 编译产物" },
+        { label: "后端能力快照", value: audit.backendHash, detail: backend ? `${backend.backendId} / ${backend.simulationMethod}` : undefined },
+        { label: "本地执行", value: audit.executionHash, detail: "配置、编译产物与后端身份共同绑定" },
+      ]
+    : [];
+  const resultRows: EvidenceRow[] = audit
+    ? [
+        { label: "量子结果", value: audit.resultHash, detail: analog ? "AHS 各采样时刻的量子演化结果" : "有限 shots 的 QAOA 观测结果" },
+        ...(analog
+          ? [
+              { label: "时间序列", value: audit.trajectoryHash, detail: "逐时刻状态、占据、关联与 counts" },
+              { label: "DOP853 经典参考", value: audit.classicReferenceHash, detail: "独立数值求解器生成的对照身份" },
+            ]
+          : []),
+        { label: "审计结果载荷", value: audit.outcomeHash, detail: audit.outcomeSchema },
+        { label: "结果呈现", value: audit.resultPresentationHash, detail: "领域结果视图所绑定的稳定身份" },
+        { label: "报告", value: audit.reportHash, detail: audit.reportSchema },
+      ]
+    : [];
+  return (
+    <div className="view-stack materials-audit-view">
       <MetricRail analysis={analysis} run={run} />
-      <section className="audit-section materials-audit">
+      <section className="data-section materials-audit-overview">
         <div className="subsection-head">
-          <div><span className="section-kicker">IMMUTABLE IDENTITIES</span><h3>{run ? "材料执行审计链" : "分析预览审计"}</h3></div>
-          <span className="data-chip">{run ? "LOCAL SIMULATION" : "NO EXECUTION HASH"}</span>
+          <div><span className="section-kicker">EVIDENCE OVERVIEW</span><h3>证据概览</h3></div>
+          <span className="data-chip">{run ? "EXECUTED" : "ANALYSIS ONLY"}</span>
         </div>
-        <dl>
-          <dt>Analysis</dt><dd><code>{analysis.analysisHash}</code></dd>
-          <dt>Dataset</dt><dd><code>{analysis.dataset.manifestHash}</code></dd>
-          <dt>Problem</dt><dd><code>{analysis.problem.hash}</code></dd>
-          <dt>Execution</dt><dd>{run ? <code>{run.audit.executionHash}</code> : "未执行，不生成 execution/result hash"}</dd>
-          {run ? <><dt>Result</dt><dd><code>{run.audit.resultHash}</code></dd><dt>Report</dt><dd><code>{run.audit.reportHash}</code></dd><dt>Backend</dt><dd><code>{run.audit.backendHash}</code></dd></> : null}
-        </dl>
-        <div className="interpretation-boundary">
+        <div className="materials-audit-summary">
+          <div><span>场景</span><strong>{analog ? "Pure Analog AHS" : "缺陷与吸附 QUBO"}</strong><small>{analysis.domain.modelLevel}</small></div>
+          <div><span>证据阶段</span><strong>{run ? "完整执行链" : "分析身份"}</strong><small>{run ? "输入、编译、执行、结果、报告" : "执行后生成后续审计身份"}</small></div>
+          <div><span>执行后端</span><strong>{backend?.backendId ?? "尚未执行"}</strong><small>{backend?.simulationMethod ?? "等待本地运行"}</small></div>
+          <div><span>运行参数</span><strong>{audit ? `${audit.shots} shots / seed ${audit.seed}` : "未生成"}</strong><small>{audit ? `${audit.wallTimeSeconds.toFixed(3)} s / ${run?.quantum.mode.toUpperCase()}` : "无 execution / result hash"}</small></div>
+        </div>
+      </section>
+      <EvidenceSection kicker="INPUT AND MODEL IDENTITY" title="输入与模型身份" rows={identityRows} />
+      {run ? <EvidenceSection kicker="COMPILE AND EXECUTION" title="执行链" rows={executionRows} /> : null}
+      {run ? <EvidenceSection kicker="RESULT AND REPORT" title="结果与报告" rows={resultRows} /> : null}
+      <section className="data-section materials-audit-boundaries">
+        <div className="subsection-head">
+          <div><span className="section-kicker">INTERPRETATION SCOPE</span><h3>解释边界</h3></div>
+          <AlertTriangle size={18} aria-hidden="true" />
+        </div>
+        <div className="boundary-list">
           {analysis.domain.limitations.map((limitation) => (
             <span key={limitation}><AlertTriangle size={13} aria-hidden="true" />{limitation}</span>
           ))}
