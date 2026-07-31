@@ -5,6 +5,20 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Manifest = Join-Path $Root "manifest-sha256.txt"
 
+function Get-Sha256Hex {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $Algorithm = [System.Security.Cryptography.SHA256]::Create()
+    $Stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $Hash = $Algorithm.ComputeHash($Stream)
+        return ([System.BitConverter]::ToString($Hash)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $Stream.Dispose()
+        $Algorithm.Dispose()
+    }
+}
+
 if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
     throw "缺少完整性清单：$Manifest"
 }
@@ -26,7 +40,7 @@ foreach ($Line in Get-Content -LiteralPath $Manifest -Encoding UTF8) {
     if (-not (Test-Path -LiteralPath $Target -PathType Leaf)) {
         throw "离线包缺少文件：$Relative"
     }
-    $Actual = (Get-FileHash -LiteralPath $Target -Algorithm SHA256).Hash.ToLowerInvariant()
+    $Actual = Get-Sha256Hex -Path $Target
     if ($Actual -ne $Expected) {
         throw "文件校验失败：$Relative"
     }

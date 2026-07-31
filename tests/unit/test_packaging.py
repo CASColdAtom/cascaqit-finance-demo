@@ -268,6 +268,7 @@ def test_windows_installer_uses_portable_runtime_and_real_smoke() -> None:
 
     install_script = Path("packaging/windows/install.ps1").read_text(encoding="utf-8")
     run_script = Path("packaging/windows/run.ps1").read_text(encoding="utf-8")
+    verify_script = Path("packaging/windows/verify.ps1").read_text(encoding="utf-8")
 
     assert PYTHON_RUNTIME_ZIP_NAME in install_script
     assert "Expand-Archive" not in install_script
@@ -290,6 +291,8 @@ def test_windows_installer_uses_portable_runtime_and_real_smoke() -> None:
     assert "CASCAQIT_INDUSTRY_DATA_DIR" in run_script
     assert "CASCAQIT_INDUSTRY_PORT" in run_script
     assert "Test-VenvPython" in run_script
+    assert "System.Security.Cryptography.SHA256" in verify_script
+    assert "Get-FileHash" not in verify_script
     assert len(PYTHON_RUNTIME_SOURCE_SHA256) == 64
 
 
