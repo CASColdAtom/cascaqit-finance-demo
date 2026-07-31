@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AnalysisPayload,
@@ -322,8 +329,9 @@ describe("App", () => {
       }),
     ).toBeTruthy();
     expect(await screen.findByText("周期晶格与缺陷")).toBeTruthy();
-    expect(screen.getByText("前沿探索价值")).toBeTruthy();
-    expect(screen.getByText(/当前量子计算尚不能替代成熟经典计算流程/)).toBeTruthy();
+    const frontierOutlook = screen.getByLabelText("前沿探索价值");
+    expect(within(frontierOutlook).getByText(/原生 Rydberg Hamiltonian/)).toBeTruthy();
+    expect(within(frontierOutlook).getByText(/四位点有效模型/)).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "运行" }) as HTMLButtonElement).disabled,
     ).toBe(false);
@@ -359,8 +367,9 @@ describe("App", () => {
     ).toBeTruthy();
     expect(screen.queryByText("投资组合")).toBeNull();
     expect(screen.getAllByText("电子结构").length).toBeGreaterThan(0);
-    expect(screen.getByText("前沿探索价值")).toBeTruthy();
-    expect(screen.getByText(/量子计算进入真实科研流程的前景/)).toBeTruthy();
+    const frontierOutlook = screen.getByLabelText("前沿探索价值");
+    expect(within(frontierOutlook).getByText(/活性空间 Hamiltonian/)).toBeTruthy();
+    expect(within(frontierOutlook).getByText(/不替代 DFT/)).toBeTruthy();
     expect(screen.getByRole("tab", { name: "对照分析" })).toBeTruthy();
     expect(screen.getByTitle("变分量子本征求解器")).toBeTruthy();
     expect(window.location.pathname).toBe("/biomedicine/electronic_structure");

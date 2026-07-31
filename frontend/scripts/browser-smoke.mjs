@@ -159,6 +159,15 @@ async function waitForScenarioAnalysis(page, domainId, caseId, action) {
   await waitForAnalysis(page);
 }
 
+async function assertScenarioFrontierOutlook(page, caseId, label) {
+  const outlook = page.locator(`.frontier-outlook[data-scenario="${caseId}"]`);
+  await outlook.waitFor({ state: "visible" });
+  const description = (await outlook.locator("p").innerText()).trim();
+  if (description.length < 40) {
+    throw new Error(`${label}: scenario-specific frontier outlook is missing`);
+  }
+}
+
 async function selectBiomedicine(page) {
   await waitForScenarioAnalysis(page, "biomedicine", "electronic_structure", () =>
     page
@@ -217,6 +226,11 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
         page.locator(".scenario-item", { hasText: shortTitle }).click(),
       );
     }
+    await assertScenarioFrontierOutlook(
+      page,
+      caseId,
+      `${name}/${caseId}`,
+    );
     const runButton = page.locator(".run-button");
     const shouldBeDisabled = previewOnly;
     if ((await runButton.isDisabled()) !== shouldBeDisabled) {
@@ -554,6 +568,11 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
   if (!(await page.getByText("前沿探索价值", { exact: true }).isVisible())) {
     throw new Error(`${name}: materials frontier outlook is missing`);
   }
+  await assertScenarioFrontierOutlook(
+    page,
+    "defect_adsorption",
+    `${name}/defect-adsorption`,
+  );
   result.frontierOutlook.materials = true;
   result.materials = {
     defectAdsorption: await assertLayout(page, `${name}/defect-adsorption`),
@@ -595,6 +614,11 @@ async function runViewport(browser, baseUrl, outputDir, name, width, height) {
 
   await waitForScenarioAnalysis(page, "materials", "rydberg_dynamics", () =>
     page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click(),
+  );
+  await assertScenarioFrontierOutlook(
+    page,
+    "rydberg_dynamics",
+    `${name}/rydberg-dynamics`,
   );
   runButton = page.locator(".run-button");
   if (!(await runButton.isVisible())) {

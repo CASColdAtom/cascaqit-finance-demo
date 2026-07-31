@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { translateContent } from "./i18n";
+import { scenarioFrontierOutlook, translateContent } from "./i18n";
 
 const serverTextSamples = [
   "债券 / 医药",
@@ -34,5 +34,33 @@ describe("translateContent", () => {
       "slack_group_Manufacturing_00",
     );
     expect(translateContent("与 T-009 冲突")).toBe("Conflicts with T-009");
+  });
+});
+
+describe("scenarioFrontierOutlook", () => {
+  const caseIds = [
+    "electronic_structure",
+    "docking_match",
+    "active_center",
+    "peptide_landscape",
+    "rna_structure",
+    "protein_dynamics",
+    "defect_adsorption",
+    "rydberg_dynamics",
+  ];
+
+  it.each(["zh", "en"] as const)(
+    "provides distinct %s copy for every biomedical and materials scenario",
+    (language) => {
+      const descriptions = caseIds.map((caseId) =>
+        scenarioFrontierOutlook(caseId, language),
+      );
+      expect(descriptions.every(Boolean)).toBe(true);
+      expect(new Set(descriptions).size).toBe(caseIds.length);
+    },
+  );
+
+  it("does not fall back to generic copy for an unregistered scenario", () => {
+    expect(scenarioFrontierOutlook("future_scenario", "zh")).toBeNull();
   });
 });

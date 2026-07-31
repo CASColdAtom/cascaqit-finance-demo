@@ -13,7 +13,7 @@ import { QuantumText } from "./components/QuantumText";
 import { ScenarioNav } from "./components/ScenarioNav";
 import { TelemetryHeader } from "./components/TelemetryHeader";
 import { viewTabs, type ViewId } from "./components/viewTabs";
-import { I18nProvider, useI18n } from "./i18n";
+import { I18nProvider, scenarioFrontierOutlook, useI18n } from "./i18n";
 import type {
   Algorithm,
   AnalysisPayload,
@@ -184,7 +184,7 @@ function ViewLoading() {
 }
 
 function Workbench() {
-  const { scenario: localizeScenario, t, tx } = useI18n();
+  const { language, scenario: localizeScenario, t, tx } = useI18n();
   const [domainId, setDomainId] = useState<DomainId>("finance");
   const [scenarios, setScenarios] = useState<ScenarioSpec[]>([]);
   const [activeId, setActiveId] = useState("");
@@ -234,6 +234,9 @@ function Workbench() {
     () => (activeScenario ? localizeScenario(activeScenario) : null),
     [activeScenario, localizeScenario],
   );
+  const frontierOutlook = activeScenario
+    ? scenarioFrontierOutlook(activeScenario.caseId, language)
+    : null;
   const selectedDecision = useMemo(
     () => analysis?.decision.modes.find((item) => item.mode === mode) ?? null,
     [analysis, mode],
@@ -787,12 +790,16 @@ function Workbench() {
             </div>
           </header>
 
-          {domainId !== "finance" ? (
-            <section className="frontier-outlook" aria-label={t("frontierOutlook")}>
+          {domainId !== "finance" && frontierOutlook ? (
+            <section
+              className="frontier-outlook"
+              data-scenario={activeScenario.caseId}
+              aria-label={t("frontierOutlook")}
+            >
               <Telescope size={18} aria-hidden="true" />
               <div>
                 <small>{t("frontierOutlook")}</small>
-                <p>{t("frontierOutlookDescription")}</p>
+                <p>{frontierOutlook}</p>
               </div>
             </section>
           ) : null}

@@ -25,8 +25,6 @@ const zh = {
   noHardwareExecution: "NO HARDWARE EXECUTION",
   researchDemonstration: "RESEARCH DEMONSTRATION",
   frontierOutlook: "前沿探索价值",
-  frontierOutlookDescription:
-    "当前量子计算尚不能替代成熟经典计算流程，也不意味着这些问题已经获得量子优势。但现在开展前沿探索仍然非常有意义：可以验证问题映射、量子-经典协同与中性原子 Digital / Hybrid / Analog 路线，提前积累可复用的数据、模型和实验基线。客户在这里看到的是一条能够随硬件规模、保真度和算法能力持续演进的技术路径，以及量子计算进入真实科研流程的前景，而不是已经兑现的生产替代承诺。",
   experiments: "行业场景",
   financeScenarios: "金融场景",
   biomedicineScenarios: "生物医药场景",
@@ -186,8 +184,6 @@ const en: MessageDictionary = {
   noHardwareExecution: "NO HARDWARE EXECUTION",
   researchDemonstration: "RESEARCH DEMONSTRATION",
   frontierOutlook: "Frontier Exploration Value",
-  frontierOutlookDescription:
-    "Quantum computing cannot yet replace mature classical workflows, nor do these demonstrations establish quantum advantage. Frontier exploration is still meaningful today: it can validate problem mappings, quantum-classical collaboration, and neutral-atom Digital, Hybrid, and Analog paths while building reusable data, models, and experimental baselines. Customers should see an engineering path that can evolve with hardware scale, fidelity, and algorithm maturity, and a view of how quantum computing may enter real research workflows, rather than a claim of production replacement already achieved.",
   experiments: "Industry Scenarios",
   financeScenarios: "Financial Scenarios",
   biomedicineScenarios: "Biomedicine Scenarios",
@@ -326,6 +322,52 @@ const en: MessageDictionary = {
   riskAdjustedValue: "Risk-adjusted Value",
   efficiency: "Efficiency",
 };
+
+const scenarioFrontierOutlooks: Record<Language, Record<string, string>> = {
+  zh: {
+    electronic_structure:
+      "该场景适合验证活性空间 Hamiltonian、VQE 优化和测量分组如何组成可审计的电子结构实验链，为更大活性空间和更高精度硬件积累基线。当前结果不替代 DFT、耦合簇等成熟经典方法，也不代表已经获得量子优势。",
+    docking_match:
+      "该场景把口袋与候选构象匹配拆成可追溯的离散子问题，可探索中性原子 Hybrid 路线对局部冲突和候选采样的表达能力。它不执行连续空间对接，也不输出结合自由能、亲和力或药效结论。",
+    active_center:
+      "金属酶活性中心常包含强关联电子和反铁磁耦合，该场景可用于验证小型自旋 Hamiltonian 的构造、VQE 求解和经典精确对照，为未来扩大活性空间提供实验基线。当前模型不预测催化活性、反应速率或真实酶功能。",
+    peptide_landscape:
+      "该场景探索量子采样对离散低能构象、能景盆地覆盖和结构多样性的补充价值，可为更大候选空间中的混合筛选流程积累方法与指标。它不是全原子蛋白折叠，也不产生真实时间动力学。",
+    rna_structure:
+      "RNA 的高柔性带来庞大的配对与构象组合空间，该场景可验证碱基配对约束、低能结构集合和多候选采样的量子优化表达。QAOA 频次不是热力学概率，当前结果也不等同于 RNA 三维结构预测。",
+    protein_dynamics:
+      "该场景面向已知构象状态网络中的低代价转变路径搜索，可探索量子组合优化对竞争通路和参数敏感性分析的价值。路径代价不是物理时间，当前实现不替代分子动力学或真实蛋白折叠过程解析。",
+    defect_adsorption:
+      "缺陷、掺杂、吸附位点和取向形成耦合组合空间，该场景可验证 QUBO 与中性原子 Hybrid 几何对联合构型筛选的表达和审计能力。离线能量模型不替代运行时 DFT，也不能直接推导催化活性或材料性能。",
+    rydberg_dynamics:
+      "该场景直接使用原生 Rydberg Hamiltonian 演化材料对应的有效多体晶格，可探索缺陷传播、阻塞和局域化等时间过程，是中性原子 Analog 路线最直接的能力展示。结果仅适用于四位点有效模型，不代表真实材料的全电子或全原子动力学。",
+  },
+  en: {
+    electronic_structure:
+      "This scenario validates an auditable electronic-structure chain from active-space Hamiltonians through VQE optimization and measurement grouping, building a baseline for larger active spaces and higher-fidelity hardware. It does not replace mature methods such as DFT or coupled cluster, nor establish quantum advantage.",
+    docking_match:
+      "This scenario turns pocket-to-pose matching into a traceable discrete subproblem and explores how a neutral-atom Hybrid path can encode local conflicts and sample candidates. It does not perform continuous docking or report binding free energy, affinity, or efficacy.",
+    active_center:
+      "Metal-enzyme active centers often contain strongly correlated electrons and antiferromagnetic coupling. This scenario validates small spin Hamiltonians, VQE, and exact classical comparison as a baseline for larger active spaces, but it does not predict catalytic activity, reaction rates, or enzyme function.",
+    peptide_landscape:
+      "This scenario explores whether quantum sampling can complement classical screening of discrete low-energy conformations, basin coverage, and structural diversity. It is not full-atom protein folding and does not produce real-time dynamics.",
+    rna_structure:
+      "RNA flexibility creates a large combinatorial space of pairings and conformations. This scenario validates quantum-optimization mappings for pairing constraints and diverse low-energy candidates; QAOA frequencies are not thermodynamic probabilities or three-dimensional RNA predictions.",
+    protein_dynamics:
+      "This scenario searches low-cost transition paths in a predefined conformational state network and explores competing routes and parameter sensitivity. Path cost is not physical time, and the implementation does not replace molecular dynamics or resolve real protein folding dynamics.",
+    defect_adsorption:
+      "Defects, dopants, adsorption sites, and orientations form a coupled combinatorial space. This scenario validates auditable QUBO and neutral-atom Hybrid mappings for joint configuration screening, while its offline energy model does not replace runtime DFT or predict catalytic and material performance.",
+    rydberg_dynamics:
+      "This scenario evolves a material-inspired effective many-body lattice with the native Rydberg Hamiltonian, directly exposing Analog studies of defect propagation, blockade, and localization. Results apply only to the four-site effective model, not to full-electron or full-atom material dynamics.",
+  },
+};
+
+export function scenarioFrontierOutlook(
+  caseId: string,
+  language: Language,
+): string | null {
+  return scenarioFrontierOutlooks[language][caseId] ?? null;
+}
 
 type MessageKey = keyof typeof zh;
 
