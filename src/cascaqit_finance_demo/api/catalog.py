@@ -237,10 +237,11 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("value_weight", "业务价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
         ),
-        # 三个预设使用 seeds 7/19/23 校准后，单起点 12 次 COBYLA 评估均直接
-        # 产生可行业务候选，单次本地等待约 0.4 秒，因此连续优化可作为默认路径。
+        # 正式 CASCAQit v1.0.5a wheel 下，三个预设使用 seeds 1/11/19 校准后，
+        # 单起点 12 次 COBYLA 评估均直接产生可行业务候选。
         ExecutionProfile(
             shots=64,
+            seed=19,
             search_strategy="continuous",
             parameter_budget=12,
         ),

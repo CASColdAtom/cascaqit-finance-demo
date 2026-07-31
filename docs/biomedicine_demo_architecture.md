@@ -772,6 +772,8 @@ problem.quantumSubproblemHash       13 变量 Canonical QUBO
 
 `ExperimentPlanner` 分别读取前两类问题身份：完整问题用于计划身份，活动 QUBO 用于执行身份。三种权重预设以及 Digital/Hybrid 配置复用相同选择结果；权重只改变 QUBO 系数，不改变候选集合。
 
+V2 发布校准固定到 CASCAQit tag `v1.0.5a`、源码提交 `6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853` 和 wheel SHA-256 `af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e`。标准对接目录默认 seed 为 `1`；高级 `multi_pose_balanced` 使用 1024 shots、每起点 24 次目标评估和 3 个起点。校准器同时校验仓库 wheel 哈希、已安装版本和 `direct_url.json` 的安装归因，聚合器拒绝缺少该 provenance 的 V2 证据。
+
 #### 18.4.3 多中心有效自旋
 
 ```text

@@ -14,6 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EVIDENCE_ROOT = ROOT / "docs" / "process" / "evidence"
 DEFAULT_OUTPUT = DEFAULT_EVIDENCE_ROOT / "industry_v3_release_acceptance.json"
 SEEDS = {7, 23, 41}
+EXPECTED_CASCAQIT = {
+    "version": "1.0.5a0",
+    "tag": "v1.0.5a",
+    "sourceCommit": "6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853",
+    "wheelSha256": "af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e",
+}
 BASE_PRESETS = {
     "electronic_structure": {
         "h2_bond_scan",
@@ -113,8 +119,18 @@ def validate_evidence(evidence_root: Path = DEFAULT_EVIDENCE_ROOT) -> dict[str, 
     if base is not None:
         records = base.get("records", [])
         seed_plan = base.get("fixedSeedPlan", {})
+        sdk_provenance = base.get("sdkProvenance", {})
         if base.get("summary", {}).get("passed") is not True:
             failures.append("biomedicine V2 calibration summary is not passed")
+        if not (
+            all(
+                sdk_provenance.get(key) == value
+                for key, value in EXPECTED_CASCAQIT.items()
+            )
+            and sdk_provenance.get("installedVersion") == EXPECTED_CASCAQIT["version"]
+            and sdk_provenance.get("wheelHashVerified") is True
+        ):
+            failures.append("biomedicine V2 evidence is not bound to the release SDK")
         for scenario_id, presets in BASE_PRESETS.items():
             rows = [row for row in records if row.get("scenario") == scenario_id]
             actual = {

@@ -16,7 +16,8 @@ def test_app_builds_seven_scenarios_and_five_result_tabs() -> None:
     document = Document()
     handles = build_document(document)
 
-    serialized = json.dumps(document.to_json(), ensure_ascii=False)
+    payload = document.to_json()
+    serialized = json.dumps(getattr(payload, "content", payload), ensure_ascii=False)
     assert document.title == "中科酷原行业量子实验台 · 金融领域"
     assert len(document.roots) == 1
     assert list(handles["workspaces"]) == [

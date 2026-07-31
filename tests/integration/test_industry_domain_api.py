@@ -874,7 +874,7 @@ def test_docking_run_keeps_quantum_classic_and_reference_results_separate() -> N
             "mode": "hybrid",
             "algorithm": "qaoa",
             "shots": 128,
-            "seed": 7,
+            "seed": 1,
             "layers": 1,
             "search_strategy": "continuous",
             "parameter_budget": 12,

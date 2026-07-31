@@ -81,7 +81,7 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     }
     assert profiles["collateral"] == {
         "shots": 64,
-        "seed": 23,
+        "seed": 19,
         "algorithm": "recommended",
         "layerPolicy": "fixed",
         "layers": 1,
@@ -111,19 +111,21 @@ def test_health_and_scenario_catalog_expose_offline_boundaries() -> None:
     (
         "case_id",
         "expected_shots",
+        "expected_seed",
         "expected_layers",
         "expected_search",
         "expected_budget",
     ),
     [
-        ("collateral", 64, 1, "continuous", 12),
-        ("liquidity", 128, 1, "preset", 2),
-        ("credit_limits", 128, 2, "preset", 2),
+        ("collateral", 64, 19, 1, "continuous", 12),
+        ("liquidity", 128, 23, 1, "preset", 2),
+        ("credit_limits", 128, 23, 2, "preset", 2),
     ],
 )
 def test_run_uses_scenario_execution_profile_when_fields_are_omitted(
     case_id: str,
     expected_shots: int,
+    expected_seed: int,
     expected_layers: int,
     expected_search: str,
     expected_budget: int,
@@ -153,7 +155,7 @@ def test_run_uses_scenario_execution_profile_when_fields_are_omitted(
     assert response.status_code == 200
     assert response.json()["run"] == {"recorded": True}
     assert captured["shots"] == expected_shots
-    assert captured["seed"] == 23
+    assert captured["seed"] == expected_seed
     assert captured["layers"] == expected_layers
     assert captured["search_strategy"] == expected_search
     assert captured["parameter_budget"] == expected_budget

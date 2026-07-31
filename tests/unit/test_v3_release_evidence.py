@@ -51,3 +51,22 @@ def test_v3_release_evidence_rejects_classic_protein_fallback(
     assert result["summary"]["passed"] is False
     assert result["summary"]["failedScenarioCount"] == 1
     assert any("protein_dynamics" in failure for failure in result["failures"])
+
+
+def test_v3_release_evidence_rejects_unpinned_sdk_evidence(
+    tmp_path: Path,
+) -> None:
+    for filename in SOURCE_FILES.values():
+        shutil.copy2(DEFAULT_EVIDENCE_ROOT / filename, tmp_path / filename)
+    path = tmp_path / SOURCE_FILES["biomedicine_v2"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.pop("sdkProvenance")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = validate_evidence(tmp_path)
+
+    assert result["summary"]["passed"] is False
+    assert result["summary"]["failedScenarioCount"] == 0
+    assert "biomedicine V2 evidence is not bound to the release SDK" in result[
+        "failures"
+    ]

@@ -23,13 +23,13 @@ V3 仍不标记为 `COMPLETED`。PRD 明确要求 `1440x900`、`1280x720`、`390
 
 新增 `scripts/validate_v3_release_evidence.py`，机器复核五份已有固定 seed 证据，不重新解释失败为成功：
 
-- V2 四场景：48 次运行，全部满足各场景发布阈值；
+- V2 四场景：使用 CASCAQit `v1.0.5a` 固定 wheel 重跑 48 次，全部满足各场景发布阈值；证据绑定 SDK tag、源码提交和 wheel SHA-256；
 - RNA：3 预设 × 3 seeds，9 次均为真实量子观测可行结构；
 - 蛋白路径：9 次中 6 次观测到可行路径、3 次 `quantum_not_observed`，经典回填为 `false`；
 - 材料构型：9 次均观测到可行构型，保持每次 15 个 Analog 项和 32 个 Digital residual 项；
 - 材料 AHS：9 次全部通过，Digital gate/residual 与 Hybrid block 均为 0。
 
-聚合结果为 8 个场景、84 次运行、8/8 场景通过。证据位于 `docs/process/evidence/industry_v3_release_acceptance.json`，文件 SHA-256 为 `6d777d5a75af9ae528bb552e231593e06f98b44fe5a88e888849f648396ebc4f`。聚合器记录每份源 JSON 的 SHA-256，并有篡改蛋白经典回填状态的负向测试。
+聚合结果为 8 个场景、84 次运行、8/8 场景通过。证据位于 `docs/process/evidence/industry_v3_release_acceptance.json`，当前文件 SHA-256 为 `3d2d91867aa72c9ec6e0e0eff25657661dbf04a5d872e687ef472cb6d1a8766b`。聚合器记录每份源 JSON 的 SHA-256，并拒绝缺少固定 SDK provenance 的 V2 证据；同时保留篡改蛋白经典回填状态的负向测试。
 
 ## 4. 客户演示材料
 

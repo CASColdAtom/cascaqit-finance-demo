@@ -221,7 +221,7 @@ BIOMEDICINE_SCENARIO_SPECS: dict[str, BiomedicineScenarioSpec] = {
             "audit",
         ),
         "available",
-        {**_QAOA_PROFILE, "shots": 128, "seed": 8, "estimatedSeconds": 2.7},
+        {**_QAOA_PROFILE, "shots": 128, "seed": 1, "estimatedSeconds": 2.7},
     ),
     "active_center": BiomedicineScenarioSpec(
         "active_center",

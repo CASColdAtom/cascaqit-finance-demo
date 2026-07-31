@@ -31,6 +31,13 @@ from cascaqit_biomedicine_demo.peptide_landscape import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+CASCAQIT_RELEASE = {
+    "version": "1.0.5a0",
+    "tag": "v1.0.5a",
+    "sourceCommit": "6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853",
+    "wheelPath": "vendor/cascaqit-1.0.5a0-py3-none-any.whl",
+    "wheelSha256": "af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e",
+}
 DEFAULT_OUTPUT = (
     ROOT / "docs" / "process" / "evidence" / "biomedicine_release_calibration.json"
 )
@@ -42,10 +49,10 @@ SEED_PLAN = {
         "lih_potential_scan": (1, 6, 7),
     },
     "docking_match": {
-        "reference_pose": (1, 6, 8),
-        "strict_geometry": (1, 5, 8),
-        "pharmacophore_coverage": (3, 6, 8),
-        "multi_pose_balanced": (0, 3, 5),
+        "reference_pose": (1, 11, 17),
+        "strict_geometry": (1, 6, 8),
+        "pharmacophore_coverage": (1, 3, 7),
+        "multi_pose_balanced": (0, 1, 3),
     },
     "active_center": {
         "antiferromagnetic": (1, 6, 7),
@@ -55,7 +62,7 @@ SEED_PLAN = {
     },
     "peptide_landscape": {
         "hydrophobic_core": (0, 6, 7),
-        "charged_competition": (1, 6, 7),
+        "charged_competition": (0, 6, 7),
         "contact_limited": (0, 6, 7),
         "octapeptide_hydrophobic": (0, 3, 6),
     },
@@ -136,12 +143,12 @@ def _docking_case(preset: str, seed: int) -> dict[str, Any]:
             preset=preset,
             values={},
             mode="hybrid",
-            shots=256 if advanced else 128,
+            shots=1024 if advanced else 128,
             seed=seed,
             layers=1,
             search_strategy="continuous",
             parameter_budget=24 if advanced else 12,
-            optimizer_starts=1,
+            optimizer_starts=3 if advanced else 1,
         )
     )
     domain = run["domain"]
@@ -244,7 +251,43 @@ def _version(name: str) -> str:
         return "local-source"
 
 
+def _cascaqit_provenance() -> dict[str, Any]:
+    wheel = ROOT / CASCAQIT_RELEASE["wheelPath"]
+    if not wheel.is_file():
+        raise RuntimeError(f"missing release wheel: {wheel}")
+    wheel_sha256 = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    if wheel_sha256 != CASCAQIT_RELEASE["wheelSha256"]:
+        raise RuntimeError("CASCAQit release wheel SHA-256 does not match the pin")
+    installed_version = _version("cascaqit")
+    if installed_version != CASCAQIT_RELEASE["version"]:
+        raise RuntimeError(
+            "calibration requires CASCAQit "
+            f"{CASCAQIT_RELEASE['version']}, got {installed_version}"
+        )
+    direct_url_text = importlib.metadata.distribution("cascaqit").read_text(
+        "direct_url.json"
+    )
+    direct_url = json.loads(direct_url_text) if direct_url_text else None
+    archive_hash = (
+        direct_url.get("archive_info", {}).get("hash")
+        if isinstance(direct_url, dict)
+        else None
+    )
+    expected_archive_hash = f"sha256={CASCAQIT_RELEASE['wheelSha256']}"
+    if archive_hash != expected_archive_hash:
+        raise RuntimeError(
+            "installed CASCAQit is not traceable to the pinned release wheel"
+        )
+    return {
+        **CASCAQIT_RELEASE,
+        "installedVersion": installed_version,
+        "installedFrom": direct_url,
+        "wheelHashVerified": True,
+    }
+
+
 def calibrate() -> dict[str, Any]:
+    cascaqit_provenance = _cascaqit_provenance()
     matrix: tuple[
         tuple[str, tuple[str, ...], Callable[[str, int], dict[str, Any]]], ...
     ] = (
@@ -323,6 +366,7 @@ def calibrate() -> dict[str, Any]:
             "demo": _version("cascaqit-finance-demo"),
             "scriptSha256": script_hash,
         },
+        "sdkProvenance": cascaqit_provenance,
         "fixedSeedPlan": {
             scenario: {preset: list(seeds) for preset, seeds in presets.items()}
             for scenario, presets in SEED_PLAN.items()

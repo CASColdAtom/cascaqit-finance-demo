@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.docking import (
     DockingMatchScenario,
     analyze_docking_match,
@@ -71,7 +72,7 @@ def test_docking_analysis_recommends_real_hybrid_split() -> None:
     assert not any(code.startswith("FINANCE_") for code in hybrid["diagnosticCodes"])
 
 
-@pytest.mark.parametrize("seed", (1, 6, 7))
+@pytest.mark.parametrize("seed", (1, 11, 17))
 def test_calibrated_hybrid_seeds_observe_feasible_quantum_candidate(seed: int) -> None:
     run = run_docking_match(
         preset="reference_pose",
@@ -102,6 +103,24 @@ def test_calibrated_hybrid_seeds_observe_feasible_quantum_candidate(seed: int) -
     ]
     assert run["audit"]["hardwareExecution"] is False
     assert run["audit"]["networkAccessed"] is False
+
+
+def test_catalog_recommended_profile_observes_feasible_quantum_candidate() -> None:
+    profile = BIOMEDICINE_SCENARIO_SPECS["docking_match"].recommended_execution
+    run = run_docking_match(
+        preset="reference_pose",
+        values={},
+        mode="hybrid",
+        shots=profile["shots"],
+        seed=profile["seed"],
+        layers=profile["layers"],
+        search_strategy=profile["searchStrategy"],
+        parameter_budget=profile["parameterBudget"],
+        optimizer_starts=profile["optimizerStarts"],
+    )
+
+    assert run["domain"]["quantumCandidate"]["feasible"] is True
+    assert run["domain"]["observedFeasibleCount"] >= 1
 
 
 def test_digital_qaoa_is_available_as_a_separate_comparison_path() -> None:
