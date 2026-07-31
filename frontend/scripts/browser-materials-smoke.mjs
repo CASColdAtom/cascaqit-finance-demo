@@ -189,6 +189,44 @@ async function waitForAnalysis(page) {
   );
 }
 
+async function waitForScenarioAnalysis(page, domainId, caseId, action) {
+  const response = page.waitForResponse(
+    (candidate) =>
+      candidate.request().method() === "POST" &&
+      candidate.url().includes(`/api/domains/${domainId}/scenarios/${caseId}/analyze`) &&
+      candidate.ok(),
+    { timeout: 20_000 },
+  );
+  await action();
+  await page.waitForURL(`**/${domainId}/${caseId}`);
+  await response;
+  await waitForAnalysis(page);
+}
+
+async function waitForPaintedChartSections(page, selector, minimum) {
+  await page.waitForFunction(
+    ({ chartSelector, minimumCharts }) => {
+      const sections = [...document.querySelectorAll(chartSelector)];
+      if (sections.length < minimumCharts) return false;
+      return sections.slice(0, minimumCharts).every((section) =>
+        [...section.querySelectorAll("canvas")].some((element) => {
+          if (!(element instanceof HTMLCanvasElement)) return false;
+          const context = element.getContext("2d");
+          if (!context || !element.width || !element.height) return false;
+          const pixels = context.getImageData(0, 0, element.width, element.height).data;
+          const stride = Math.max(4, Math.floor(pixels.length / (64 * 64 * 4)) * 4);
+          for (let index = 3; index < pixels.length; index += stride) {
+            if (pixels[index] > 0) return true;
+          }
+          return false;
+        }),
+      );
+    },
+    { chartSelector: selector, minimumCharts: minimum },
+    { timeout: 20_000 },
+  );
+}
+
 async function layoutSnapshot(page) {
   return page.evaluate(() => {
     const viewportWidth = window.innerWidth;
@@ -262,9 +300,9 @@ async function runViewport(browser, name, width, height) {
       throw new Error(`${name}: domain switch is missing ${domain}`);
     }
   }
-  await domainSwitch.getByRole("button", { name: "材料科学" }).click();
-  await page.waitForURL("**/materials/defect_adsorption");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "materials", "defect_adsorption", () =>
+    domainSwitch.getByRole("button", { name: "材料科学" }).click(),
+  );
 
   const result = {
     viewport: { width, height },
@@ -293,9 +331,11 @@ async function runViewport(browser, name, width, height) {
   });
   await page.getByRole("tab", { name: "量子实验" }).click();
   await page.getByText("构型位串 counts", { exact: true }).waitFor();
-  if ((await page.locator("canvas").count()) < 3) {
-    throw new Error(`${name}/defect-adsorption: quantum charts are missing`);
-  }
+  await waitForPaintedChartSections(
+    page,
+    ".sampling-split .chart-section",
+    2,
+  );
   result.defectAdsorption.quantumLayout = await assertNoOverflow(
     page,
     `${name}/defect-adsorption-quantum`,
@@ -308,9 +348,9 @@ async function runViewport(browser, name, width, height) {
     `${name}/defect-adsorption-comparison`,
   );
 
-  await page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click();
-  await page.waitForURL("**/materials/rydberg_dynamics");
-  await waitForAnalysis(page);
+  await waitForScenarioAnalysis(page, "materials", "rydberg_dynamics", () =>
+    page.locator(".scenario-item", { hasText: "Rydberg 动力学" }).click(),
+  );
   runButton = await exposeControls(page);
   if (await runButton.isDisabled()) {
     throw new Error(`${name}/rydberg-dynamics: available run button is disabled`);
