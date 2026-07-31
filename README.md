@@ -191,4 +191,6 @@ node scripts/validate_browser_evidence.mjs artifacts/browser-smoke-v3
 
 校验器要求三个视口、八个场景、27 张非空主截图、零 console/page error、无横向溢出、非空 canvas 像素证据和生物医药/材料“前沿探索价值”文案全部存在。CI 尚未生成制品或制品 revision 与提交 SHA 不一致时，不得标记浏览器验收通过。
 
+V3 发布基线 `0d5383e5e61c8638d93b162938d59227c8ac0b0a` 已由 GitHub Actions run `30601093858` 在 Chromium `151.0.7922.34` 下完成上述主证据，并额外生成两个材料场景的 9 张独立截图；全部报告的页面级溢出、console error 和 page error 均为零。发布文档变更后的最终分支 HEAD 仍须取得 revision 一致的成功工作流，不能复用旧 revision 冒充最终提交证据。
+
 设计说明见[文档索引](docs/README.md)。

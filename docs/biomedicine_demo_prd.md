@@ -546,7 +546,7 @@ Hybrid 推荐必须同时满足：完整冲突贡献覆盖、无物理补边、�
 
 ### 16.1 产品决定
 
-本节定义客户反馈形成的 V3 需求，当前状态为 `FINAL ACCEPTANCE / BROWSER PENDING`。RNA、蛋白构象路径、材料构型优化和材料 Pure Analog AHS 四类新增场景均已实现；八场景 84 次固定 seed 证据、全量自动化、wheel 和当前 Windows 离线包构建侧验收已完成。显式发布条件中的 Chromium 三视口截图仍受宿主 macOS Mach 服务策略阻断，因此 V3 尚不标记为 `COMPLETED`。产品严格区分两类任务：Digital/Hybrid 负责离散优化，纯 Analog 负责目标 Hamiltonian 能由 Rydberg 相互作用完整表达的时间演化。
+本节定义客户反馈形成的 V3 需求，当前状态为 `COMPLETED`。RNA、蛋白构象路径、材料构型优化和材料 Pure Analog AHS 四类新增场景均已实现；八场景 84 次固定 seed 证据、全量自动化、wheel、Windows 离线包构建侧验收和 Chromium 三视口验收均已完成。浏览器证据覆盖 `1440x900`、`1280x720`、`390x844`，八个场景的 27 张主截图和两个材料场景的 9 张独立截图均通过结构、canvas、溢出与错误门禁。产品严格区分两类任务：Digital/Hybrid 负责离散优化，纯 Analog 负责目标 Hamiltonian 能由 Rydberg 相互作用完整表达的时间演化。
 
 当前生物医药与材料案例已由四个生物医药场景扩展为八个：
 
