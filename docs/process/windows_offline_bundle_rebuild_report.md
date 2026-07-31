@@ -1,73 +1,66 @@
 # Windows 离线包构建与发布报告
 
-## 结果
+## 交付结果
 
-当前源码已生成 Windows 10/11 x64、CPython 3.11 离线包：
+行业量子实验台 `0.2.0` 已生成 Windows 10/11 x64 离线安装包：
 
 ```text
 offline/cascaqit-finance-demo-windows-x64-py311.zip
 ```
 
-ZIP 已作为 `v0.1.1` 的 Windows 离线资产发布：
+GitHub Release：
 
-<https://github.com/CASColdAtom/cascaqit-finance-demo/releases/download/v0.1.1/cascaqit-finance-demo-windows-x64-py311.zip>
+<https://github.com/CASColdAtom/cascaqit-finance-demo/releases/download/v0.2.0/cascaqit-finance-demo-windows-x64-py311.zip>
 
-`offline/` 仍不进入 Git。发布资产包含可重定位 Python runtime、全部 Windows wheel 和安装脚本；目标机器不需要联网、管理员权限、系统 Python 或 Node.js。构建使用 Finance Demo `v0.1.1` 对应运行代码和 CASCAQit 提交 `44fad22`。
+目标机器不需要联网、管理员权限、系统 Python、Node.js 或编译器。解压后依次运行 `VERIFY.bat`、`INSTALL.bat` 和 `RUN.bat`；服务默认打开 `http://127.0.0.1:8000`。
 
-## 制品内容
+## 制品身份
 
-| 项目 | 当前值 |
+| 项目 | 值 |
 |---|---|
+| 构建基线 | `808597e55be54307790011dc38df3d2bbfba1e80` |
 | 目标环境 | Windows 10/11 x64 |
-| Python | 可重定位 CPython 3.11.9 |
-| CASCAQit | `1.0.7a0` |
-| Finance Demo | `0.1.1` |
-| wheel 数 | 29 |
-| manifest 文件数 | 41 |
-| ZIP 大小 | `94,600,625` 字节 |
-| ZIP SHA256 | `4deb45cdd37b07034512aec89d5f7402152ebbdff8382fecff738bbbd593198a` |
+| Python runtime | 可重定位 CPython `3.11.9` |
+| 行业实验台 | `cascaqit-finance-demo==0.2.0` |
+| CASCAQit | `cascaqit==1.0.5a0` |
+| CASCAQit wheel SHA256 | `af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e` |
+| wheel 数 | 30 |
+| manifest 文件数 | 42 |
+| ZIP 大小 | `95,010,738` 字节 |
+| ZIP SHA256 | `1a25b93fdda68a961de79f9062b896358243c430fc6b4f88f6f05139d420bce7` |
 
-wheelhouse 包含 Windows x64 NumPy、SciPy、Bokeh、FastAPI、Uvicorn、Colorama 及完整传递依赖。安装时使用 `--no-index` 和本地 wheelhouse，不访问 Python 包索引。
+包内包含完整 React 生产资源、金融场景、六个生物医药场景和两个材料场景。CASCAQit 使用仓库内固定 wheel，不再依赖相邻源码仓库的分支状态；许可证从 wheel 的标准 license 目录进入交付包。
 
-Finance Demo wheel 已确认包含：
+## Windows 验收
 
-- `scipy>=1.13,<2` 运行时依赖；
-- React 静态入口；
-- `Views-JNJ1LIwg.js` Problem 映射组件；
-- `index--wVDl_FB.js` 应用入口。
+GitHub Actions `windows-2022` run `30614273204` 已完成真实 Windows 全链路验收：
 
-## 构建修复
+<https://github.com/CASColdAtom/cascaqit-finance-demo/actions/runs/30614273204>
 
-首次重建在 Python 3.9 失败。脚本直接调用 `tarfile.extractall(filter="data")`，但 Python 3.9 没有 `filter` 参数。
+已通过项目：
 
-构建器现在先在所有 Python 版本检查归档成员，只允许目标目录内的普通文件和目录，拒绝绝对路径、`..`、符号链接、硬链接和设备文件。较新 Python 在预校验后继续使用标准 `data_filter`，Python 3.9 使用兼容解包。单元测试覆盖正常 runtime 文件、绝对路径和目录穿越。
+- 在 Windows runner 上重新构建前端、Demo wheel 和最终 ZIP；
+- `VERIFY.bat` 对 42 个文件逐一执行 SHA-256 校验；
+- 设置 `PIP_NO_INDEX=1` 后执行 `INSTALL.bat`，完成 runtime 解压、venv 创建和 30 个 wheel 的离线安装；
+- 安装后确认行业实验台 `0.2.0` 与 CASCAQit `1.0.5a0`；
+- 安装器内置的金融结算场景 smoke 执行通过；
+- 通过 `RUN.bat` 启动已安装程序并取得健康响应；
+- 确认金融、生物医药、材料三个行业域，以及 6 个生物医药和 2 个材料场景均可由安装后的服务读取；
+- Windows runner 上传的 ZIP 下载后再次通过压缩结构和 SHA-256 复核。
 
-Windows PowerShell 5.1 的 `Expand-Archive` 在处理 runtime ZIP 的显式目录项时发生重复清理错误。改用 .NET `ZipFile` 后，包内 GUID 临时目录又使 pip 深层路径超过默认 `MAX_PATH`。当前安装器直接把归档顶层 `python` 解压到 `runtime`，不再创建包内临时目录，也不再移动解压后的目录；失败时删除不完整的 `runtime\python`。详细记录见 [Windows runtime 解压热修复报告](windows_runtime_extraction_hotfix_report.md)。
+同一 UI 发布基线的八场景 Chromium 验收 run `30613853589` 也已通过：
 
-## 已完成检查
+<https://github.com/CASColdAtom/cascaqit-finance-demo/actions/runs/30613853589>
 
-- Windows 条件依赖按目标 marker 审计，`colorama` 已进入闭包。
-- 29 个 wheel 的 `Requires-Dist` 均能由 wheelhouse 满足。
-- Python runtime 上游归档 SHA256 与脚本固定值一致。
-- runtime ZIP 包含 `python/python.exe` 和 `python/python311.dll`。
-- 41 条 manifest 逐文件重新计算，0 条失败。
-- BAT 为 ASCII + CRLF，并使用进程级 `ExecutionPolicy Bypass` 调用 PowerShell。
-- PowerShell 模板为 UTF-8 BOM + CRLF。
-- Demo wheel 不包含 source map，静态资源与当前生产构建一致。
-- ZIP 压缩结构检查通过，GitHub 服务端摘要与本地 SHA256 一致。
-- 发布包的 `install.ps1` 使用 .NET `ZipFile` 直接解压到 `runtime`，不存在 `Expand-Archive`、包内 GUID 临时目录或 `Move-Item`。
-- Python 全量测试 134 项通过，React 20 项测试通过。
-- Ruff、TypeScript、生产构建和 npm 依赖审计通过。
+## 构建加固
 
-## 尚未完成
+- 打包器默认使用 `vendor/cascaqit-1.0.5a0-py3-none-any.whl`，同时保留显式 `--sdk-wheel` 和 `--sdk-root` 入口。
+- Windows 下通过 PATH 解析 `npm.cmd` 等命令 shim，避免 Python `subprocess` 直接调用失败。
+- 完整性脚本使用 .NET SHA-256，不依赖可能未加载的 `Get-FileHash` cmdlet。
+- BAT 固定为 ASCII + CRLF，PowerShell 固定为 UTF-8 BOM + CRLF。
+- runtime 上游归档和 SDK wheel 都使用固定 SHA-256；wheelhouse 在打包时执行 Windows marker 依赖闭包审计。
+- Demo wheel 不包含 source map；客户界面禁用话术扫描为零。
 
-macOS 不能证明 BAT、PowerShell、Windows DLL 加载和本地浏览器启动正常。以下步骤必须在干净 Windows 10/11 x64 实机完成：
+## 支持边界
 
-1. 完整解压 ZIP，双击 `VERIFY.bat`。
-2. 双击 `INSTALL.bat`，确认 runtime 和隔离环境创建成功。
-3. 检查安装 smoke test 完成一次真实 settlement 量子执行。
-4. 双击 `RUN.bat`，确认服务和浏览器正常启动。
-5. 运行投资组合连续优化、Hybrid 交易结算和 Analog 衍生品情景，检查线路、原子、波形、counts 和 Problem 映射。
-6. 移动整个目录后再次运行，验证可重定位性和重复安装。
-
-CASCAQit 本地 `main` 仍领先 GitHub 远端，公开 Python 索引也没有对应分发包。本离线包已经包含本次验证使用的精确 wheel，可以独立安装，但不能替代 CASCAQit 源码和公开 Python 分发的后续发布。
+当前交付目标是 Windows 10/11 x64，不支持 Windows ARM64、32 位 Windows 或 Windows 7。运行数据只写入解压目录，服务默认只监听本机回环地址；移动整个目录后，启动器会在需要时重建失效的隔离环境。
