@@ -5,6 +5,7 @@
 - [中科酷原行业量子实验台 PRD](industry_quantum_workbench_prd.md)：定义三个领域、15 个场景、统一用户流程、产品标识、交付要求和发布条件。
 - [中科酷原行业量子实验台总体架构](industry_quantum_workbench_architecture.md)：说明统一工作台、领域包、执行族、API、数据审计、兼容边界和 Windows 发布架构。
 - [Windows 离线包构建与发布手册](process/windows_offline_release_playbook.md)：固化版本、构建、Windows 安装验收、Release、故障和回滚流程。
+- [CASCAQit 1.0.7a 兼容性报告](process/cascaqit_1_0_7a_compatibility_report.md)：记录发布 wheel 身份、API 差异、QWC 应用层适配、重新校准和验证入口。
 
 领域规格与演示资料：
 

@@ -15,7 +15,7 @@ cascaqit-industry-workbench-windows-x64-py311.zip
 | 输入 | 固定方式 |
 |---|---|
 | 工作台源码 | 发布提交 SHA |
-| CASCAQit | `vendor/cascaqit-1.0.5a0-py3-none-any.whl` 及固定 SHA-256 |
+| CASCAQit | `vendor/cascaqit-1.0.7a0-py3-none-any.whl` 及固定 SHA-256 |
 | Python runtime | CPython 3.11.9 python-build-standalone 发布号及固定 SHA-256 |
 | 第三方 wheel | 已验收缓存或面向 CPython 3.11/Windows x64 的完整 wheel 闭包 |
 | 前端依赖 | `frontend/package-lock.json` |

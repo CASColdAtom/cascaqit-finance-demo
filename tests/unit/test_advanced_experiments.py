@@ -42,14 +42,14 @@ def _recommended() -> dict:
 
 
 def test_capability_registry_requires_validated_sdk_series() -> None:
-    supported = CapabilityRegistry("1.0.5a0")
-    unsupported = CapabilityRegistry("1.0.6")
+    supported = CapabilityRegistry("1.0.7a0")
+    unsupported = CapabilityRegistry("1.0.8")
 
     assert supported.is_available("pauli_vqe") is True
     assert unsupported.is_available("pauli_vqe") is False
     assert supported.is_available("experiment_planning") is True
     assert supported.is_available("batch_execution") is True
-    assert supported.to_dict()["sdk"]["validatedRange"] == ">=1.0.5a0,<1.0.6"
+    assert supported.to_dict()["sdk"]["validatedRange"] == ">=1.0.7a0,<1.0.8"
 
 
 def test_profiles_keep_released_and_planned_levels_separate() -> None:
@@ -76,7 +76,7 @@ def test_standard_plan_is_stable_and_synchronous() -> None:
         "configurations": [],
         "seeds": [],
         "recommended_execution": _recommended(),
-        "capabilities": CapabilityRegistry("1.0.5a0"),
+        "capabilities": CapabilityRegistry("1.0.7a0"),
     }
 
     first = build_experiment_plan(**arguments)
@@ -100,7 +100,7 @@ def test_unreleased_advanced_batch_plan_reports_all_blockers() -> None:
         configurations=[],
         seeds=[7, 23, 41],
         recommended_execution=_recommended(),
-        capabilities=CapabilityRegistry("1.0.5a0"),
+        capabilities=CapabilityRegistry("1.0.7a0"),
     )
 
     assert plan["runCount"] == 3
@@ -127,7 +127,7 @@ def test_standard_profile_rejects_resource_and_cost_overflow() -> None:
         ],
         seeds=[7],
         recommended_execution=_recommended(),
-        capabilities=CapabilityRegistry("1.0.5a0"),
+        capabilities=CapabilityRegistry("1.0.7a0"),
     )
 
     codes = {item["code"] for item in plan["diagnostics"]}
@@ -165,7 +165,7 @@ def test_plan_rejects_configuration_that_would_change_execution_family() -> None
         configurations=[{"mode": "hybrid", "algorithm": "vqe"}],
         seeds=[7, 23],
         recommended_execution={**_recommended(), "algorithm": "qaoa"},
-        capabilities=CapabilityRegistry("1.0.5a0"),
+        capabilities=CapabilityRegistry("1.0.7a0"),
     )
 
     assert plan["executionPolicy"] == "rejected"

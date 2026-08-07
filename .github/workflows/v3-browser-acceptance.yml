@@ -30,9 +30,9 @@ jobs:
       - name: Verify vendored CASCAQit SDK
         working-directory: demo
         env:
-          CASCAQIT_WHEEL_SHA256: af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e
+          CASCAQIT_WHEEL_SHA256: c6aab02a71e0897d569c3c9f6aebf336b2886daf71be1ed1443a26640defecf6
         run: |
-          echo "${CASCAQIT_WHEEL_SHA256}  vendor/cascaqit-1.0.5a0-py3-none-any.whl" \
+          echo "${CASCAQIT_WHEEL_SHA256}  vendor/cascaqit-1.0.7a0-py3-none-any.whl" \
             | sha256sum --check --strict
 
       - name: Set up Python
@@ -52,9 +52,9 @@ jobs:
       - name: Install Python packages
         run: |
           python -m pip install \
-            ./demo/vendor/cascaqit-1.0.5a0-py3-none-any.whl \
+            ./demo/vendor/cascaqit-1.0.7a0-py3-none-any.whl \
             -e "./demo[dev]"
-          python -c "from importlib.metadata import version; assert version('cascaqit') == '1.0.5a0'"
+          python -c "from importlib.metadata import version; assert version('cascaqit') == '1.0.7a0'"
 
       - name: Install frontend and Chromium
         working-directory: demo/frontend

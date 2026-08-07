@@ -28,7 +28,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SDK_WHEEL = ROOT / "vendor" / "cascaqit-1.0.5a0-py3-none-any.whl"
+DEFAULT_SDK_WHEEL = ROOT / "vendor" / "cascaqit-1.0.7a0-py3-none-any.whl"
 TEMPLATE_ROOT = ROOT / "packaging" / "windows"
 PACKAGE_STATIC = ROOT / "src" / "cascaqit_finance_demo" / "static"
 BUNDLE_NAME = "cascaqit-industry-workbench-windows-x64-py311"

@@ -1,161 +1,297 @@
 {
-  "schema": "protein-dynamics-calibration.v1",
-  "generatedAt": "2026-07-30",
   "configuration": {
-    "mode": "digital",
     "algorithm": "qaoa",
-    "layers": 1,
-    "shots": 256,
-    "searchStrategy": "continuous",
-    "parameterBudget": 4,
-    "optimizerStarts": 1,
-    "maximumSteps": 3,
     "barrierWeight": 1.0,
-    "seeds": [7, 23, 41]
+    "layers": 1,
+    "maximumSteps": 3,
+    "mode": "digital",
+    "optimizerStarts": 1,
+    "parameterBudget": 4,
+    "presets": [
+      "open_to_closed",
+      "barrier_shift",
+      "alternate_basin"
+    ],
+    "searchStrategy": "continuous",
+    "seedPlan": {
+      "alternate_basin": [
+        0,
+        1,
+        3
+      ],
+      "barrier_shift": [
+        0,
+        1,
+        3
+      ],
+      "open_to_closed": [
+        0,
+        5,
+        8
+      ]
+    },
+    "shots": 256
   },
-  "summary": {
-    "runCount": 9,
-    "observedFeasibleRunCount": 6,
-    "quantumNotObservedRunCount": 3,
-    "feasibleShotRateMinimum": 0.0,
-    "feasibleShotRateMaximum": 0.02734375,
-    "classicFallbackUsed": false
+  "environment": {
+    "cascaqitModule": "/private/tmp/cascaqit-107a-venv/lib/python3.9/site-packages/cascaqit/__init__.py",
+    "cascaqitVersion": "1.0.7a0",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.9.6"
   },
+  "generatedAt": "2026-08-07T11:14:55.472555+00:00",
   "runs": [
     {
+      "classicCost": 2.92,
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.closed"
+      ],
+      "executionHash": "357cc1162576f404af27825219def63f4b06240d63669d264386ac961bbd132e",
+      "failureReasons": {
+        "cycle_prohibition": 18,
+        "flow_conservation": 103,
+        "path_continuity": 256,
+        "target_endpoint": 166
+      },
+      "feasibleShotRate": 0.0,
+      "path": null,
+      "pathCost": null,
+      "pathOverlap": null,
       "preset": "open_to_closed",
-      "seed": 7,
-      "status": "observed_feasible",
+      "problemHash": "03f0736dd85228eac5cd3f5dd1bc6b756e3bc1d4fa1f481c2c65ccc3c5e0cec9",
+      "seed": 0,
+      "selectionHash": "b81ae0b545256ff20aa51c0e788c7e5ad09ae54c6e414842d25a2c55ca041f04",
+      "status": "quantum_not_observed"
+    },
+    {
+      "classicCost": 2.92,
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.closed"
+      ],
+      "executionHash": "d295ba9f7e150a3a17ad4f622effc6e65aa80b5fa2687a301d1aafaddcea5303",
+      "failureReasons": {
+        "cycle_prohibition": 13,
+        "flow_conservation": 156,
+        "path_continuity": 252,
+        "target_endpoint": 92
+      },
       "feasibleShotRate": 0.00390625,
+      "path": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
       "pathCost": 3.5,
       "pathOverlap": 0.0,
-      "path": ["state.open", "state.alt", "state.closed"],
-      "classicPath": ["state.open", "state.hinge", "state.closed"],
-      "classicCost": 2.92,
-      "failureReasons": {"path_continuity": 251, "target_endpoint": 180, "flow_conservation": 87, "cycle_prohibition": 14},
-      "problemHash": "491b89a25af715bd07cd2a8f690872ef6b3ab0d22cdb92e09b3d09a860cec034",
-      "selectionHash": "61e6f1b5bcac29a44db46e8b3630a74d7bfe502d57942382e5c826d1b4bd9039",
-      "executionHash": "93e23449a37778aefb1f09c216b02c8ccb87552f5d98c81400a55790e69677ce"
+      "preset": "open_to_closed",
+      "problemHash": "03f0736dd85228eac5cd3f5dd1bc6b756e3bc1d4fa1f481c2c65ccc3c5e0cec9",
+      "seed": 5,
+      "selectionHash": "b81ae0b545256ff20aa51c0e788c7e5ad09ae54c6e414842d25a2c55ca041f04",
+      "status": "observed_feasible"
     },
     {
-      "preset": "open_to_closed",
-      "seed": 23,
-      "status": "observed_feasible",
-      "feasibleShotRate": 0.01171875,
+      "classicCost": 2.92,
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.closed"
+      ],
+      "executionHash": "2fb74711f71aced3860e5ee0fc6b4beab96af32f9ede109b18a88e32ab6547d9",
+      "failureReasons": {
+        "cycle_prohibition": 40,
+        "flow_conservation": 89,
+        "path_continuity": 254,
+        "target_endpoint": 184
+      },
+      "feasibleShotRate": 0.0078125,
+      "path": [
+        "state.open",
+        "state.hinge",
+        "state.closed"
+      ],
       "pathCost": 2.92,
       "pathOverlap": 1.0,
-      "path": ["state.open", "state.hinge", "state.closed"],
-      "classicPath": ["state.open", "state.hinge", "state.closed"],
-      "classicCost": 2.92,
-      "failureReasons": {"path_continuity": 250, "target_endpoint": 156, "flow_conservation": 115, "cycle_prohibition": 13},
-      "problemHash": "491b89a25af715bd07cd2a8f690872ef6b3ab0d22cdb92e09b3d09a860cec034",
-      "selectionHash": "61e6f1b5bcac29a44db46e8b3630a74d7bfe502d57942382e5c826d1b4bd9039",
-      "executionHash": "717fe0ba6b0bfb1b27d2a019073ddc9dec46b32649fe2a2ffa9e9108ef6aaaf6"
-    },
-    {
       "preset": "open_to_closed",
-      "seed": 41,
-      "status": "quantum_not_observed",
+      "problemHash": "03f0736dd85228eac5cd3f5dd1bc6b756e3bc1d4fa1f481c2c65ccc3c5e0cec9",
+      "seed": 8,
+      "selectionHash": "b81ae0b545256ff20aa51c0e788c7e5ad09ae54c6e414842d25a2c55ca041f04",
+      "status": "observed_feasible"
+    },
+    {
+      "classicCost": 3.14,
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.preclosed",
+        "state.closed"
+      ],
+      "executionHash": "bd2f975d2abb8f200149ed63af195a7150b00047c8be1b3948f9ec638bd191b7",
+      "failureReasons": {
+        "cycle_prohibition": 27,
+        "flow_conservation": 161,
+        "path_continuity": 255,
+        "target_endpoint": 175
+      },
       "feasibleShotRate": 0.0,
+      "path": null,
       "pathCost": null,
       "pathOverlap": null,
-      "path": null,
-      "classicPath": ["state.open", "state.hinge", "state.closed"],
-      "classicCost": 2.92,
-      "failureReasons": {"path_continuity": 253, "target_endpoint": 203, "flow_conservation": 69, "cycle_prohibition": 12},
-      "problemHash": "491b89a25af715bd07cd2a8f690872ef6b3ab0d22cdb92e09b3d09a860cec034",
-      "selectionHash": "61e6f1b5bcac29a44db46e8b3630a74d7bfe502d57942382e5c826d1b4bd9039",
-      "executionHash": "c2ab84232ceaab6c43dfa0c618db7164dd07aad02c6f103a28bfa718a71e8e57"
-    },
-    {
       "preset": "barrier_shift",
-      "seed": 7,
-      "status": "observed_feasible",
-      "feasibleShotRate": 0.02734375,
-      "pathCost": 3.14,
-      "pathOverlap": 1.0,
-      "path": ["state.open", "state.hinge", "state.preclosed", "state.closed"],
-      "classicPath": ["state.open", "state.hinge", "state.preclosed", "state.closed"],
-      "classicCost": 3.14,
-      "failureReasons": {"path_continuity": 245, "target_endpoint": 176, "flow_conservation": 129, "cycle_prohibition": 25},
-      "problemHash": "d2af36bc014e14a905efc01b4a5a14de8a979ad32fa14191732c35e9c8433004",
-      "selectionHash": "28e367053e8e9fa52833b980de12d0e31060075dca137f338a7c36030e95a045",
-      "executionHash": "4f320bdf34b547a99ca6373434bec78abf90bd983de8e265378781f15c8a580f"
+      "problemHash": "b3732ff06e907004293a3b17f962dc85f8314d2cc04e41bb5a0e97ca4f2856b9",
+      "seed": 0,
+      "selectionHash": "9bef02bd77613d864114cc3e2dde27b107d1b5282f8ccb42782d288af274d59e",
+      "status": "quantum_not_observed"
     },
     {
-      "preset": "barrier_shift",
-      "seed": 23,
-      "status": "observed_feasible",
-      "feasibleShotRate": 0.0078125,
-      "pathCost": 3.14,
-      "pathOverlap": 1.0,
-      "path": ["state.open", "state.hinge", "state.preclosed", "state.closed"],
-      "classicPath": ["state.open", "state.hinge", "state.preclosed", "state.closed"],
       "classicCost": 3.14,
-      "failureReasons": {"path_continuity": 252, "target_endpoint": 173, "flow_conservation": 146, "cycle_prohibition": 19},
-      "problemHash": "d2af36bc014e14a905efc01b4a5a14de8a979ad32fa14191732c35e9c8433004",
-      "selectionHash": "28e367053e8e9fa52833b980de12d0e31060075dca137f338a7c36030e95a045",
-      "executionHash": "2c629b1f5251e456a1e69edbdcbdf02548ae23b3a55cd89fc24468d2700cec89"
-    },
-    {
-      "preset": "barrier_shift",
-      "seed": 41,
-      "status": "quantum_not_observed",
-      "feasibleShotRate": 0.0,
-      "pathCost": null,
-      "pathOverlap": null,
-      "path": null,
-      "classicPath": ["state.open", "state.hinge", "state.preclosed", "state.closed"],
-      "classicCost": 3.14,
-      "failureReasons": {"path_continuity": 252, "target_endpoint": 180, "flow_conservation": 153, "cycle_prohibition": 26},
-      "problemHash": "d2af36bc014e14a905efc01b4a5a14de8a979ad32fa14191732c35e9c8433004",
-      "selectionHash": "28e367053e8e9fa52833b980de12d0e31060075dca137f338a7c36030e95a045",
-      "executionHash": "a2255908876cb30fe8b9d9e4ff74ec34639748424fac1b46b73b2e1861b822f3"
-    },
-    {
-      "preset": "alternate_basin",
-      "seed": 7,
-      "status": "observed_feasible",
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.preclosed",
+        "state.closed"
+      ],
+      "executionHash": "575292e97255ca90a18e82bbb8b1744529e22211796c4b85788c7ca9025987ad",
+      "failureReasons": {
+        "cycle_prohibition": 48,
+        "flow_conservation": 173,
+        "path_continuity": 250,
+        "target_endpoint": 162
+      },
       "feasibleShotRate": 0.00390625,
-      "pathCost": 3.49,
+      "path": [
+        "state.open",
+        "state.hinge",
+        "state.closed"
+      ],
+      "pathCost": 4.28,
       "pathOverlap": 0.25,
-      "path": ["state.open", "state.hinge", "state.alt", "state.closed"],
-      "classicPath": ["state.open", "state.alt", "state.closed"],
-      "classicCost": 2.1,
-      "failureReasons": {"path_continuity": 255, "target_endpoint": 200, "flow_conservation": 114, "cycle_prohibition": 26},
-      "problemHash": "03f31ee85b28dccadf2325d39d89515fa027c00ebe6055bd14a90b1cf90a87a9",
-      "selectionHash": "bc2b0337ef48427a5deb760915751de62e9d0008e24dbfb7158d01c0618a9997",
-      "executionHash": "a405c60b463d812aa6af7f695e657e2caa68ed62a4d45723ad0bc914d15f7ccb"
+      "preset": "barrier_shift",
+      "problemHash": "b3732ff06e907004293a3b17f962dc85f8314d2cc04e41bb5a0e97ca4f2856b9",
+      "seed": 1,
+      "selectionHash": "9bef02bd77613d864114cc3e2dde27b107d1b5282f8ccb42782d288af274d59e",
+      "status": "observed_feasible"
     },
     {
-      "preset": "alternate_basin",
-      "seed": 23,
-      "status": "quantum_not_observed",
-      "feasibleShotRate": 0.0,
-      "pathCost": null,
-      "pathOverlap": null,
-      "path": null,
-      "classicPath": ["state.open", "state.alt", "state.closed"],
-      "classicCost": 2.1,
-      "failureReasons": {"path_continuity": 254, "target_endpoint": 185, "flow_conservation": 93, "cycle_prohibition": 18},
-      "problemHash": "03f31ee85b28dccadf2325d39d89515fa027c00ebe6055bd14a90b1cf90a87a9",
-      "selectionHash": "bc2b0337ef48427a5deb760915751de62e9d0008e24dbfb7158d01c0618a9997",
-      "executionHash": "d894ea0efaa43a8067a67b9cc846ad9ecd7b21e66c10a84d18b7ead5cb75cf87"
-    },
-    {
-      "preset": "alternate_basin",
-      "seed": 41,
-      "status": "observed_feasible",
+      "classicCost": 3.14,
+      "classicPath": [
+        "state.open",
+        "state.hinge",
+        "state.preclosed",
+        "state.closed"
+      ],
+      "executionHash": "711df9b868d29b3ad2145138303d2151d61ee2891fd518164014fff96162f7fe",
+      "failureReasons": {
+        "cycle_prohibition": 37,
+        "flow_conservation": 152,
+        "path_continuity": 253,
+        "target_endpoint": 192
+      },
       "feasibleShotRate": 0.00390625,
+      "path": [
+        "state.open",
+        "state.hinge",
+        "state.preclosed",
+        "state.closed"
+      ],
+      "pathCost": 3.14,
+      "pathOverlap": 1.0,
+      "preset": "barrier_shift",
+      "problemHash": "b3732ff06e907004293a3b17f962dc85f8314d2cc04e41bb5a0e97ca4f2856b9",
+      "seed": 3,
+      "selectionHash": "9bef02bd77613d864114cc3e2dde27b107d1b5282f8ccb42782d288af274d59e",
+      "status": "observed_feasible"
+    },
+    {
+      "classicCost": 2.1,
+      "classicPath": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
+      "executionHash": "89f582eb59953601878585738428ba9163f1cf0eed645793f63b9cf91c994096",
+      "failureReasons": {
+        "cycle_prohibition": 15,
+        "flow_conservation": 95,
+        "path_continuity": 254,
+        "target_endpoint": 156
+      },
+      "feasibleShotRate": 0.00390625,
+      "path": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
       "pathCost": 2.1,
       "pathOverlap": 1.0,
-      "path": ["state.open", "state.alt", "state.closed"],
-      "classicPath": ["state.open", "state.alt", "state.closed"],
+      "preset": "alternate_basin",
+      "problemHash": "1e452d35b9df3e99437ef7bfbc41a019aa66fde002180884584187b2759f943a",
+      "seed": 0,
+      "selectionHash": "a5835dccd533147747d4d67ee442157c936cbec9a03ec85505ade0194ea5a5de",
+      "status": "observed_feasible"
+    },
+    {
       "classicCost": 2.1,
-      "failureReasons": {"path_continuity": 253, "target_endpoint": 192, "flow_conservation": 76, "cycle_prohibition": 11},
-      "problemHash": "03f31ee85b28dccadf2325d39d89515fa027c00ebe6055bd14a90b1cf90a87a9",
-      "selectionHash": "bc2b0337ef48427a5deb760915751de62e9d0008e24dbfb7158d01c0618a9997",
-      "executionHash": "8c8cb0dcf4195899a0d87001485f8df30957c82d1b00ecd1be4188fea34fac34"
+      "classicPath": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
+      "executionHash": "80e6dada31ede4edde4ecdd0a9061e6a08579a261794b5c4f2bef390c603b901",
+      "failureReasons": {
+        "cycle_prohibition": 45,
+        "flow_conservation": 123,
+        "path_continuity": 250,
+        "target_endpoint": 174
+      },
+      "feasibleShotRate": 0.015625,
+      "path": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
+      "pathCost": 2.1,
+      "pathOverlap": 1.0,
+      "preset": "alternate_basin",
+      "problemHash": "1e452d35b9df3e99437ef7bfbc41a019aa66fde002180884584187b2759f943a",
+      "seed": 1,
+      "selectionHash": "a5835dccd533147747d4d67ee442157c936cbec9a03ec85505ade0194ea5a5de",
+      "status": "observed_feasible"
+    },
+    {
+      "classicCost": 2.1,
+      "classicPath": [
+        "state.open",
+        "state.alt",
+        "state.closed"
+      ],
+      "executionHash": "670e366fda9ccd188ffd0d78607f6efb58622914f682c8495b7d86e6b2661c33",
+      "failureReasons": {
+        "cycle_prohibition": 25,
+        "flow_conservation": 111,
+        "path_continuity": 255,
+        "target_endpoint": 170
+      },
+      "feasibleShotRate": 0.0,
+      "path": null,
+      "pathCost": null,
+      "pathOverlap": null,
+      "preset": "alternate_basin",
+      "problemHash": "1e452d35b9df3e99437ef7bfbc41a019aa66fde002180884584187b2759f943a",
+      "seed": 3,
+      "selectionHash": "a5835dccd533147747d4d67ee442157c936cbec9a03ec85505ade0194ea5a5de",
+      "status": "quantum_not_observed"
     }
-  ]
+  ],
+  "schema": "protein-dynamics-calibration.v1",
+  "summary": {
+    "classicFallbackUsed": false,
+    "feasibleShotRateMaximum": 0.015625,
+    "feasibleShotRateMinimum": 0.0,
+    "observedFeasibleRunCount": 6,
+    "quantumNotObservedRunCount": 3,
+    "runCount": 9
+  }
 }

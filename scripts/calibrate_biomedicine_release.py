@@ -32,11 +32,11 @@ from cascaqit_biomedicine_demo.peptide_landscape import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CASCAQIT_RELEASE = {
-    "version": "1.0.5a0",
-    "tag": "v1.0.5a",
-    "sourceCommit": "6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853",
-    "wheelPath": "vendor/cascaqit-1.0.5a0-py3-none-any.whl",
-    "wheelSha256": "af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e",
+    "version": "1.0.7a0",
+    "tag": "v1.0.7a",
+    "sourceCommit": "2fa67d0c2fdb447995233ab3b65cc92897e81ec5",
+    "wheelPath": "vendor/cascaqit-1.0.7a0-py3-none-any.whl",
+    "wheelSha256": "c6aab02a71e0897d569c3c9f6aebf336b2886daf71be1ed1443a26640defecf6",
 }
 DEFAULT_OUTPUT = (
     ROOT / "docs" / "process" / "evidence" / "biomedicine_release_calibration.json"
@@ -49,10 +49,10 @@ SEED_PLAN = {
         "lih_potential_scan": (1, 6, 7),
     },
     "docking_match": {
-        "reference_pose": (1, 11, 17),
-        "strict_geometry": (1, 6, 8),
-        "pharmacophore_coverage": (1, 3, 7),
-        "multi_pose_balanced": (0, 1, 3),
+        "reference_pose": (1, 6, 8),
+        "strict_geometry": (1, 8, 11),
+        "pharmacophore_coverage": (3, 6, 8),
+        "multi_pose_balanced": (0, 3, 6),
     },
     "active_center": {
         "antiferromagnetic": (1, 6, 7),
@@ -62,7 +62,7 @@ SEED_PLAN = {
     },
     "peptide_landscape": {
         "hydrophobic_core": (0, 6, 7),
-        "charged_competition": (0, 6, 7),
+        "charged_competition": (1, 6, 7),
         "contact_limited": (0, 6, 7),
         "octapeptide_hydrophobic": (0, 3, 6),
     },
@@ -148,7 +148,7 @@ def _docking_case(preset: str, seed: int) -> dict[str, Any]:
             layers=1,
             search_strategy="continuous",
             parameter_budget=24 if advanced else 12,
-            optimizer_starts=3 if advanced else 1,
+            optimizer_starts=1,
         )
     )
     domain = run["domain"]

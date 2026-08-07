@@ -1,7 +1,7 @@
 {
   "claimBoundary": "Local simulation release evidence only; no hardware, quantum-advantage, drug, clinical, material-property, or full-atom dynamics claim.",
   "failures": [],
-  "generatedAt": "2026-07-31T02:39:37.500278+00:00",
+  "generatedAt": "2026-08-07T11:21:39.314367+00:00",
   "scenarios": [
     {
       "caseId": "electronic_structure",
@@ -72,33 +72,33 @@
   "sources": {
     "biomedicine_v2": {
       "file": "biomedicine_release_calibration.json",
-      "generatedAt": "2026-07-31T02:39:10.157067+00:00",
+      "generatedAt": "2026-08-07T11:05:03.835935+00:00",
       "schema": "biomedicine.release-calibration.v1",
-      "sha256": "b2bbbc0bdc2c9bf1df7552dd23adf459bc9e03c9d65b66407ab6972dec525473"
+      "sha256": "7d41613990a36ba9a72c6193c82711be19390b8ad8f6cafb13443f61360694c6"
     },
     "defect_adsorption": {
       "file": "materials_defect_adsorption_calibration.json",
-      "generatedAt": "2026-07-30",
+      "generatedAt": "2026-08-07T11:14:59.642794+00:00",
       "schema": "materials.defect-adsorption-calibration.v1",
-      "sha256": "510625cf26681df100a1b4da32e0d74c7ab8f640be144377257dead7b37ca474"
+      "sha256": "f3a1d75735cf13e241a218a4a165dd7b02af4a57a912b623bd07ae02aca1f274"
     },
     "protein_dynamics": {
       "file": "protein_dynamics_calibration.json",
-      "generatedAt": "2026-07-30",
+      "generatedAt": "2026-08-07T11:14:55.472555+00:00",
       "schema": "protein-dynamics-calibration.v1",
-      "sha256": "938793a7386391a021aab421d953718870849567b4adb95a9ab2b652715a21d4"
+      "sha256": "84f959048b0a11df3f7956aab11699bd2509cf2910851e8bed7662c9cef55d0e"
     },
     "rna_structure": {
       "file": "rna_structure_calibration.json",
-      "generatedAt": "2026-07-30",
+      "generatedAt": "2026-08-07T11:14:53.199148+00:00",
       "schema": "biomedicine.rna.calibration.v1",
-      "sha256": "5ffa51f04121297ba38e1285f41fca727c051dcc777679994c600ed89e72de6d"
+      "sha256": "ba11bc0aabd0b9a6b92e6cb4b85b18cb62182f38ac1ee02d4c5d6d5bab746cad"
     },
     "rydberg_dynamics": {
       "file": "materials_analog_calibration.json",
-      "generatedAt": "2026-07-30T12:55:02.715661+00:00",
+      "generatedAt": "2026-08-07T11:09:20.624953+00:00",
       "schema": "materials.analog-release-calibration.v1",
-      "sha256": "4d70549070b6cec475321f630c384e0cc7d13d308faa7b2ecca374194af802fc"
+      "sha256": "df90ad88ce557135fe60caa675a0d9ef18cd73b9da6937e0c3d3c7a82b4bffe0"
     }
   },
   "summary": {

@@ -435,7 +435,7 @@ Hybrid 推荐必须同时满足：完整冲突贡献覆盖、无物理补边、�
 
 三个高级权重预设为 `multi_pose_balanced`、`multi_pose_geometry` 和 `multi_pose_coverage`。它们使用同一份完整业务图和确定性选择规则，便于比较权重变化，不允许为某个预设手工挑选更有利的活动变量。
 
-发布配置以 CASCAQit `v1.0.5a` 的固定 wheel 为准。标准共晶参考预设使用 128 shots、12 次目标评估、单起点和默认 seed `1`；高级 `multi_pose_balanced` 使用 1024 shots、24 次目标评估、3 个起点及 seeds `0/1/3`。三个高级运行均须在 30 秒门槛内观察到量子可行候选。校准证据必须同时记录 SDK 标签、源码提交和 wheel SHA-256；未绑定发布 SDK 的本地源码结果不计入发布验收。
+发布配置以 CASCAQit `v1.0.7a` 的固定 wheel 为准。标准对接预设使用 128 shots、12 次目标评估和单起点，并按预设采用已经校准的三 seed 组合；高级 `multi_pose_balanced` 使用 1024 shots、24 次目标评估、单起点及 seeds `0/3/6`。三个高级运行均须在 30 秒门槛内观察到量子可行候选。校准证据必须同时记录 SDK 标签、源码提交和 wheel SHA-256；未绑定发布 SDK 的结果不计入发布验收。
 
 ### 15.5 场景三高级需求：多中心有效自旋网络
 
@@ -484,11 +484,11 @@ Hybrid 推荐必须同时满足：完整冲突贡献覆盖、无物理补边、�
 
 ### 15.7 CASCAQit 能力依赖
 
-以下判断以当前锁定的 CASCAQit `1.0.5a0` 及本仓库已经验证的调用面为准：
+以下判断以当前锁定的 CASCAQit `1.0.7a0` 及本仓库已经验证的调用面为准：
 
 | 能力 | 当前状态 | V2 处理方式 |
 |---|---|---|
-| 通用 Pauli Hamiltonian、Digital VQE、QWC 测量、本地模拟 | 已支持 | 复用并增加批量编排、规模门禁和对照聚合 |
+| 通用 Pauli Hamiltonian、Digital VQE、线路与后端执行 | SDK 已支持；1.0.7a 不再提供旧版 sampled QWC 高层模块 | 应用层按公开 `Circuit`、`LocalBackend`、`PauliHamiltonian` 和 `VQE` API 完成 QWC 分组、测量基旋转、有限 shots 统计与误差聚合 |
 | QUBO、Digital QAOA、ProblemCompiler、Hybrid D-A-D | 已支持 | 复用，保持系数守恒和几何门禁 |
 | 分子积分、活性空间选择和费米子到量子位映射 | SDK 不负责 | 由离线 Chemistry Adapter 生成版本化 fixture |
 | 连续空间对接、构象生成和口袋识别 | SDK 不支持 | 由离线经典工具生成候选，运行时只解离散子问题 |
@@ -556,7 +556,7 @@ Hybrid 推荐必须同时满足：完整冲突贡献覆盖、无物理补边、�
 - 材料科学作为独立一级领域，包含“催化表面缺陷与吸附协同构型优化”和“材料缺陷晶格中的 Rydberg 动力学与量子淬火”；
 - 金融、生物医药和材料科学共用工作台外壳、任务服务和审计能力，但材料数据与类型不放入生物医药目录。
 
-RNA 和材料构型优化已经成为正式演示场景。蛋白构象转变保留研究入口定位，因为 CASCAQit 能够求解离散路径优化，但不能直接完成全原子长时间分子动力学。材料 Rydberg 动力学已接入 CASCAQit `1.0.5a` 的 `AHSProgram`、目标校验、显式 `SimulationState` 和 `AnalogStateVectorKernel`：每个请求时刻从同一声明初态执行截断后的真实 AHS 程序，形成四位点时分辨观测量；不插值、不复用终态，也不使用经典参考回填 Analog 字段。
+RNA 和材料构型优化已经成为正式演示场景。蛋白构象转变保留研究入口定位，因为 CASCAQit 能够求解离散路径优化，但不能直接完成全原子长时间分子动力学。材料 Rydberg 动力学已接入 CASCAQit `1.0.7a` 的 `AHSProgram`、目标校验、显式 `SimulationState` 和 `AnalogStateVectorKernel`：每个请求时刻从同一声明初态执行截断后的真实 AHS 程序，形成四位点时分辨观测量；不插值、不复用终态，也不使用经典参考回填 Analog 字段。
 
 ### 16.2 场景适配结论
 
@@ -741,7 +741,7 @@ V3 的 RNA 和材料构型优化不要求修改 CASCAQit 核心，可以复用�
 | 蛋白轨迹到构象状态网络 | 应用层 Conformation Network Adapter | 只接受版本化 fixture，不把路径称为真实动力学 |
 | 材料晶格、周期边界、对称性和能量导入 | 应用层 Materials Adapter | 只接受已校验的离线材料数据 |
 | Gibbs 态或有限温度量子采样 | CASCAQit 算法层 | RNA counts 不解释为热力学概率 |
-| AHS 发布包契约、版本来源和应用执行器 | CASCAQit 发布工程 + 应用层 Analog Executor | 已在分析与执行时校验 `>=1.0.5a0,<1.0.6`、模块来源、公开类型和目标快照；wheel 内容在第十五阶段验收 |
+| AHS 发布包契约、版本来源和应用执行器 | CASCAQit 发布工程 + 应用层 Analog Executor | 已在分析与执行时校验 `>=1.0.7a0,<1.0.8`、模块来源、公开类型和目标快照；正式 wheel 的标签、提交和 SHA-256 进入发布证据 |
 | 时分辨 AHS 轨迹和采样时刻 | CASCAQit 模拟器与结果层 | 已使用同初态的独立前缀程序得到受测时点；不插值、不复用先前终态、不声称单次连续硬件轨迹 |
 | 可编程初态和初态制备证据 | CASCAQit 模拟器与状态层 | 已使用公开 `SimulationState.from_amplitudes()` 固化 4 位点基态位串和 state hash |
 | AHS 可演示规模 | CASCAQit 模拟器与规划层 | 首版固定为 4 个活动原子、16 维 Hilbert 空间；完整材料晶格不进入本地 AHS 核心 |

@@ -61,18 +61,18 @@ class CapabilityRegistry:
             parsed = Version(version)
         except InvalidVersion:
             return False
-        return Version("1.0.5a0") <= parsed < Version("1.0.6")
+        return Version("1.0.7a0") <= parsed < Version("1.0.8")
 
     def capabilities(self) -> tuple[Capability, ...]:
         sdk_status: CapabilityStatus = (
             "available" if self._validated_sdk else "unavailable"
         )
         sdk_reason = (
-            f"CASCAQit {self.sdk_version} is in the validated 1.0.5 series."
+            f"CASCAQit {self.sdk_version} is in the validated 1.0.7 series."
             if self._validated_sdk
             else (
                 f"CASCAQit {self.sdk_version} is outside the validated "
-                "1.0.5 release series."
+                "1.0.7 release series."
             )
         )
         return (
@@ -90,7 +90,7 @@ class CapabilityRegistry:
             Capability(
                 "qwc_measurement",
                 "QWC grouped measurement",
-                "sdk",
+                "sdk_application",
                 sdk_status,
                 sdk_reason,
                 ("test_biomedicine_electronic_structure.py",),
@@ -166,7 +166,7 @@ class CapabilityRegistry:
                 "name": "CASCAQit",
                 "version": self.sdk_version,
                 "validatedRelease": self._validated_sdk,
-                "validatedRange": ">=1.0.5a0,<1.0.6",
+                "validatedRange": ">=1.0.7a0,<1.0.8",
             },
             "capabilities": [item.to_dict() for item in capabilities],
         }

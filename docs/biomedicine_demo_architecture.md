@@ -774,7 +774,9 @@ problem.quantumSubproblemHash       13 变量 Canonical QUBO
 
 `ExperimentPlanner` 分别读取前两类问题身份：完整问题用于计划身份，活动 QUBO 用于执行身份。三种权重预设以及 Digital/Hybrid 配置复用相同选择结果；权重只改变 QUBO 系数，不改变候选集合。
 
-V2 发布校准固定到 CASCAQit tag `v1.0.5a`、源码提交 `6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853` 和 wheel SHA-256 `af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e`。标准对接目录默认 seed 为 `1`；高级 `multi_pose_balanced` 使用 1024 shots、每起点 24 次目标评估和 3 个起点。校准器同时校验仓库 wheel 哈希、已安装版本和 `direct_url.json` 的安装归因，聚合器拒绝缺少该 provenance 的 V2 证据。
+当前发布校准固定到 CASCAQit tag `v1.0.7a`、源码提交 `2fa67d0c2fdb447995233ab3b65cc92897e81ec5` 和 wheel SHA-256 `c6aab02a71e0897d569c3c9f6aebf336b2886daf71be1ed1443a26640defecf6`。标准对接按预设使用三组已校准 seed；高级 `multi_pose_balanced` 使用 1024 shots、24 次目标评估、单优化起点和 seeds `0/3/6`。校准器同时校验仓库 wheel 哈希、已安装版本和 `direct_url.json` 的安装归因，聚合器拒绝缺少该 provenance 的发布证据。
+
+CASCAQit 1.0.7a 删除了旧版 `cascaqit.algorithms.measurement` 及 `VQE.evaluate_sampled()` 调用面。工作台在应用层提供 `qwc_measurement` 适配器，仅组合 SDK 公开的 `Circuit`、`LocalBackend`、`NoiseModel`、`SimulationOptions`、`PauliHamiltonian`、`VQE` 和 `PauliBasis`：确定性生成 QWC 分组，追加 X/Y 测量基旋转，逐组执行有限 shots，并聚合 Pauli 期望值、能量和标准误。该能力在架构登记中属于 `sdk_application`，不伪装成 SDK 内建算法。
 
 #### 18.4.3 多中心有效自旋
 
@@ -1102,7 +1104,7 @@ versioned material effective lattice + defect preset
 
 材料晶格坐标、有效模型位点和编译后的 Rydberg 寄存器坐标分别持久化。材料结构只提供科学来源和有效模型依据，不能直接传给 `AtomRegister`；Rydberg 布局必须经过独立的单位转换、最小间距、边界和目标能力校验。
 
-当前运行时解析到 CASCAQit `1.0.5a`。`AHSProgram`、`AtomRegister`、`Waveform`、目标校验、`SimulationState.from_amplitudes()` 和 `AnalogStateVectorKernel.evolve()` 已通过四位点探针。高层 `LocalAhsSimulator.run()` 仍从全基态开始且只返回终态，因此应用不调用它生成时序结果：每个非零采样时刻独立构造覆盖 `[0,t]` 的完整前缀程序，从同一个声明初态执行，零时刻返回声明初态。各时点不是插值，也不把上一个终态作为下一个时点的输入。MVP 核心最多支持 4 个原子，活动窗口和 16 维 Hilbert 空间在分析阶段固定门禁。
+当前运行时固定到 CASCAQit `1.0.7a0`。`AHSProgram`、`AtomRegister`、`Waveform`、目标校验、`SimulationState.from_amplitudes()` 和 `AnalogStateVectorKernel.evolve()` 已通过四位点探针。高层 `LocalAhsSimulator.run()` 仍从全基态开始且只返回终态，因此应用不调用它生成时序结果：每个非零采样时刻独立构造覆盖 `[0,t]` 的完整前缀程序，从同一个声明初态执行，零时刻返回声明初态。各时点不是插值，也不把上一个终态作为下一个时点的输入。MVP 核心最多支持 4 个原子，活动窗口和 16 维 Hilbert 空间在分析阶段固定门禁。
 
 ### 19.5 数据契约与身份
 
@@ -1153,7 +1155,7 @@ Materials Analog
 |---|---|---|
 | `QUBOProblemIR`、Digital QAOA | 已验证 | 三个场景的默认执行路径 |
 | `ProblemCompiler`、Hybrid D-A-D | 已验证但受几何门禁限制 | RNA 和材料只有在冲突图完整时开放；蛋白路径默认不推荐 Hybrid |
-| `AHSProgram`、`AtomRegister`、`Waveform`、目标校验 | CASCAQit `1.0.5a` 运行时与模块来源已验证 | 每个分析保存版本、模块路径、目标 ID、target snapshot hash 和程序 hash |
+| `AHSProgram`、`AtomRegister`、`Waveform`、目标校验 | CASCAQit `1.0.7a0` 运行时与模块来源已验证 | 每个分析保存版本、模块路径、目标 ID、target snapshot hash 和程序 hash |
 | `SimulationState`、`AnalogStateVectorKernel` | 显式 4 位点基态位串和 RK4 演化已通过契约、数值与 API 测试 | 每个时刻从同一初态执行 `[0,t]` 前缀程序；状态和 solver evidence 独立保存 |
 | `LocalAhsSimulator` 终态接口 | 仍为全基态、小规模终态执行 | 不用于构造当前时序结果，也不把多次终态拼接成连续轨迹 |
 | 多 seed、配置对照、持久任务 | 应用层已实现 | 复用现有规划和 `job.json` 状态机 |

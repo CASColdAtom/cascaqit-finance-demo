@@ -143,8 +143,8 @@ def test_layer_calibration_uses_paired_repeats_and_quantum_candidates() -> None:
     assert 0.0 <= result.feasible_rate <= 1.0
 
 
-def test_hqla_calibration_stops_when_p2_improvement_is_not_supported() -> None:
-    """配对置信下界未证明 p=2 改善时必须保留 p=1 并停止。"""
+def test_hqla_calibration_selects_p2_and_stops_after_p3_regression() -> None:
+    """p=2 获得可信改善后继续检查 p=3，并在回退时保留 p=2。"""
     result = ScenarioExecutor().calibrate_layers(
         CollateralScenario(),
         preset_input("collateral", "hqla"),
@@ -159,12 +159,14 @@ def test_hqla_calibration_stops_when_p2_improvement_is_not_supported() -> None:
     )
 
     experiment = result.experiment
-    assert tuple(step.layers for step in experiment.steps) == (1, 2)
-    assert experiment.selected_layers == 1
+    assert tuple(step.layers for step in experiment.steps) == (1, 2, 3)
+    assert experiment.selected_layers == 2
     assert experiment.stop_reason == "patience_exhausted"
-    assert experiment.steps[1].comparison.lower_confidence_bound < 0.0
-    assert experiment.steps[1].material_improvement is False
-    assert experiment.total_optimization_count == 6
+    assert experiment.steps[1].comparison.lower_confidence_bound > 0.0
+    assert experiment.steps[1].material_improvement is True
+    assert experiment.steps[2].comparison.lower_confidence_bound < 0.0
+    assert experiment.steps[2].material_improvement is False
+    assert experiment.total_optimization_count == 9
 
 
 @pytest.mark.parametrize("scenario_type", [SettlementScenario, FraudRoutingScenario])

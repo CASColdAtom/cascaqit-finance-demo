@@ -237,7 +237,7 @@ SCENARIO_SPECS: dict[str, ScenarioSpec] = {
             _range("value_weight", "业务价值权重", 0.2, 0.85, 0.05),
             _range("cost_weight", "成本权重", 0.15, 0.8, 0.05),
         ),
-        # 正式 CASCAQit v1.0.5a wheel 下，三个预设使用 seeds 1/11/19 校准后，
+        # 正式 CASCAQit v1.0.7a wheel 下，三个预设使用 seeds 1/11/19 校准后，
         # 单起点 12 次 COBYLA 评估均直接产生可行业务候选。
         ExecutionProfile(
             shots=64,

@@ -70,3 +70,22 @@ def test_v3_release_evidence_rejects_unpinned_sdk_evidence(
     assert "biomedicine V2 evidence is not bound to the release SDK" in result[
         "failures"
     ]
+
+
+def test_v3_release_evidence_rejects_stale_scenario_sdk_version(
+    tmp_path: Path,
+) -> None:
+    for filename in SOURCE_FILES.values():
+        shutil.copy2(DEFAULT_EVIDENCE_ROOT / filename, tmp_path / filename)
+    path = tmp_path / SOURCE_FILES["rna_structure"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["environment"]["cascaqitVersion"] = "1.0.5a0"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = validate_evidence(tmp_path)
+
+    assert result["summary"]["passed"] is False
+    assert (
+        "rna_structure: evidence is not calibrated with CASCAQit 1.0.7a0"
+        in result["failures"]
+    )

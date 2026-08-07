@@ -18,6 +18,7 @@ from cascaqit.analog import AHSProgram, AtomRegister, SitePattern, Waveform
 from cascaqit.simulators import AnalogStateVectorKernel, SimulationState
 from cascaqit.targets import MockNeutralAtomTarget
 from cascaqit.validation import validate_program
+from packaging.version import InvalidVersion, Version
 from scipy.integrate import solve_ivp
 
 from cascaqit_industry_demo.audit import (
@@ -35,7 +36,7 @@ DATA_ROOT = (
 )
 PRESETS = {"perfect_lattice", "single_vacancy", "multi_defect_impurity"}
 ATOM_ORDER = ("q0", "q1", "q2", "q3")
-SDK_VERSION_PREFIX = "1.0.5a"
+SDK_VERSION_RANGE = ">=1.0.7a0,<1.0.8"
 
 
 @dataclass(frozen=True)
@@ -155,15 +156,22 @@ def _finite_number(value: Any, name: str) -> float:
 def _require_sdk_contract() -> dict[str, Any]:
     version = str(getattr(cascaqit, "__version__", "unknown"))
     module_path = str(Path(cascaqit.__file__).resolve())
-    if not version.startswith(SDK_VERSION_PREFIX):
+    try:
+        parsed = Version(version)
+    except InvalidVersion as exc:
         raise ValueError(
-            "Rydberg dynamics requires CASCAQit >=1.0.5a0,<1.0.6; "
+            f"Rydberg dynamics loaded invalid CASCAQit version {version} "
+            f"from {module_path}"
+        ) from exc
+    if not Version("1.0.7a0") <= parsed < Version("1.0.8"):
+        raise ValueError(
+            f"Rydberg dynamics requires CASCAQit {SDK_VERSION_RANGE}; "
             f"loaded {version} from {module_path}"
         )
     return {
         "name": "CASCAQit",
         "version": version,
-        "validatedRange": ">=1.0.5a0,<1.0.6",
+        "validatedRange": SDK_VERSION_RANGE,
         "validatedRelease": True,
         "modulePath": module_path,
         "capabilities": [

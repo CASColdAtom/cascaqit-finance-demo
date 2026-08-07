@@ -15,10 +15,10 @@ DEFAULT_EVIDENCE_ROOT = ROOT / "docs" / "process" / "evidence"
 DEFAULT_OUTPUT = DEFAULT_EVIDENCE_ROOT / "industry_v3_release_acceptance.json"
 SEEDS = {7, 23, 41}
 EXPECTED_CASCAQIT = {
-    "version": "1.0.5a0",
-    "tag": "v1.0.5a",
-    "sourceCommit": "6a7df7a2f6f611b1e5f4b3377bc7631a6ff69853",
-    "wheelSha256": "af665bcd8dc81d7afe1370c1acee656dcc3192b63552429692655dc0159ee97e",
+    "version": "1.0.7a0",
+    "tag": "v1.0.7a",
+    "sourceCommit": "2fa67d0c2fdb447995233ab3b65cc92897e81ec5",
+    "wheelSha256": "c6aab02a71e0897d569c3c9f6aebf336b2886daf71be1ed1443a26640defecf6",
 }
 BASE_PRESETS = {
     "electronic_structure": {
@@ -68,6 +68,11 @@ NEW_PRESETS = {
         "multi_defect_impurity",
     },
 }
+PROTEIN_SEED_PLAN = {
+    "open_to_closed": {0, 5, 8},
+    "barrier_shift": {0, 1, 3},
+    "alternate_basin": {0, 1, 3},
+}
 SOURCE_FILES = {
     "biomedicine_v2": "biomedicine_release_calibration.json",
     "rna_structure": "rna_structure_calibration.json",
@@ -113,6 +118,19 @@ def validate_evidence(evidence_root: Path = DEFAULT_EVIDENCE_ROOT) -> dict[str, 
             "schema": payloads[source_id].get("schema"),
             "generatedAt": payloads[source_id].get("generatedAt"),
         }
+
+    for source_id in NEW_PRESETS:
+        payload = payloads.get(source_id)
+        if payload is None:
+            continue
+        if (
+            payload.get("environment", {}).get("cascaqitVersion")
+            != EXPECTED_CASCAQIT["version"]
+        ):
+            failures.append(
+                f"{source_id}: evidence is not calibrated with "
+                f"CASCAQit {EXPECTED_CASCAQIT['version']}"
+            )
 
     scenarios: list[dict[str, Any]] = []
     base = payloads.get("biomedicine_v2")
@@ -199,8 +217,13 @@ def validate_evidence(evidence_root: Path = DEFAULT_EVIDENCE_ROOT) -> dict[str, 
         rows = protein.get("runs", [])
         summary = protein.get("summary", {})
         actual = {(row.get("preset"), row.get("seed")) for row in rows}
+        expected = {
+            (preset, seed)
+            for preset, seeds in PROTEIN_SEED_PLAN.items()
+            for seed in seeds
+        }
         passed = (
-            actual == _expected_combinations(NEW_PRESETS["protein_dynamics"])
+            actual == expected
             and len(rows) == 9
             and summary.get("runCount") == 9
             and summary.get("observedFeasibleRunCount") == 6

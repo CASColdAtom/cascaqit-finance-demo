@@ -72,7 +72,7 @@ def test_runtime_requires_validated_cascaqit_release_series() -> None:
 
     project = Path("pyproject.toml").read_text(encoding="utf-8")
 
-    assert '"cascaqit>=1.0.5a0,<1.0.6"' in project
+    assert '"cascaqit>=1.0.7a0,<1.0.8"' in project
 
 
 def test_project_and_windows_bundle_use_industry_identity() -> None:
@@ -163,10 +163,10 @@ def test_build_command_resolves_platform_specific_path_entry(
 def test_windows_bundle_extracts_license_from_pinned_sdk_wheel(
     tmp_path: Path,
 ) -> None:
-    sdk_wheel = tmp_path / "cascaqit-1.0.5a0-py3-none-any.whl"
+    sdk_wheel = tmp_path / "cascaqit-1.0.7a0-py3-none-any.whl"
     with ZipFile(sdk_wheel, "w") as archive:
         archive.writestr(
-            "cascaqit-1.0.5a0.dist-info/licenses/LICENSE",
+            "cascaqit-1.0.7a0.dist-info/licenses/LICENSE",
             "Apache License 2.0\n",
         )
 
@@ -189,12 +189,12 @@ def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None
 
     current = tmp_path / "current"
     current.mkdir()
-    _write_test_wheel(current, "cascaqit", "1.0.5a0", ["third-party>=1"])
+    _write_test_wheel(current, "cascaqit", "1.0.7a0", ["third-party>=1"])
     _write_test_wheel(
         current,
         "cascaqit-industry-workbench",
         "0.3.0",
-        ["cascaqit>=1.0.5a0,<1.0.6"],
+        ["cascaqit>=1.0.7a0,<1.0.8"],
     )
     output = tmp_path / "output"
     _populate_windows_wheelhouse_from_cache(
@@ -208,7 +208,7 @@ def test_windows_bundle_cache_replaces_both_local_wheels(tmp_path: Path) -> None
     assert "cascaqit-9.9.9-py3-none-any.whl" not in names
     assert "cascaqit_finance_demo-9.9.9-py3-none-any.whl" not in names
     assert "cascaqit_industry_workbench-9.9.9-py3-none-any.whl" not in names
-    assert "cascaqit-1.0.5a0-py3-none-any.whl" in names
+    assert "cascaqit-1.0.7a0-py3-none-any.whl" in names
     assert "cascaqit_industry_workbench-0.3.0-py3-none-any.whl" in names
     assert "third_party-1.2.3-py3-none-any.whl" in names
 

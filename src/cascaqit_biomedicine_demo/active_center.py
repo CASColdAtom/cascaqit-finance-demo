@@ -10,10 +10,6 @@ from pathlib import Path
 from typing import Any
 
 from cascaqit.algorithms import VQE, OptimizerConfig
-from cascaqit.algorithms.measurement import (
-    PauliMeasurementConfig,
-    build_pauli_measurement_plan,
-)
 
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
 from cascaqit_biomedicine_demo.fixtures import validate_manifest_contract
@@ -23,6 +19,11 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
     hash_payload,
     sector_occupancy_from_counts,
     sector_occupancy_from_probabilities,
+)
+from cascaqit_biomedicine_demo.qwc_measurement import (
+    PauliMeasurementConfig,
+    build_pauli_measurement_plan,
+    evaluate_sampled_vqe,
 )
 from cascaqit_industry_demo.audit import (
     finalize_stable_audit,
@@ -317,7 +318,8 @@ def run_active_center(
         final_shots=shots,
     )
     best = result.evaluations[result.best_evaluation_index]
-    sampled = vqe.evaluate_sampled(
+    sampled = evaluate_sampled_vqe(
+        vqe,
         best.parameter_bind.values,
         measurement=PauliMeasurementConfig(shots_per_group=shots),
         seed=seed,

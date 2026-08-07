@@ -7,11 +7,6 @@ from typing import Any
 
 from cascaqit.algorithms import VQE, OptimizerConfig, PauliHamiltonian
 from cascaqit.algorithms.ansatz import transfer_vqe_parameters
-from cascaqit.algorithms.measurement import (
-    PauliMeasurementConfig,
-    SampledObjectiveEvaluationIR,
-    build_pauli_measurement_plan,
-)
 from cascaqit.simulators import NoiseChannel, NoiseModel, SimulationOptions
 
 from cascaqit_biomedicine_demo.catalog import BIOMEDICINE_SCENARIO_SPECS
@@ -26,6 +21,12 @@ from cascaqit_biomedicine_demo.pauli_vqe import (
     build_pauli_hamiltonian,
     exact_diagonalization,
     hash_payload,
+)
+from cascaqit_biomedicine_demo.qwc_measurement import (
+    PauliMeasurementConfig,
+    SampledObjectiveEvaluation,
+    build_pauli_measurement_plan,
+    evaluate_sampled_vqe,
 )
 from cascaqit_industry_demo.audit import (
     finalize_stable_audit,
@@ -259,7 +260,7 @@ def _initial_parameters(
 
 
 def _measurement_groups(
-    sampled: SampledObjectiveEvaluationIR,
+    sampled: SampledObjectiveEvaluation,
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -318,17 +319,19 @@ def run_electronic_structure(
     )
     best = result.evaluations[result.best_evaluation_index]
     measurement = PauliMeasurementConfig(shots_per_group=shots)
-    sampled = vqe.evaluate_sampled(
+    sampled = evaluate_sampled_vqe(
+        vqe,
         best.parameter_bind.values,
         measurement=measurement,
         seed=seed,
     )
-    noisy_sampled: SampledObjectiveEvaluationIR | None = None
+    noisy_sampled: SampledObjectiveEvaluation | None = None
     noise: NoiseModel | None = None
     noise_options: SimulationOptions | None = None
     if resolved["noise_model"] == "readout_demo":
         noise, noise_options = _readout_noise()
-        noisy_sampled = vqe.evaluate_sampled(
+        noisy_sampled = evaluate_sampled_vqe(
+            vqe,
             best.parameter_bind.values,
             measurement=measurement,
             seed=seed,

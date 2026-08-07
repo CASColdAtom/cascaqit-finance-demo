@@ -72,7 +72,7 @@ def test_docking_analysis_recommends_real_hybrid_split() -> None:
     assert not any(code.startswith("FINANCE_") for code in hybrid["diagnosticCodes"])
 
 
-@pytest.mark.parametrize("seed", (1, 11, 17))
+@pytest.mark.parametrize("seed", (1, 6, 8))
 def test_calibrated_hybrid_seeds_observe_feasible_quantum_candidate(seed: int) -> None:
     run = run_docking_match(
         preset="reference_pose",

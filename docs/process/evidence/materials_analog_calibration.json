@@ -18,12 +18,12 @@
     "timeStepsAtTerminal": 320
   },
   "environment": {
-    "cascaqitModule": "/Users/tomcat/code/quantum-program/cascaqit-new/CASCAQit/src/cascaqit/__init__.py",
-    "cascaqitVersion": "1.0.5a",
+    "cascaqitModule": "/private/tmp/cascaqit-107a-venv/lib/python3.9/site-packages/cascaqit/__init__.py",
+    "cascaqitVersion": "1.0.7a0",
     "platform": "macOS-26.5.1-arm64-arm-64bit",
     "python": "3.9.6"
   },
-  "generatedAt": "2026-07-30T12:55:02.715661+00:00",
+  "generatedAt": "2026-08-07T11:09:20.624953+00:00",
   "runs": [
     {
       "comparison": {
@@ -34,12 +34,12 @@
         "terminalStateFidelity": 0.999999999825169
       },
       "hashes": {
-        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "analysisHash": "dfbfecc910653111135b1b6fdd6d30b78d55f9615ecb20eb800d606df7381245",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
         "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
         "configurationHash": "2c3304699198ba56c56bf9460ad9d606d241db6f87f2c8f9f375e227682bda65",
-        "executionHash": "e2e5f0288488c09c589766b427fa4e512a905ba7249777c7279d2bda32e18397",
+        "executionHash": "16084497fb865d9c366db2dc06838e8bcc398aa4ce3b1f587882a1379d88d74a",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "666790055ced80029d365771249821af377d15ef3a85666f8a19372e4c732dd3",
@@ -57,7 +57,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.5222476249999999,
+      "seconds": 0.4861249160000001,
       "seed": 7,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -71,12 +71,12 @@
         "terminalStateFidelity": 0.999999999825169
       },
       "hashes": {
-        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "analysisHash": "dfbfecc910653111135b1b6fdd6d30b78d55f9615ecb20eb800d606df7381245",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
         "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
         "configurationHash": "5c7fc145b3fd7155a97a6da576259d54822696cf40a96bf982e42bdbbcb482df",
-        "executionHash": "4a9bad3e123574fe82284267f831d5e2d32ce4c663cc4618a26714b4e7c43566",
+        "executionHash": "ec58ba554c53df17f79d9463d48d6d41ffdcd55b1eaac35ce56dbce857d29666",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "11ccc37621aaf3f41197fd718f269919a240d5bb2425be938577aaa6d69efe54",
@@ -94,7 +94,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.465336333,
+      "seconds": 0.482777958,
       "seed": 23,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -108,12 +108,12 @@
         "terminalStateFidelity": 0.999999999825169
       },
       "hashes": {
-        "analysisHash": "819f3ef6e1ddd9560b5d85cf4e4e63fb4a47eb4d51dc7616763abde1c9fae986",
+        "analysisHash": "dfbfecc910653111135b1b6fdd6d30b78d55f9615ecb20eb800d606df7381245",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "99a8a2eaca45b32e6f3cb22a91870c05ca648cbfeeaf21b3a69b253a9ac15de9",
         "compileHash": "7544e886d9d0d20c62a30aaa24bac222f11806d611243d326761e678a40d60fe",
         "configurationHash": "6eeebac83c20f6924a6ae57b8f39b82cce405f7a928c3ebb6c81de73e04a5e8c",
-        "executionHash": "06bbac816d7fcbf68fc4ea651cbe0186cd7cf0df7bf3e099db150251376d8992",
+        "executionHash": "fc1defc03f85a80ca6ceda9a225e871af6d55dc19738121f27fb0c89acae1f8c",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "8cdf43be44486bc110a87cd8a835d6eb2b4271e38ec11366c0ae121f6e96f8d7",
@@ -131,7 +131,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.4931157080000004,
+      "seconds": 0.6067514169999999,
       "seed": 41,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -145,12 +145,12 @@
         "terminalStateFidelity": 0.9999999998599005
       },
       "hashes": {
-        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "analysisHash": "efaeef63c4a300b81936d20622f78d4131b49e5b0baf8a775dd9d9df38c6b25c",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
         "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
         "configurationHash": "91b264fe08024eed974cab1eaf5797ba3d51dc0dc94afd6ac01ed363616f9076",
-        "executionHash": "76e3e72a56837977141fdd33b6cd14a1417c5ddadc4e48e1fd26a3964576f152",
+        "executionHash": "a77537c7b050febbfe9de828a5c72e5e5314850e44b4ea1104ad320463ce90a1",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "183ea2a8618ae19982ba0a60d573a39b492c9c749062fe1573fd80ff9a4cf6e5",
@@ -168,7 +168,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.4248362079999999,
+      "seconds": 0.4859326249999998,
       "seed": 7,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -182,12 +182,12 @@
         "terminalStateFidelity": 0.9999999998599005
       },
       "hashes": {
-        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "analysisHash": "efaeef63c4a300b81936d20622f78d4131b49e5b0baf8a775dd9d9df38c6b25c",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
         "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
         "configurationHash": "b7540504e27be6ee145048c25556604a9a2324cbebc28658e011fadf57e03df5",
-        "executionHash": "66cb9b6e14df2b75201326a304ba8e552948e046e2655000c176bb9a92368a69",
+        "executionHash": "410577e835eb6c3df9fe676bf285e6f7ef1bbfe0c3a9f451c305b890e4ea2bbf",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "4478bada8fb6e7a2f2e136afb71c2f587503ed5657976cdb034149a8c8211229",
@@ -205,7 +205,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.4434975419999998,
+      "seconds": 0.4978813339999997,
       "seed": 23,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -219,12 +219,12 @@
         "terminalStateFidelity": 0.9999999998599005
       },
       "hashes": {
-        "analysisHash": "a4a9c648ced5faccc5b3b061060ad8257f001f0e53a81d2634187b54e45c7c4c",
+        "analysisHash": "efaeef63c4a300b81936d20622f78d4131b49e5b0baf8a775dd9d9df38c6b25c",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "e0de3bb31514ed2a53bb4abad6865417ff1fecaf7b29f521b9589d153e7cc7e9",
         "compileHash": "0b248cfa95b807b9e623a9a324671fb0a8063065801806b1eb0a443b294f04bf",
         "configurationHash": "35f564dea2d9976519b06aec6e9494327a868c99b3c2881025ccabb22d58c15e",
-        "executionHash": "7a973de4b961fa20f0db926f247b7111d761121775ef51548cc3ae18734e9876",
+        "executionHash": "fbd9f215c0095cf3b6bdb21c13361a584ae73cf681a468fd8b5b7932c7c8369d",
         "initialStateHash": "f2a8d212cc041dd28b6c9513df75908cd57946c8d64248d06dd6f9cc98282684",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "c4fc08403a2673af0732a522730c5e01ba4b009ce34be7e98bcf72d31e02292c",
@@ -242,7 +242,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.3936903340000004,
+      "seconds": 0.5473235000000005,
       "seed": 41,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -256,12 +256,12 @@
         "terminalStateFidelity": 0.9999999998217326
       },
       "hashes": {
-        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "analysisHash": "7db67185fbfe1b5f0424f76072cee4f9569641f75bdf57be47e45cde10c4beb7",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
         "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
         "configurationHash": "c7a97d89371c45b2559c331b5d123b658e8bdf4c527dfc756e9f6720daa8ff85",
-        "executionHash": "a0b57f61dc163226cf295c83747c815f9a5b55e67a877d4c8b53ce73cc36896b",
+        "executionHash": "75cace7157c94d2e178928cd2d59f9f0387eded85563f5e8c4b43c8b38b18055",
         "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "2a714c419b5eec1969856443ca54e0740582a1f850a365815d2341ca3a843747",
@@ -279,7 +279,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.5166087910000003,
+      "seconds": 0.6627200420000001,
       "seed": 7,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -293,12 +293,12 @@
         "terminalStateFidelity": 0.9999999998217326
       },
       "hashes": {
-        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "analysisHash": "7db67185fbfe1b5f0424f76072cee4f9569641f75bdf57be47e45cde10c4beb7",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
         "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
         "configurationHash": "de8721a412a2fd8119aa181406b1d863bae63b4d8364244c1c2b7b844f78a072",
-        "executionHash": "d44f0687e46e0cd31bfee93e7857f24879f8c4721b1ed0a55c94b408be4d605e",
+        "executionHash": "e2cf4b500892064ea368d2a315a0611af925191a85b99ebfac13cf849481d80c",
         "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "2b76718e719bcd44f440f2d94a0b81c6a04338d534d6d7fda940d1ccc308daae",
@@ -316,7 +316,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.5128966669999997,
+      "seconds": 0.5594122080000004,
       "seed": 23,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -330,12 +330,12 @@
         "terminalStateFidelity": 0.9999999998217326
       },
       "hashes": {
-        "analysisHash": "cf1b4afc8dcc570a43e8dbe70376afd4c1cd90cd9d3ea495adbee79d762ebe69",
+        "analysisHash": "7db67185fbfe1b5f0424f76072cee4f9569641f75bdf57be47e45cde10c4beb7",
         "backendHash": "d80d5e3cc59540c3b3f6834061b2be39ae1fe529286b67c4d9a37e72455e5504",
         "classicReferenceHash": "d40ab996bf7df1cc805dc7143b8d2f67808cf6eac21f1111991d137df712e1ee",
         "compileHash": "5d44d477990df77513d1d0a80b293adc0b64b763d785de337e18d5600b636095",
         "configurationHash": "1c93157f46e110a2f8c1fb3a4d9918a797731685f35311368045a43ec89d8d18",
-        "executionHash": "8de82c99beb122ff41e8bdde8d93849d31a27bcef985105f96aca43d405f14b6",
+        "executionHash": "8a542c745db833210ede702fce1525eb876e9fbf484b2abfe3978c223a2d876c",
         "initialStateHash": "de15201aca66cda8bde35a63714383ed9fbb9b1496eeadacbec18e413570e7cf",
         "manifestHash": "90f925dcc5aacf9931612f2a0e1ff4e09e71a8c7f5d54b6c90776163788addfc",
         "outcomeHash": "1a2caa192e08830987e6a1c2d2ba4be73051d1ac6417ca8d11efefe79da9b307",
@@ -353,7 +353,7 @@
         "hybridBlockCount": 0
       },
       "sampleCount": 9,
-      "seconds": 0.5608365830000004,
+      "seconds": 0.5409961249999995,
       "seed": 41,
       "shotsPerTime": 128,
       "terminalCountsTotal": 128
@@ -364,7 +364,7 @@
     "failedCount": 0,
     "maximumCorrelationAbsoluteError": 9.814506272354251e-06,
     "maximumOccupationAbsoluteError": 5.112615205249416e-06,
-    "maximumSeconds": 0.5608365830000004,
+    "maximumSeconds": 0.6627200420000001,
     "minimumTerminalStateFidelity": 0.9999999998217326,
     "passed": true,
     "passedCount": 9,
